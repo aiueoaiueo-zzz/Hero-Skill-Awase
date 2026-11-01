@@ -12,6 +12,7 @@ Cloudflare Workers（静的アセット配信込み）＋ D1 ＋ R2。フロン�
 npm install
 cp .dev.vars.example .dev.vars   # ローカル用の secret
 npm run db:migrate:local         # D1（ローカル）にマイグレーションと初期データを適用
+npm run sample:local             # （任意）表示確認用のサンプルデータと動画を投入
 npm run dev                      # http://localhost:5173 （Vite ＋ Workers ランタイム。D1・R2 ともローカル）
 ```
 
@@ -31,4 +32,4 @@ D1・R2 のローカルデータは `.wrangler/state` に保存されます（`n
 | `src/client/` | フロント（React） |
 | `src/shared/` | フロントと Worker で共通の定数・入力チェック |
 | `migrations/` | D1 マイグレーション（`0002_seed_heroes.sql` が初期データ） |
-| `scripts/` | 開発用スクリプト・サンプルデータ |
+| `scripts/` | 開発用スクリプト・サンプルデータ（`npm run sample:local` でローカルに投入） |

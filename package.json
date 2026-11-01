@@ -11,8 +11,8 @@
     "typecheck": "tsc -b",
     "db:migrate:local": "wrangler d1 migrations apply DB --local",
     "db:migrate:remote": "wrangler d1 migrations apply DB --remote",
-    "db:sample:local": "wrangler d1 execute DB --local --file=scripts/dev-sample.sql",
-    "cf-typegen": "wrangler types src/worker/worker-configuration.d.ts"
+    "cf-typegen": "wrangler types src/worker/worker-configuration.d.ts",
+    "sample:local": "wrangler d1 execute DB --local --file=scripts/dev-sample.sql && wrangler r2 object put hs-awase-media/public/demo.mp4 --file=scripts/demo.mp4 --content-type=video/mp4 --local && wrangler r2 object put hs-awase-media/pending/x.mp4 --file=scripts/demo.mp4 --content-type=video/mp4 --local"
   },
   "dependencies": {
     "hono": "^4.13.16",

@@ -1,23 +1,58 @@
-import { StrictMode, useEffect, useState } from "react";
+import { StrictMode, useEffect } from "react";
 import { createRoot } from "react-dom/client";
+import { BrowserRouter, Navigate, Outlet, Route, Routes, useLocation } from "react-router";
+import { Footer } from "./components/Footer";
+import { DataProvider } from "./lib/data";
+import { About } from "./pages/About";
+import { Detail } from "./pages/Detail";
+import { Home } from "./pages/Home";
+import { Placeholder } from "./pages/Placeholder";
+import { Targets } from "./pages/Targets";
 import "./styles.css";
 
-type Hero = { id: string; name: string; slug: string };
-
-function App() {
-  const [heroes, setHeroes] = useState<Hero[] | null>(null);
+function Layout() {
+  const { pathname, key } = useLocation();
   useEffect(() => {
-    fetch("/api/heroes").then((r) => r.json()).then((d) => setHeroes(d.heroes));
-  }, []);
+    window.scrollTo(0, 0);
+  }, [key]);
   return (
     <>
-      <header>
-        <h1>HS明け早見アプリ<small>① 攻撃する側（自分）のキャラを選択</small></h1>
-      </header>
-      <div className="sec">初期構築の確認（D1 から取得）</div>
-      <ul id="heroes">{heroes?.map((h) => <li key={h.id}>{h.name}（{h.slug}）</li>)}</ul>
+      <Outlet />
+      {!pathname.startsWith("/admin") && <Footer />}
     </>
   );
 }
 
-createRoot(document.getElementById("root")!).render(<StrictMode><App /></StrictMode>);
+/** 同じ画面コンポーネントでも URL が変わったら作り直す（検索欄などをリセット） */
+function Keyed({ children }: { children: React.ReactNode }) {
+  const { pathname } = useLocation();
+  return <div style={{ display: "contents" }} key={pathname}>{children}</div>;
+}
+
+function App() {
+  return (
+    <Routes>
+      <Route element={<Layout />}>
+        <Route path="/" element={<Home />} />
+        <Route path="/h/:a" element={<Keyed><Targets /></Keyed>} />
+        <Route path="/h/:a/:t" element={<Keyed><Detail /></Keyed>} />
+        <Route path="/about" element={<About />} />
+        <Route path="/submit" element={<Placeholder title="タイミングを投稿" step={3} />} />
+        <Route path="/submit/done/:code" element={<Placeholder title="申請しました" step={3} />} />
+        <Route path="/status" element={<Placeholder title="審査状況の確認" step={3} />} />
+        <Route path="/admin/*" element={<Placeholder title="管理画面" step={4} />} />
+        <Route path="*" element={<Navigate to="/" replace />} />
+      </Route>
+    </Routes>
+  );
+}
+
+createRoot(document.getElementById("root")!).render(
+  <StrictMode>
+    <BrowserRouter>
+      <DataProvider>
+        <App />
+      </DataProvider>
+    </BrowserRouter>
+  </StrictMode>,
+);
