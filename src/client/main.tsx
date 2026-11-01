@@ -7,7 +7,9 @@ import { About } from "./pages/About";
 import { Detail } from "./pages/Detail";
 import { Done } from "./pages/Done";
 import { Home } from "./pages/Home";
-import { Placeholder } from "./pages/Placeholder";
+import { AdminHeroes } from "./pages/admin/AdminHeroes";
+import { AdminPending } from "./pages/admin/AdminPending";
+import { AdminSettings } from "./pages/admin/AdminSettings";
 import { Status } from "./pages/Status";
 import { Submit } from "./pages/Submit";
 import { Targets } from "./pages/Targets";
@@ -43,7 +45,9 @@ function App() {
         <Route path="/submit" element={<Keyed><Submit /></Keyed>} />
         <Route path="/submit/done/:code" element={<Done />} />
         <Route path="/status" element={<Status />} />
-        <Route path="/admin/*" element={<Placeholder title="管理画面" step={4} />} />
+        <Route path="/admin" element={<AdminPending />} />
+        <Route path="/admin/heroes" element={<AdminHeroes />} />
+        <Route path="/admin/settings" element={<AdminSettings />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Route>
     </Routes>

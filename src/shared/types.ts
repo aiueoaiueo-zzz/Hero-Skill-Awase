@@ -84,3 +84,33 @@ export type StatusResponse = {
   isFix: boolean;
   timings: StatusTiming[];
 };
+
+export type AdminTiming = {
+  id: string;
+  position: number;
+  attackType: import("./constants").AttackType;
+  cueType: import("./constants").CueType;
+  timingText: string;
+  note: string | null;
+  videoUrl: string | null;
+  videoKey: string;
+};
+
+export type AdminGroup = {
+  code: string;
+  createdAt: string;
+  attacker: Hero;
+  target: Hero;
+  nickname: string | null;
+  supportCode: string | null;
+  /** 投稿全体のタイミング数（「タイミング 1 / 2」の分母） */
+  total: number;
+  isFix: boolean;
+  /** 修正提案のとき：現在公開中の元のタイミング */
+  original: (AdminTiming & { nickname: string | null; supportCode: string | null; reviewedAt: string | null; status: TimingStatus }) | null;
+  timings: AdminTiming[];
+};
+
+export type StorageUsage = { totalBytes: number; pendingBytes: number; limitBytes: number; pendingLimitBytes: number };
+
+export type AdminPendingResponse = { groups: AdminGroup[]; usage: StorageUsage };

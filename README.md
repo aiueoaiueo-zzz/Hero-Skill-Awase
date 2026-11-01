@@ -22,6 +22,10 @@ npm run dev                      # http://localhost:5173 （Vite ＋ Workers ラ
 npm run preview                  # build → wrangler dev（http://localhost:8787）
 ```
 
+管理画面は http://localhost:5173/admin を直接開きます（ローカルでは Cloudflare Access の確認を省略します。本番では必須）。
+
+単体テスト：`npm test`
+
 D1・R2 のローカルデータは `.wrangler/state` に保存されます（`npm run dev` と `wrangler dev` で共通）。
 
 ## ディレクトリ

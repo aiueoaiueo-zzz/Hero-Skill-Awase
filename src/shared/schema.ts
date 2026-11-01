@@ -51,3 +51,22 @@ export type UploadRequest = z.infer<typeof uploadRequestSchema>;
 
 export const withdrawSchema = z.object({ deleteKey: z.string().min(1).max(128) });
 export const codeSchema = z.string().regex(/^HS-[A-Z0-9]{6}$/);
+
+export const approveSchema = z.object({
+  edits: z
+    .object({
+      attackType: attackTypeSchema,
+      cueType: cueTypeSchema,
+      timingText: text(LIMITS.timingText).refine((s) => s.length > 0, { message: "合わせるタイミングを入力してください" }),
+      note: optText(LIMITS.note),
+    })
+    .optional(),
+});
+
+export const rejectSchema = z.object({ reason: optText(LIMITS.rejectReason) });
+
+export const settingsSchema = z.object({
+  owner_support_code: optText(LIMITS.supportCode).transform((s) => s ?? "").optional(),
+  notices: z.string().max(5000).optional(),
+  about: z.string().max(20000).optional(),
+});
