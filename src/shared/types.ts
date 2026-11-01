@@ -39,3 +39,48 @@ export type TargetsResponse = {
 };
 
 export type { TimingStatus };
+
+export type UploadResponse = {
+  ticket: string;
+  uploads: { videoKey: string; url: string; method: "PUT"; headers: Record<string, string> }[];
+};
+
+export type EntryResponse = { code: string; deleteKey: string };
+
+/** 修正提案の元になる公開中のタイミング */
+export type FixSource = {
+  id: string;
+  attacker: Hero;
+  target: Hero;
+  attackType: import("./constants").AttackType;
+  cueType: import("./constants").CueType;
+  timingText: string;
+  note: string | null;
+  videoKey: string;
+  videoUrl: string;
+};
+
+export type StatusTiming = {
+  id: string;
+  position: number;
+  attackType: import("./constants").AttackType;
+  cueType: import("./constants").CueType;
+  timingText: string;
+  note: string | null;
+  status: TimingStatus;
+  rejectReason: string | null;
+  reviewedAt: string | null;
+  /** 公開済み（承認済み）のときだけ */
+  videoUrl: string | null;
+};
+
+export type StatusResponse = {
+  code: string;
+  createdAt: string;
+  attacker: Hero;
+  target: Hero;
+  nickname: string | null;
+  supportCode: string | null;
+  isFix: boolean;
+  timings: StatusTiming[];
+};
