@@ -55,7 +55,7 @@ submitRoutes.post("/uploads", async (c) => {
     // 本番：ブラウザから R2 へ直接 PUT（署名付き URL、10 分）。
     // R2 の認証情報がないローカル開発では、Worker 経由で受け取る。
     const url = hasR2Credentials(c.env)
-      ? await presignPut(c.env, videoKey, f.contentType, UPLOAD_URL_TTL_MS / 1000)
+      ? await presignPut(c.env, videoKey, f.contentType, f.size, UPLOAD_URL_TTL_MS / 1000)
       : `/api/uploads/${id}?t=${ticket}`;
     uploads.push({ videoKey, url, method: "PUT", headers: { "Content-Type": f.contentType } });
   }

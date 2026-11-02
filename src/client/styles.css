@@ -429,3 +429,10 @@ header::before{content:"";position:absolute;left:0;bottom:3px;height:4px;width:v
 .entry{scroll-margin-top:96px} /* 共有リンクで移動したとき、固定ヘッダーの下に隠れないように */
 /* 非公開（管理者が隠したもの） */
 .chip.st-hidden{background:#f2f2f2;border-color:#999;color:#555}
+
+/* フッターのリンク（注意事項・プライバシー／お問い合わせ／このアプリについて） */
+.sitefoot .flinks{display:flex;flex-wrap:wrap;justify-content:center;gap:4px 16px;margin:4px 0 10px;font-size:12px}
+.sitefoot .flinks a{color:#000;text-decoration:underline;text-underline-offset:3px}
+/* 管理画面のタブ（5 つ）：狭い画面では折り返す */
+.tabs{gap:4px}
+.tabs button{flex:1 1 auto;white-space:nowrap;padding:9px 2px;font-size:12px;letter-spacing:0}

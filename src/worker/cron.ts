@@ -91,6 +91,9 @@ export async function runMaintenance(env: Env, now = Date.now()): Promise<Mainte
   // 5. 古いアップロード記録を片付ける（7 日以上前）
   await db.prepare("DELETE FROM uploads WHERE created_at < ?").bind(new Date(now - 7 * 24 * HOUR).toISOString()).run();
 
+  // 6. 対応済みにしてから 90 日たったお問い合わせを削除する
+  await db.prepare("DELETE FROM contacts WHERE status = 'done' AND done_at < ?").bind(new Date(now - 90 * 24 * HOUR).toISOString()).run();
+
   const total = await db.prepare("SELECT COALESCE(SUM(size), 0) AS n FROM media_objects").first<{ n: number }>();
   const report: MaintenanceReport = { r2Objects: objects.length, deleted: garbage, ledgerFixed: fixes.length, expiredPending, totalBytes: total?.n ?? 0 };
 

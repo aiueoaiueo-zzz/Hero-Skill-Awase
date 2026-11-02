@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { DEFAULT_ABOUT, DEFAULT_NOTICES, type SettingKey } from "../../../shared/constants";
+import { DEFAULT_ABOUT, DEFAULT_NOTICES, DEFAULT_TERMS, type SettingKey } from "../../../shared/constants";
 import { api, ApiError, useApi } from "../../lib/api";
 import { useData } from "../../lib/data";
 import { useBootFx } from "../../lib/fx";
@@ -8,7 +8,7 @@ import { AdminLayout, adminErrorMessage } from "./AdminLayout";
 
 type Settings = Record<SettingKey, string>;
 
-/** 管理：設定（制作者の応援コード・注意事項・このアプリについて） */
+/** 管理：設定（制作者の応援コード・フッターの注意書き・注意事項・プライバシー・このアプリについて） */
 export function AdminSettings() {
   const { data, error } = useApi<Settings>("/api/admin/settings");
   const pending = useApi<{ groups: { timings: unknown[] }[] }>("/api/admin/pending");
@@ -16,12 +16,15 @@ export function AdminSettings() {
   const [own, setOwn] = useState("");
   const [notices, setNotices] = useState("");
   const [about, setAbout] = useState("");
+  const [terms, setTerms] = useState("");
   const [preview, setPreview] = useState<string | null>(null);
+  const [previewTerms, setPreviewTerms] = useState<string | null>(null);
   useEffect(() => {
     if (!data) return;
     setOwn(data.owner_support_code);
     setNotices(data.notices);
     setAbout(data.about);
+    setTerms(data.terms);
   }, [data]);
   useBootFx(!!data || !!error);
 
@@ -54,9 +57,9 @@ export function AdminSettings() {
           </div>
           <div className="box">
             <p>
-              <b style={{ color: "var(--text)" }}>注意事項</b>（全画面のフッターに表示）
+              <b style={{ color: "var(--text)" }}>フッターの注意書き</b>（全画面のフッターに表示）
               <br />
-              1行に1項目。**文字** で太字になります。
+              1行に1項目。**文字** で太字になります。詳しい内容は下の「注意事項・プライバシー」に書き、ここは短くしてください。
             </p>
             <textarea style={{ minHeight: 220 }} value={notices} onChange={(e) => setNotices(e.target.value)} />
             <div className="btns">
@@ -68,10 +71,38 @@ export function AdminSettings() {
               >
                 初期の文面に戻す
               </button>
-              <button className="primary" onClick={() => save({ notices }, "注意事項を保存しました")}>
+              <button className="primary" onClick={() => save({ notices }, "フッターの注意書きを保存しました")}>
                 保存
               </button>
             </div>
+          </div>
+          <div className="box">
+            <p>
+              <b style={{ color: "var(--text)" }}>注意事項・プライバシー</b>（フッターのリンクから開くページ）
+              <br />
+              書き方は「このアプリについて」と同じです。内容を変えたら、最後の「最終更新」の日付も直してください。
+            </p>
+            <textarea style={{ minHeight: 360 }} value={terms} onChange={(e) => setTerms(e.target.value)} />
+            <div className="btns">
+              <button
+                onClick={() => {
+                  setTerms(DEFAULT_TERMS);
+                  toast("初期の文面を入れました（保存で確定）");
+                }}
+              >
+                初期の文面に戻す
+              </button>
+              <button onClick={() => setPreviewTerms(terms)}>プレビュー</button>
+              <button className="primary" onClick={() => save({ terms }, "注意事項・プライバシーを保存しました")}>
+                保存
+              </button>
+            </div>
+            {previewTerms !== null && (
+              <div className="about" style={{ marginTop: 12 }}>
+                <div className="lbl">プレビュー</div>
+                <div dangerouslySetInnerHTML={{ __html: mdLite(previewTerms) }} />
+              </div>
+            )}
           </div>
           <div className="box">
             <p>

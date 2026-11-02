@@ -1,3 +1,4 @@
+import { Link } from "react-router";
 import { useData } from "../lib/data";
 import { inlineMd } from "../lib/ui";
 import { SupportCodeButton } from "./SupportCode";
@@ -16,12 +17,16 @@ export function Footer() {
         <span>制作者の応援コード</span>
         {oc ? <SupportCodeButton code={oc} big /> : <b>（未設定）</b>}
       </div>
-      <h3>注意事項</h3>
       <ul>
         {items.map((t, i) => (
           <li key={i} dangerouslySetInnerHTML={{ __html: inlineMd(t) }} />
         ))}
       </ul>
+      <nav className="flinks">
+        <Link to="/terms">注意事項・プライバシー</Link>
+        <Link to="/contact">お問い合わせ</Link>
+        <Link to="/about">このアプリについて</Link>
+      </nav>
       <div className="copy">HS明け早見アプリ（ファンメイド）</div>
     </footer>
   );

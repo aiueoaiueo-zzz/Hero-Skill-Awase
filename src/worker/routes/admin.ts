@@ -3,6 +3,7 @@ import { SETTING_KEYS } from "../../shared/constants";
 import { approveSchema, rejectSchema, settingsSchema } from "../../shared/schema";
 import type { AdminGroup, AdminPendingResponse, AdminPublished, AdminTiming } from "../../shared/types";
 import type { AppEnv, Env } from "../env";
+import { adminContactRoutes } from "./contact";
 import { requireAdmin } from "../lib/admin-auth";
 import { adminHeroRoutes } from "./admin-heroes";
 import { listHeroes } from "../lib/heroes";
@@ -351,3 +352,6 @@ adminRoutes.put("/settings", async (c) => {
   if (stmts.length) await c.env.DB.batch(stmts);
   return c.json(await getSettings(c.env));
 });
+
+// お問い合わせ（requireAdmin の後ろに置く）
+adminRoutes.route("/contacts", adminContactRoutes);

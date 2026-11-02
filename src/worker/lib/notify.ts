@@ -104,3 +104,25 @@ export async function sendDiscordThrottled(env: Env, kind: string, intervalMs: n
     .run();
   await sendDiscord(env, payload);
 }
+
+/** お問い合わせが届いたとき */
+export function contactPayload(env: Env, p: { kindLabel: string; ref: string | null; body: string; replyTo: string | null; openTotal: number }): DiscordPayload {
+  const url = env.ADMIN_APP_URL ? `${env.ADMIN_APP_URL.replace(/\/+$/, "")}/admin/contacts` : undefined;
+  return {
+    embeds: [
+      {
+        title: `✉️ お問い合わせが届きました（${p.kindLabel}）`,
+        description: clip(p.body, 500),
+        color: CYAN,
+        ...(url ? { url } : {}),
+        fields: [
+          ...(p.ref ? [{ name: "受付番号・URL", value: clip(p.ref, 200) }] : []),
+          { name: "返信先", value: p.replyTo ? clip(p.replyTo, 100) : "（なし）", inline: true },
+          { name: "未対応", value: `合計 ${p.openTotal} 件`, inline: true },
+          ...(url ? [{ name: "管理画面", value: url }] : []),
+        ],
+      },
+    ],
+    allowed_mentions: { parse: [] },
+  };
+}
