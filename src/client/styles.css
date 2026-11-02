@@ -441,3 +441,8 @@ header::before{content:"";position:absolute;left:0;bottom:3px;height:4px;width:v
 .homeicon{flex:none;width:38px;height:44px;padding:0;border:none;background:none;cursor:pointer;display:flex;align-items:center;justify-content:center}
 .homeicon img{display:block;width:36px;height:36px}
 .homeicon:active{transform:translateY(2px)}
+
+/* ヘッダー右上の「非公式ファンツール」（目立たない大きさ） */
+.unofficial{position:absolute;top:2px;right:0;font-size:9.5px;line-height:1;color:var(--sub);letter-spacing:.04em;pointer-events:none;white-space:nowrap}
+/* フッターの権利表記 */
+.sitefoot .rights{font-size:10.5px;text-align:center;margin:10px 0 2px;color:var(--sub);font-family:"Chakra Petch","Zen Kaku Gothic New",sans-serif;letter-spacing:.02em}

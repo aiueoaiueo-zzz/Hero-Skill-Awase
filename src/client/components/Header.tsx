@@ -12,6 +12,8 @@ export function Header({ title, sub, back, right, prog }: Props) {
   const hideAbout = pathname === "/about" || pathname.startsWith("/admin");
   return (
     <header ref={ref}>
+      {/* 非公式であることを、邪魔にならない大きさで常に示す（管理画面では出さない） */}
+      {!pathname.startsWith("/admin") && <span className="unofficial">非公式ファンツール</span>}
       {back !== undefined && (
         <button className="ibtn" aria-label="戻る" onClick={() => nav(back)}>
           ←
