@@ -244,7 +244,7 @@ function Edit({ draft, setDraft, heroes }: { draft: Draft; setDraft: SetDraft; h
         </label>
         <HeroPickButton hero={A} onClick={fix ? undefined : () => setPicker("a")} />
         <label className="h">
-          ② HSを使う相手のキャラ（HS明けを狙う）<em>必須</em>
+          ② HSを使う側（相手）のキャラ<em>必須</em>
         </label>
         <HeroPickButton hero={T} onClick={fix ? undefined : () => setPicker("t")} />
         {!fix && (
@@ -291,7 +291,7 @@ function Edit({ draft, setDraft, heroes }: { draft: Draft; setDraft: SetDraft; h
       {picker && (
         <HeroPicker
           heroes={heroes}
-          title={picker === "a" ? "① 攻撃する側（自分）のキャラ" : "② HSを使う相手のキャラ"}
+          title={picker === "a" ? "① 攻撃する側（自分）のキャラ" : "② HSを使う側（相手）のキャラ"}
           onClose={() => setPicker(null)}
           onPick={(h) => {
             setDraft((d) => (picker === "a" ? { ...d, attackerId: h.id } : { ...d, targetId: h.id }));
