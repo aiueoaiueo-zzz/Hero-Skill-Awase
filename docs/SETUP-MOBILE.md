@@ -117,7 +117,7 @@ GitHub Actions が自動で行うこと：
    - ホスト名：`hs-awase.<サブドメイン>.workers.dev`（`https://` は付けない）
    - ウィジェットモード：マネージド
 2. 作成すると **サイトキー** と **シークレットキー** が表示されます。
-3. GitHub に登録します。**サイトキーは「Variables」タブ** です（公開してよい値のため）。
+3. GitHub に登録します。**サイトキーは「Variables」タブ** がおすすめです（公開してよい値のため。Secrets に登録しても動きます）。
 
    | タブ | Name | 値 |
    |---|---|---|
@@ -173,9 +173,9 @@ GitHub Actions が自動で行うこと：
 | Secrets | `R2_ACCESS_KEY_ID` | 手順 7 | 動画のアップロード |
 | Secrets | `R2_SECRET_ACCESS_KEY` | 手順 7 | 動画のアップロード |
 | Secrets | `TURNSTILE_SECRET_KEY` | 手順 8 | 投稿のボット対策 |
-| Variables | `TURNSTILE_SITE_KEY` | 手順 8 | 投稿のボット対策 |
-| Variables | `ACCESS_TEAM_DOMAIN` | 手順 9 | 管理画面のログイン確認 |
-| Variables | `ACCESS_AUD` | 手順 9 | 管理画面のログイン確認 |
+| Variables（Secrets でも可） | `TURNSTILE_SITE_KEY` | 手順 8 | 投稿のボット対策 |
+| Variables（Secrets でも可） | `ACCESS_TEAM_DOMAIN` | 手順 9 | 管理画面のログイン確認 |
+| Variables（Secrets でも可） | `ACCESS_AUD` | 手順 9 | 管理画面のログイン確認 |
 
 ## うまくいかないとき
 
@@ -188,6 +188,7 @@ GitHub Actions が自動で行うこと：
 | デプロイのステップで Authentication error | API トークンに「Workers スクリプト：編集」があるか。`CLOUDFLARE_ACCOUNT_ID` が正しいか |
 | 投稿で「ロボットではないことの確認に失敗しました」 | Turnstile のホスト名がアプリの URL と一致しているか。サイトキー（Variables）とシークレットキー（Secrets）が同じウィジェットのものか |
 | 動画のアップロードで失敗する | 手順 7 の Secrets が登録されているか。2 回目のデプロイを実行したか |
-| 管理画面が「管理者としてログインしていません」 | 手順 9 の Variables が正しいか。登録後に「Run workflow」を実行したか |
+| 管理画面が「管理者としてログインしていません」 | 手順 9 の値が正しいか。登録後に「Run workflow」を実行したか |
+| Summary に「まだ設定されていないもの」が出続ける | **Repository** の Secrets／Variables に登録したか（「Environments」の中ではない）。名前の前後に空白がないか。実行ログの「D1・R2・CORS の準備」ステップの「設定の確認」に、それぞれ「あり／なし」が出ます |
 
 > ダッシュボードのメニュー名は、Cloudflare の画面の変更で少し違うことがあります。見つからない項目があれば、画面の様子を教えてください。

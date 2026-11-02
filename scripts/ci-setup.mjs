@@ -76,6 +76,21 @@ const cors = await cf(`/r2/buckets/${BUCKET}/cors`, {
 });
 if (!cors.ok) fail(`R2 の CORS を設定できませんでした（${errText(cors)}）。`);
 
+// 設定の有無をログに出す（値そのものは出さない）
+const has = (v) => (v && v.trim() ? "あり" : "なし");
+console.log(
+  [
+    `設定の確認（Variables または Secrets）：`,
+    `  TURNSTILE_SITE_KEY: ${has(env.TURNSTILE_SITE_KEY)}`,
+    `  TURNSTILE_SECRET_KEY: ${has(env.TURNSTILE_SECRET_KEY)}`,
+    `  ACCESS_TEAM_DOMAIN: ${has(env.ACCESS_TEAM_DOMAIN)}`,
+    `  ACCESS_AUD: ${has(env.ACCESS_AUD)}`,
+    `  R2_ACCESS_KEY_ID: ${has(env.R2_ACCESS_KEY_ID)}`,
+    `  R2_SECRET_ACCESS_KEY: ${has(env.R2_SECRET_ACCESS_KEY)}`,
+  ].join("\n"),
+);
+for (const k of ["TURNSTILE_SITE_KEY", "ACCESS_TEAM_DOMAIN", "ACCESS_AUD", "TURNSTILE_SECRET_KEY", "R2_ACCESS_KEY_ID", "R2_SECRET_ACCESS_KEY"]) if (env[k]) env[k] = env[k].trim();
+
 // 5. wrangler.jsonc に書き込む（CI の中だけ。リポジトリのファイルは変わらない）
 let conf = readFileSync("wrangler.jsonc", "utf8");
 const setAll = (key, value) => {
@@ -108,8 +123,8 @@ output("admin_url", adminUrl);
 // 足りない設定をまとめて表示
 const missing = [];
 if (!env.R2_ACCESS_KEY_ID || !env.R2_SECRET_ACCESS_KEY) missing.push("Secrets：R2_ACCESS_KEY_ID / R2_SECRET_ACCESS_KEY（動画のアップロードに必要）");
-if (!env.TURNSTILE_SITE_KEY || !env.TURNSTILE_SECRET_KEY) missing.push("Variables：TURNSTILE_SITE_KEY ／ Secrets：TURNSTILE_SECRET_KEY（投稿に必要）");
-if (!env.ACCESS_TEAM_DOMAIN || !env.ACCESS_AUD) missing.push("Variables：ACCESS_TEAM_DOMAIN / ACCESS_AUD（管理画面に必要）");
+if (!env.TURNSTILE_SITE_KEY || !env.TURNSTILE_SECRET_KEY) missing.push("TURNSTILE_SITE_KEY（Variables か Secrets）／ TURNSTILE_SECRET_KEY（Secrets）（投稿に必要）");
+if (!env.ACCESS_TEAM_DOMAIN || !env.ACCESS_AUD) missing.push("ACCESS_TEAM_DOMAIN / ACCESS_AUD（Variables か Secrets）（管理画面に必要）");
 
 summary(`## デプロイ先
 
@@ -123,6 +138,6 @@ summary(`## デプロイ先
 `);
 summary(
   missing.length
-    ? `### ⚠ まだ設定されていないもの\n\n${missing.map((m) => `- ${m}`).join("\n")}\n\n設定するまで、その機能は使えません（閲覧はできます）。docs/SETUP-MOBILE.md を見て登録し、もう一度このワークフローを実行してください。\n`
+    ? `### ⚠ まだ設定されていないもの\n\n${missing.map((m) => `- ${m}`).join("\n")}\n\n設定するまで、その機能は使えません（閲覧はできます）。Settings → Secrets and variables → Actions の **Repository**（Environments ではない）に、名前を正確に登録して、もう一度このワークフローを実行してください（docs/SETUP-MOBILE.md）。\n`
     : "### ✅ 必要な設定はすべて揃っています\n",
 );
