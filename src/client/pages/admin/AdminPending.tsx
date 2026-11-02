@@ -3,7 +3,11 @@ import type { AdminGroup, AdminPendingResponse, AdminTiming, StorageUsage } from
 import { EntryCard, type EntryPoint } from "../../components/EntryCard";
 import { pointId, PointsEditor, type PointDraft } from "../../components/PointsEditor";
 import { Sheet } from "../../components/Sheet";
+import { approvedShareText, timingLink } from "../../../shared/share";
+import { ATTACK_LABEL } from "../../../shared/constants";
 import { api, ApiError } from "../../lib/api";
+import { useData } from "../../lib/data";
+import { shareToX } from "../../lib/share";
 import { useBootFx } from "../../lib/fx";
 import { fmtDate, fmtSize, toast } from "../../lib/ui";
 import { AdminLayout, adminErrorMessage } from "./AdminLayout";
@@ -56,13 +60,29 @@ const changes = (o: AdminTiming, t: AdminTiming) =>
     Boolean,
   ) as string[];
 
+/** 承認したタイミング（X で共有するため、この画面を開いている間だけ覚えておく） */
+type Approved = { key: string; group: AdminGroup; timing: AdminTiming; linkId: string; updated: boolean };
+
+/** 処理中のボタン：回転アイコン付き */
+const Busy = ({ on, label, busyLabel }: { on: boolean; label: string; busyLabel: string }) =>
+  on ? (
+    <>
+      <span className="spin" aria-hidden="true" />
+      {busyLabel}
+    </>
+  ) : (
+    <>{label}</>
+  );
+
 /** 7. 管理：承認待ち一覧（審査はタイミング単位） */
 export function AdminPending() {
   const [data, setData] = useState<AdminPendingResponse | null>(null);
   const [error, setError] = useState<number | null>(null);
   const [rejecting, setRejecting] = useState<AdminTiming | null>(null);
   const [editing, setEditing] = useState<{ t: AdminTiming; g: AdminGroup } | null>(null);
-  const [busyId, setBusyId] = useState<string | null>(null);
+  const [busy, setBusy] = useState<{ id: string; action: "approve" | "reject" | "edit" } | null>(null);
+  const [approved, setApproved] = useState<Approved[]>([]);
+  const { publicAppUrl } = useData();
 
   const load = useCallback(async () => {
     try {
@@ -77,11 +97,14 @@ export function AdminPending() {
   }, [load]);
   useBootFx(!!data || error !== null);
 
-  const approve = async (t: AdminTiming, edits?: Record<string, unknown>) => {
-    setBusyId(t.id);
+  const approve = async (t: AdminTiming, g: AdminGroup, edits?: Record<string, unknown>) => {
+    setBusy({ id: t.id, action: edits ? "edit" : "approve" });
     try {
       const r = await api<{ merged: boolean }>(`/api/admin/timings/${t.id}/approve`, { method: "POST", body: JSON.stringify(edits ? { edits } : {}) });
       toast(r.merged ? "承認し、公開中のタイミングに反映しました" : "承認しました");
+      // 共有用に覚えておく（修正提案は、置き換わった元のタイミングへのリンクにする）
+      const timing = edits ? { ...t, ...(edits as Partial<AdminTiming>) } : t;
+      setApproved((a) => [{ key: t.id, group: g, timing, linkId: r.merged && g.original ? g.original.id : t.id, updated: r.merged }, ...a]);
       await load();
       return true;
     } catch (e) {
@@ -90,9 +113,32 @@ export function AdminPending() {
       // 入力の誤り（400）のときはシートを閉じない
       return !(e instanceof ApiError && e.status === 400);
     } finally {
-      setBusyId(null);
+      setBusy(null);
     }
   };
+  const reject = async (t: AdminTiming, reason: string) => {
+    setBusy({ id: t.id, action: "reject" });
+    try {
+      await api(`/api/admin/timings/${t.id}/reject`, { method: "POST", body: JSON.stringify({ reason }) });
+      toast("却下しました");
+    } catch (e) {
+      toast(errMsg(e));
+    }
+    await load();
+    setBusy(null);
+  };
+  const share = (a: Approved) =>
+    shareToX(
+      approvedShareText({
+        attacker: a.group.attacker.name,
+        target: a.group.target.name,
+        attackType: a.timing.attackType,
+        nickname: a.group.nickname,
+        supportCode: a.group.supportCode,
+        updated: a.updated,
+      }),
+      timingLink(publicAppUrl, a.group.attacker.slug, a.group.target.slug, a.linkId),
+    );
 
   const count = data ? data.groups.reduce((s, g) => s + g.timings.length, 0) : undefined;
   return (
@@ -101,6 +147,24 @@ export function AdminPending() {
       {data && (
         <>
           <UsageBox u={data.usage} />
+          {approved.length > 0 && (
+            <div className="box">
+              <p>
+                <b style={{ color: "var(--text)" }}>承認したタイミング</b>（X で共有できます。この画面を閉じると消えます）
+              </p>
+              {approved.map((a) => (
+                <div key={a.key} style={{ display: "flex", alignItems: "center", gap: 8, padding: "6px 0", borderTop: "1px solid var(--line)" }}>
+                  <span style={{ flex: 1, minWidth: 0, fontSize: 13 }}>
+                    {a.group.attacker.name} → {a.group.target.name}（{ATTACK_LABEL[a.timing.attackType]}）{a.updated ? "・更新" : ""}
+                    {a.group.nickname && <span style={{ color: "var(--sub)", fontSize: 12 }}>　投稿者：{a.group.nickname}</span>}
+                  </span>
+                  <button className="sbtn" style={{ whiteSpace: "nowrap" }} onClick={() => share(a)}>
+                    Xで共有
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
           {data.groups.length ? (
             data.groups.map((g) => (
               <div key={g.code}>
@@ -108,17 +172,17 @@ export function AdminPending() {
                   {g.code}・{fmtDate(g.createdAt)}・{g.isFix ? "修正提案" : `${g.total}タイミング`}
                 </div>
                 {g.timings.map((t, i) => {
-                  const busy = busyId === t.id;
+                  const b = busy?.id === t.id ? busy.action : null;
                   const actions = (
                     <>
-                      <button className="sbtn danger" disabled={busy} onClick={() => setRejecting(t)}>
-                        却下
+                      <button className={`sbtn danger ${b === "reject" ? "busy" : ""}`} disabled={!!busy} onClick={() => setRejecting(t)}>
+                        <Busy on={b === "reject"} label="却下" busyLabel="却下中…" />
                       </button>
-                      <button className="sbtn" disabled={busy} onClick={() => setEditing({ t, g })}>
-                        編集して承認
+                      <button className={`sbtn ${b === "edit" ? "busy" : ""}`} disabled={!!busy} onClick={() => setEditing({ t, g })}>
+                        <Busy on={b === "edit"} label="編集して承認" busyLabel="承認中…" />
                       </button>
-                      <button className="sbtn ok" disabled={busy} onClick={() => approve(t)}>
-                        承認
+                      <button className={`sbtn ok ${b === "approve" ? "busy" : ""}`} disabled={!!busy} onClick={() => approve(t, g)}>
+                        <Busy on={b === "approve"} label="承認" busyLabel="承認中…" />
                       </button>
                     </>
                   );
@@ -182,29 +246,16 @@ export function AdminPending() {
           )}
         </>
       )}
-      {rejecting && <RejectSheet t={rejecting} onClose={() => setRejecting(null)} onDone={load} />}
-      {editing && <EditSheet t={editing.t} isFix={editing.g.isFix} onClose={() => setEditing(null)} onApprove={approve} />}
+      {rejecting && <RejectSheet t={rejecting} onClose={() => setRejecting(null)} onReject={reject} />}
+      {editing && <EditSheet t={editing.t} isFix={editing.g.isFix} onClose={() => setEditing(null)} onApprove={(t, edits) => approve(t, editing.g, edits)} />}
     </AdminLayout>
   );
 }
 
-function RejectSheet({ t, onClose, onDone }: { t: AdminTiming; onClose: () => void; onDone: () => Promise<void> }) {
+function RejectSheet({ t, onClose, onReject }: { t: AdminTiming; onClose: () => void; onReject: (t: AdminTiming, reason: string) => Promise<void> }) {
   const [reason, setReason] = useState("");
   return (
-    <Sheet
-      title="却下"
-      okLabel="却下する"
-      onClose={onClose}
-      onOk={async () => {
-        try {
-          await api(`/api/admin/timings/${t.id}/reject`, { method: "POST", body: JSON.stringify({ reason }) });
-          toast("却下しました");
-        } catch (e) {
-          toast(errMsg(e));
-        }
-        await onDone();
-      }}
-    >
+    <Sheet title="却下" okLabel="却下する" busyLabel="却下中…" onClose={onClose} onOk={() => onReject(t, reason)}>
       <label className="h">却下理由（任意・投稿者に表示されます）</label>
       <textarea maxLength={500} placeholder="例：タイミングが確認できませんでした" value={reason} onChange={(e) => setReason(e.target.value)} />
     </Sheet>
@@ -236,6 +287,7 @@ function EditSheet({
     <Sheet
       title="編集して承認"
       okLabel="保存して承認"
+      busyLabel="承認中…"
       onClose={onClose}
       onOk={() => {
         const p = points[0];

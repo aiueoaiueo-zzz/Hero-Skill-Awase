@@ -32,6 +32,7 @@
     "STORAGE_LIMIT_BYTES": "9663676416",
     "PENDING_LIMIT_BYTES": "2147483648",
     "MEDIA_BASE_URL": "/media",
+    "PUBLIC_APP_URL": "",
     "PENDING_EXPIRE_ACTION": "keep",
     "ACCESS_TEAM_DOMAIN": "",
     "ACCESS_AUD": "",
@@ -61,6 +62,7 @@
         "STORAGE_LIMIT_BYTES": "9663676416",
         "PENDING_LIMIT_BYTES": "2147483648",
         "MEDIA_BASE_URL": "/media",
+        "PUBLIC_APP_URL": "",
         "PENDING_EXPIRE_ACTION": "keep",
         // Cloudflare Access の JWT 検証用（README 3-8）
         "ACCESS_TEAM_DOMAIN": "",

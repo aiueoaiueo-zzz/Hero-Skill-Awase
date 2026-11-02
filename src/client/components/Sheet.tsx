@@ -5,12 +5,15 @@ import { createPortal } from "react-dom";
 export function Sheet({
   title,
   okLabel,
+  busyLabel,
   onOk,
   onClose,
   children,
 }: {
   title: string;
   okLabel: string;
+  /** 処理中の表示（回転アイコン付き） */
+  busyLabel?: string;
   onOk: () => Promise<boolean | void> | boolean | void;
   onClose: () => void;
   children: ReactNode;
@@ -31,7 +34,7 @@ export function Sheet({
             キャンセル
           </button>
           <button
-            className="primary"
+            className={`primary ${busy ? "busy" : ""}`}
             disabled={busy}
             onClick={async () => {
               setBusy(true);
@@ -42,7 +45,14 @@ export function Sheet({
               }
             }}
           >
-            {okLabel}
+            {busy ? (
+              <>
+                <span className="spin" aria-hidden="true" />
+                {busyLabel ?? okLabel}
+              </>
+            ) : (
+              okLabel
+            )}
           </button>
         </div>
       </div>

@@ -24,6 +24,8 @@ export type Bootstrap = {
   heroes: Hero[];
   settings: Record<SettingKey, string>;
   turnstileSiteKey: string;
+  /** 一般向けアプリの URL（X 共有のリンク先） */
+  publicAppUrl: string;
 };
 
 export type PairResponse = {
