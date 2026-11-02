@@ -1,0 +1,84 @@
+# Cloudflare へのデプロイ（スマホだけで運用するための自動化。手順は docs/SETUP-MOBILE.md）
+# - 手動：GitHub の「Actions」→「デプロイ（Cloudflare）」→「Run workflow」
+# - 自動：main ブランチに変更が入ったとき
+name: デプロイ（Cloudflare）
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: deploy
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+    steps:
+      - name: 設定の確認
+        id: check
+        run: |
+          if [ -z "$CLOUDFLARE_API_TOKEN" ] || [ -z "$CLOUDFLARE_ACCOUNT_ID" ]; then
+            echo "::warning::Secrets に CLOUDFLARE_API_TOKEN と CLOUDFLARE_ACCOUNT_ID が未登録のため、デプロイを省略しました（docs/SETUP-MOBILE.md）"
+            echo "### デプロイを省略しました" >> "$GITHUB_STEP_SUMMARY"
+            echo "Secrets に CLOUDFLARE_API_TOKEN と CLOUDFLARE_ACCOUNT_ID を登録してから、もう一度実行してください（docs/SETUP-MOBILE.md）。" >> "$GITHUB_STEP_SUMMARY"
+            echo "ready=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "ready=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - uses: actions/checkout@v4
+        if: steps.check.outputs.ready == 'true'
+
+      - uses: actions/setup-node@v4
+        if: steps.check.outputs.ready == 'true'
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: 依存パッケージのインストール
+        if: steps.check.outputs.ready == 'true'
+        run: npm ci
+
+      - name: 型チェックと単体テスト
+        if: steps.check.outputs.ready == 'true'
+        run: npm run typecheck && npm test
+
+      - name: D1・R2・CORS の準備と設定の書き込み
+        id: setup
+        if: steps.check.outputs.ready == 'true'
+        env:
+          R2_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+          R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+          TURNSTILE_SECRET_KEY: ${{ secrets.TURNSTILE_SECRET_KEY }}
+          TURNSTILE_SITE_KEY: ${{ vars.TURNSTILE_SITE_KEY }}
+          ACCESS_TEAM_DOMAIN: ${{ vars.ACCESS_TEAM_DOMAIN }}
+          ACCESS_AUD: ${{ vars.ACCESS_AUD }}
+        run: node scripts/ci-setup.mjs
+
+      - name: データベースのマイグレーション
+        if: steps.check.outputs.ready == 'true'
+        run: npx wrangler d1 migrations apply DB --remote
+
+      - name: 一般向けの Worker をデプロイ（hs-awase）
+        if: steps.check.outputs.ready == 'true'
+        run: npm run build && npx wrangler deploy
+
+      - name: 一般向けの Worker に secret を登録
+        if: steps.check.outputs.ready == 'true' && steps.setup.outputs.has_secrets == 'true'
+        run: npx wrangler secret bulk "$RUNNER_TEMP/secrets.json"
+
+      - name: 管理用の Worker をデプロイ（hs-awase-admin）
+        if: steps.check.outputs.ready == 'true'
+        run: CLOUDFLARE_ENV=admin npm run build && npx wrangler deploy
+
+      - name: 後片付け
+        if: always()
+        run: rm -f "$RUNNER_TEMP/secrets.json"

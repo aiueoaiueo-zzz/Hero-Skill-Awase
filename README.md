@@ -46,7 +46,8 @@
 | `src/client/` | フロント（React ＋ Vite。CSS は試作版をそのまま移植） |
 | `src/shared/` | フロントと Worker で共通の定数・入力チェック（zod） |
 | `migrations/` | D1 マイグレーション（`0002_seed_heroes.sql` が初期キャラ 27 体） |
-| `scripts/` | 開発用のサンプルデータ |
+| `scripts/` | 開発用のサンプルデータ、GitHub Actions 用の準備スクリプト（`ci-setup.mjs`） |
+| `.github/workflows/` | デプロイの自動化（スマホだけで運用するため） |
 | `tests/` | 単体テスト（`npm test`） |
 
 ---
@@ -80,6 +81,8 @@ npm run dev                      # http://localhost:5173 （Vite ＋ Workers ラ
 ---
 
 ## 3. 本番の初期設定（はじめての 1 回）
+
+> **スマホだけで準備する場合**（PC でのコマンド操作なし）は、[docs/SETUP-MOBILE.md](docs/SETUP-MOBILE.md) の手順を使ってください。Cloudflare と GitHub の画面操作だけで、残りは GitHub Actions（`.github/workflows/deploy.yml`）が自動で行います。以下は PC のコマンドで行う場合の手順です。
 
 workers.dev のアドレス（例：`https://hs-awase.<サブドメイン>.workers.dev`）で公開する前提の手順です。
 アドレスは最初のデプロイで決まるので、**先にデプロイしてから** Turnstile・CORS・Access を設定し、もう一度デプロイします。
