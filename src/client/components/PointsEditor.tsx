@@ -167,6 +167,7 @@ export function PointsEditor({ points, update, opts }: { points: PointDraft[]; u
                 <div className="prog">
                   <i style={{ width: `${Math.round((p.converting ?? 0) * 100)}%` }} />
                 </div>
+                <div className="hint">この画面を開いたままお待ちください。ほかのアプリに切り替えたり画面を消したりすると止まり、戻ると変換をやり直します。</div>
               </div>
             )}
             {opts.upload ? (

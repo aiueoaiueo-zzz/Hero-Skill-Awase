@@ -2,6 +2,7 @@
 // 変換先：MP4（H.264 / AAC）、縦型のまま短辺 720px（拡大しない）、映像 2.5Mbps 前後、30fps、音声 96kbps。
 // WebCodecs（mediabunny）を使い、使えないブラウザでは ffmpeg.wasm で変換する。
 import { LIMITS } from "../../shared/constants";
+import { keepScreenOn, waitUntilVisible, watchHidden } from "./wakelock";
 
 export const TARGET = { shortSide: 720, videoBitrate: 2_500_000, audioBitrate: 96_000, frameRate: 30 } as const;
 
@@ -111,13 +112,28 @@ async function withFfmpeg(file: Blob, plan: Plan, onProgress: Progress): Promise
 }
 
 async function convertOnce(file: Blob, plan: Plan, onProgress: Progress): Promise<{ blob: Blob; engine: "webcodecs" | "ffmpeg" }> {
-  try {
-    const r = await withMediabunny(file, plan, onProgress);
-    if (r) return { blob: r, engine: "webcodecs" };
-  } catch (e) {
-    if (e instanceof CompressError) throw e;
-    // WebCodecs で失敗したら ffmpeg.wasm で試す
-    console.warn("WebCodecs conversion failed, falling back to ffmpeg.wasm", e);
+  // ほかのアプリに切り替える／画面が消えると、OS が動画のエンコーダーを回収して変換が止まる。
+  // その場合は遅い ffmpeg.wasm に切り替えず、画面に戻るのを待って WebCodecs でやり直す（最大 5 回）。
+  for (let attempt = 0; attempt < 5; attempt++) {
+    const watch = watchHidden();
+    try {
+      const r = await withMediabunny(file, plan, onProgress);
+      watch.stop();
+      if (r) return { blob: r, engine: "webcodecs" };
+      break; // WebCodecs が使えない（または音声を作れない）ブラウザ
+    } catch (e) {
+      watch.stop();
+      if (e instanceof CompressError) throw e;
+      if (watch.wasHidden() || document.visibilityState !== "visible") {
+        console.warn("conversion interrupted while the page was hidden; retrying when visible", e);
+        await waitUntilVisible();
+        onProgress(0);
+        continue;
+      }
+      // WebCodecs で失敗したら ffmpeg.wasm で試す
+      console.warn("WebCodecs conversion failed, falling back to ffmpeg.wasm", e);
+      break;
+    }
   }
   return { blob: await withFfmpeg(file, plan, onProgress), engine: "ffmpeg" };
 }
@@ -127,6 +143,15 @@ async function convertOnce(file: Blob, plan: Plan, onProgress: Progress): Promis
  * 進捗は 0〜1（再変換するときは前半・後半に分けて通知）。
  */
 export async function compressVideo(file: File, durationSec: number, onProgress: Progress): Promise<{ file: File; engine: string }> {
+  const release = keepScreenOn(); // 変換中は画面の自動ロックを防ぐ
+  try {
+    return await compressInner(file, durationSec, onProgress);
+  } finally {
+    release();
+  }
+}
+
+async function compressInner(file: File, durationSec: number, onProgress: Progress): Promise<{ file: File; engine: string }> {
   const first = await convertOnce(file, { videoBitrate: TARGET.videoBitrate }, (p) => onProgress(p));
   let blob = first.blob;
   if (blob.size > LIMITS.videoBytes) {

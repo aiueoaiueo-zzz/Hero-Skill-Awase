@@ -412,3 +412,7 @@ header::before{content:"";position:absolute;left:0;bottom:3px;height:4px;width:v
 .atabs button.on,.tabs button.on{border-color:#000}
 .search:focus,.search:focus-visible,.inp:focus,.inp:focus-visible{outline:none;border-color:var(--line)}
 .toggle .imgdel{padding:4px 8px;min-height:32px;font-size:11px}
+
+/* ===== オーナー指定の変更（docs/DECISIONS.md D） ===== */
+/* 進捗バーはオレンジ一色（試作版はオレンジと水色の縞模様） */
+.prog i{background:var(--accent)}
