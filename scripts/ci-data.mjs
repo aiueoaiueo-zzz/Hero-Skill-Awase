@@ -62,7 +62,16 @@ if (action === "list") {
   );
   const u = usage[0] || {};
   log(`\n## 保存容量の記録\n\n- ファイル数：${u.n}／合計：${mb(u.total || 0)}／うち承認待ち：${mb(u.pending || 0)}`);
-  log(`- 記録の最終更新：${u.last || "なし"}（毎日 3:17 の自動処理で照合されると更新されます）`);
+  log(`- 記録の最終更新：${u.last || "なし"}`);
+  const last = (await sql("SELECT value FROM settings WHERE key = 'maintenance_last_run'"))[0];
+  if (last) {
+    const m = JSON.parse(last.value);
+    const jst = new Date(new Date(m.at).getTime() + 9 * 3600 * 1000).toISOString().slice(0, 16).replace("T", " ");
+    log(`\n## 毎日の自動処理（3:17）\n\n- 最後に動いた日時：${jst}（日本時間）`);
+    log(`- 結果：R2 のファイル ${m.r2Objects} 個を確認／不要なファイル ${m.deleted} 個を削除／記録の補正 ${m.ledgerFixed} 件／期限切れの承認待ち ${m.expiredPending} 件`);
+  } else {
+    log("\n## 毎日の自動処理（3:17）\n\n- まだ一度も動いていません（初回は次の 3:17 ごろ）");
+  }
 } else if (action === "delete") {
   const codes = String(env.CODES || "")
     .toUpperCase()
