@@ -24,7 +24,7 @@ export function Footer() {
       </ul>
       <nav className="flinks">
         <Link to="/terms">注意事項・プライバシー</Link>
-        <Link to="/contact">お問い合わせ</Link>
+        <Link to="/contact">お問い合わせ・ご要望</Link>
       </nav>
       <div className="copy">HS明け早見アプリ（ファンメイド）</div>
     </footer>

@@ -1,4 +1,4 @@
-import { StrictMode, useEffect } from "react";
+import { StrictMode, useLayoutEffect } from "react";
 import { createRoot } from "react-dom/client";
 import { BrowserRouter, Navigate, Outlet, Route, Routes, useLocation } from "react-router";
 import { Footer } from "./components/Footer";
@@ -22,7 +22,8 @@ import "./styles.css";
 
 function Layout() {
   const { pathname, key } = useLocation();
-  useEffect(() => {
+  // 画面が切り替わったら先頭へ（描画の前に移動して、前の画面の位置で一瞬表示されないようにする）
+  useLayoutEffect(() => {
     window.scrollTo(0, 0);
   }, [key]);
   return (

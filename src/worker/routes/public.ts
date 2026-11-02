@@ -1,5 +1,5 @@
 import { Hono } from "hono";
-import type { PairResponse, PublicTiming, TargetsResponse } from "../../shared/types";
+import type { Bootstrap, PairResponse, PublicTiming, TargetsResponse } from "../../shared/types";
 import type { AppEnv } from "../env";
 import { heroBySlug, listHeroes } from "../lib/heroes";
 import { mediaUrl } from "../lib/media";
@@ -15,9 +15,15 @@ publicRoutes.use("*", async (c, next) => {
 });
 
 publicRoutes.get("/bootstrap", async (c) => {
-  const [heroes, settings] = await Promise.all([listHeroes(c.env), getSettings(c.env)]);
+  const [heroes, settings, pairs] = await Promise.all([
+    listHeroes(c.env),
+    getSettings(c.env),
+    c.env.DB.prepare("SELECT DISTINCT attacker_id AS a, target_id AS t FROM timings WHERE status = 'approved' AND hidden = 0").all<{ a: string; t: string }>(),
+  ]);
   const publicAppUrl = (c.env.PUBLIC_APP_URL || new URL(c.req.url).origin).replace(/\/+$/, "");
-  return c.json({ heroes, settings, turnstileSiteKey: c.env.TURNSTILE_SITE_KEY || "", publicAppUrl });
+  const registered: Record<string, string[]> = {};
+  for (const r of pairs.results) (registered[r.a] ??= []).push(r.t);
+  return c.json<Bootstrap>({ heroes, settings, turnstileSiteKey: c.env.TURNSTILE_SITE_KEY || "", publicAppUrl, registered });
 });
 
 publicRoutes.get("/heroes/:slug/targets", async (c) => {

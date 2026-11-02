@@ -33,7 +33,7 @@ export function Contact() {
 
   const send = async () => {
     if (!kind) return toast("お問い合わせの種類を選んでください");
-    if (chars(body.trim()) < 5) return toast("内容を入力してください");
+    if (chars(body.trim()) < CONTACT_LIMITS.bodyMin) return toast(`内容は${CONTACT_LIMITS.bodyMin}文字以上で入力してください`);
     if (chars(body) > CONTACT_LIMITS.body) return toast(`内容は${CONTACT_LIMITS.body}文字以内です`);
     if (!token) return toast("ロボットではないことの確認をしてください");
     setBusy(true);
@@ -71,13 +71,15 @@ export function Contact() {
 
   return (
     <>
-      <Header title="お問い合わせ" sub="送った内容は管理者だけが見られます" back="/" prog={PROG.other} />
+      <Header title="お問い合わせ" sub="ご要望もこちらから" back="/" prog={PROG.other} />
       <div className="f">
         <div className="box">
           <p>
             ご自身の投稿の取り下げは、<Link to="/status">審査状況</Link>のページから受付番号で行えます。
             <br />
-            本アプリは非公式のファンメイドツールです。ゲームについてのお問い合わせは、公式にお願いします。
+            「こんな機能がほしい」などのご要望も、こちらからお送りください。
+            <br />
+            送った内容は管理者だけが見られます。本アプリは非公式のファンメイドツールです。ゲームについてのお問い合わせは、公式にお願いします。
           </p>
         </div>
         <label className="h" htmlFor="c-kind">
@@ -105,9 +107,12 @@ export function Contact() {
         <label className="h" htmlFor="c-body">
           内容<em>必須</em>
         </label>
+        <div className="hint" style={{ marginTop: 0, marginBottom: 6 }}>
+          {CONTACT_LIMITS.bodyMin}文字以上で入力してください。
+        </div>
         <textarea id="c-body" style={{ minHeight: 160 }} value={body} onChange={(e) => setBody(e.target.value)} />
         <div className="hint">
-          {chars(body)} / {CONTACT_LIMITS.body}文字
+          {chars(body.trim())} / {CONTACT_LIMITS.body}文字（{CONTACT_LIMITS.bodyMin}文字以上）
         </div>
         <label className="h" htmlFor="c-reply">
           返信先
