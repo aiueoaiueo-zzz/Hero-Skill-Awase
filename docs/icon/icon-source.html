@@ -1,36 +1,23 @@
 <!doctype html>
 <html lang="ja"><head><meta charset="utf-8">
-<link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@700&family=Zen+Kaku+Gothic+New:wght@900&display=swap" rel="stylesheet">
 <style>body{margin:0;background:transparent}svg{display:block}
-.hs{font-family:"Chakra Petch",sans-serif;font-weight:700}</style></head><body>
-<!-- 通常版（案 1：照準リング。白地にオレンジのリングと十字、中央に HS） -->
+.hs{font-family:"Chakra Petch",sans-serif;font-weight:700}.ja{font-family:"Zen Kaku Gothic New",sans-serif;font-weight:900}</style></head><body>
+<!-- 通常版（案 2-A：オレンジ地に黒の「HS」、黒帯に白の「合わせ」、角を斜めに切った形） -->
 <div id="std" style="width:512px;height:512px"><svg width="512" height="512" viewBox="0 0 512 512">
-  <rect width="512" height="512" fill="#ffffff"/>
-  <g stroke="#000" stroke-opacity=".07" stroke-width="2">
-    <path d="M0 64H512M0 128H512M0 192H512M0 256H512M0 320H512M0 384H512M0 448H512M64 0V512M128 0V512M192 0V512M256 0V512M320 0V512M384 0V512M448 0V512"/>
-  </g>
-  <circle cx="256" cy="256" r="206" fill="none" stroke="#ff6a00" stroke-width="14" stroke-dasharray="4 22" stroke-linecap="round"/>
-  <circle cx="256" cy="256" r="176" fill="none" stroke="#ff6a00" stroke-width="10"/>
-  <circle cx="256" cy="256" r="140" fill="none" stroke="#2fd3ef" stroke-width="4" stroke-dasharray="10 10"/>
-  <g stroke="#000" stroke-width="10" stroke-linecap="square"><path d="M256 20V92M256 420V492M20 256H92M420 256H492"/></g>
-  <text x="256" y="300" text-anchor="middle" class="hs" font-size="150" fill="#000" letter-spacing="-4">HS</text>
-</svg></div>
-<!-- 小さい版（ブラウザのタブ用。細い線を省き、リングと文字を太く・大きく） -->
-<div id="small" style="width:512px;height:512px"><svg width="512" height="512" viewBox="0 0 512 512">
-  <rect width="512" height="512" fill="#ffffff"/>
-  <circle cx="256" cy="256" r="212" fill="none" stroke="#ff6a00" stroke-width="44"/>
-  <g stroke="#000" stroke-width="28" stroke-linecap="square"><path d="M256 14V70M256 442V498M14 256H70M442 256H498"/></g>
-  <text x="256" y="322" text-anchor="middle" class="hs" font-size="210" fill="#000" letter-spacing="-8">HS</text>
+  <rect width="512" height="512" fill="#fff"/>
+  <polygon points="72,24 488,24 488,440 440,488 24,488 24,72" fill="#ff6a00" stroke="#000" stroke-width="10"/>
+  <text x="256" y="268" text-anchor="middle" class="hs" font-size="210" fill="#000" letter-spacing="-6">HS</text>
+  <rect x="86" y="318" width="340" height="104" fill="#000"/>
+  <text x="256" y="398" text-anchor="middle" class="ja" font-size="78" fill="#fff" letter-spacing="6">合わせ</text>
 </svg></div>
 <!-- マスカブル版（Android が丸や角丸に切り抜いても欠けないよう、中身を中央 80% に収める） -->
 <div id="mask" style="width:512px;height:512px"><svg width="512" height="512" viewBox="0 0 512 512">
-  <rect width="512" height="512" fill="#ffffff"/>
+  <rect width="512" height="512" fill="#ff6a00"/>
   <g transform="translate(256 256) scale(0.78) translate(-256 -256)">
-    <circle cx="256" cy="256" r="206" fill="none" stroke="#ff6a00" stroke-width="14" stroke-dasharray="4 22" stroke-linecap="round"/>
-    <circle cx="256" cy="256" r="176" fill="none" stroke="#ff6a00" stroke-width="10"/>
-    <circle cx="256" cy="256" r="140" fill="none" stroke="#2fd3ef" stroke-width="4" stroke-dasharray="10 10"/>
-    <g stroke="#000" stroke-width="10" stroke-linecap="square"><path d="M256 20V92M256 420V492M20 256H92M420 256H492"/></g>
-    <text x="256" y="300" text-anchor="middle" class="hs" font-size="150" fill="#000" letter-spacing="-4">HS</text>
+    <text x="256" y="268" text-anchor="middle" class="hs" font-size="210" fill="#000" letter-spacing="-6">HS</text>
+    <rect x="86" y="318" width="340" height="104" fill="#000"/>
+    <text x="256" y="398" text-anchor="middle" class="ja" font-size="78" fill="#fff" letter-spacing="6">合わせ</text>
   </g>
 </svg></div>
 </body></html>
