@@ -58,9 +58,10 @@ jobs:
           R2_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
           R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
           TURNSTILE_SECRET_KEY: ${{ secrets.TURNSTILE_SECRET_KEY }}
-          TURNSTILE_SITE_KEY: ${{ vars.TURNSTILE_SITE_KEY }}
-          ACCESS_TEAM_DOMAIN: ${{ vars.ACCESS_TEAM_DOMAIN }}
-          ACCESS_AUD: ${{ vars.ACCESS_AUD }}
+          # 公開してよい値は Variables 推奨。Secrets に登録した場合も読めるようにしておく
+          TURNSTILE_SITE_KEY: ${{ vars.TURNSTILE_SITE_KEY || secrets.TURNSTILE_SITE_KEY }}
+          ACCESS_TEAM_DOMAIN: ${{ vars.ACCESS_TEAM_DOMAIN || secrets.ACCESS_TEAM_DOMAIN }}
+          ACCESS_AUD: ${{ vars.ACCESS_AUD || secrets.ACCESS_AUD }}
         run: node scripts/ci-setup.mjs
 
       - name: データベースのマイグレーション
@@ -73,7 +74,7 @@ jobs:
 
       - name: 一般向けの Worker に secret を登録
         if: steps.check.outputs.ready == 'true' && steps.setup.outputs.has_secrets == 'true'
-        run: npx wrangler secret bulk "$RUNNER_TEMP/secrets.json"
+        run: npx wrangler secret bulk "$RUNNER_TEMP/secrets.json" --env=""
 
       - name: 管理用の Worker をデプロイ（hs-awase-admin）
         if: steps.check.outputs.ready == 'true'
