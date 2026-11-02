@@ -23,7 +23,7 @@ export function Targets() {
   const preload = (h: { slug: string }) => `/api/pairs/${encodeURIComponent(attacker.slug)}/${encodeURIComponent(h.slug)}`;
   return (
     <>
-      <Header title={`${attacker.name} で攻撃`} sub="② HSを使う相手（HS明けを狙う）を選択" back="/" prog={PROG.step2} />
+      <Header title={`${attacker.name} で攻撃`} sub="② HSを使う側（相手）を選択" back="/" prog={PROG.step2} />
       <input className="search" placeholder="相手キャラを検索" value={q} onChange={(e) => setQ(e.target.value)} />
       {w.length > 0 && (
         <>

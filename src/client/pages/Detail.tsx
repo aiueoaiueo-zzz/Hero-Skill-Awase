@@ -88,7 +88,7 @@ export function Detail() {
       {A && T && (
         <div className="vs">
           <div className="side atk">
-            <small>攻撃する側</small>
+            <small>自分</small>
             <Avatar hero={A} />
             <b>{A!.name}</b>
           </div>
@@ -99,7 +99,7 @@ export function Detail() {
             <br />▶
           </div>
           <div className="side def">
-            <small>HSを使う相手</small>
+            <small>相手</small>
             <Avatar hero={T} />
             <b>{T!.name}</b>
           </div>
