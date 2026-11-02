@@ -26,9 +26,12 @@
     "STORAGE_LIMIT_BYTES": "9663676416",
     "PENDING_LIMIT_BYTES": "2147483648",
     "MEDIA_BASE_URL": "/media",
+    "PENDING_EXPIRE_ACTION": "keep",
     "ACCESS_TEAM_DOMAIN": "",
     "ACCESS_AUD": "",
     "TURNSTILE_SITE_KEY": ""
   },
+  // 毎日 3:17（日本時間）に不要な動画の削除と容量の照合
+  "triggers": { "crons": ["17 18 * * *"] },
   "observability": { "enabled": true }
 }

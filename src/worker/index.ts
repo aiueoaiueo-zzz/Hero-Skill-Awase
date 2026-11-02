@@ -1,5 +1,6 @@
 import { Hono } from "hono";
-import type { AppEnv } from "./env";
+import { runMaintenance } from "./cron";
+import type { AppEnv, Env } from "./env";
 import { requireAdmin } from "./lib/admin-auth";
 import { adminRoutes } from "./routes/admin";
 import { mediaRoutes } from "./routes/media";
@@ -22,4 +23,10 @@ app.route("/media", mediaRoutes);
 
 app.notFound((c) => (c.req.path.startsWith("/api/") ? c.json({ error: "not_found" }, 404) : c.env.ASSETS.fetch(c.req.raw)));
 
-export default app;
+export default {
+  fetch: app.fetch,
+  // 1 日 1 回（wrangler.jsonc の triggers.crons）
+  async scheduled(controller: ScheduledController, env: Env, ctx: ExecutionContext) {
+    ctx.waitUntil(runMaintenance(env, controller.scheduledTime).then((r) => console.log("maintenance", JSON.stringify({ ...r, deleted: r.deleted.length }))));
+  },
+} satisfies ExportedHandler<Env>;

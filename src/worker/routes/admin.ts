@@ -9,7 +9,7 @@ import { nowIso } from "../lib/ids";
 import { mediaUrl } from "../lib/media";
 import { serveR2 } from "../lib/serve";
 import { getSettings } from "../lib/settings";
-import { getUsage } from "../lib/storage";
+import { deleteIfUnused, deleteMedia, getUsage, recordObject } from "../lib/storage";
 
 // 管理者向け API（/api/admin/*）。Cloudflare Access で保護し、Worker でも JWT を検証する
 export const adminRoutes = new Hono<AppEnv>();
@@ -106,14 +106,6 @@ const getPending = (env: Env, id: string) =>
     .bind(id)
     .first<Row & { replaces_timing_id: string | null }>();
 
-/** 公開中・承認待ちのどのタイミングからも使われていない動画を削除する */
-async function deleteIfUnused(env: Env, keys: string[]) {
-  for (const key of new Set(keys)) {
-    const used = await env.DB.prepare("SELECT 1 FROM timings WHERE video_key = ? AND status IN ('pending','approved') LIMIT 1").bind(key).first();
-    if (!used) await env.MEDIA.delete(key);
-  }
-}
-
 /** 承認（edits があれば「編集して承認」） */
 adminRoutes.post("/timings/:id/approve", async (c) => {
   const body = approveSchema.safeParse(await c.req.json().catch(() => ({})));
@@ -147,6 +139,7 @@ adminRoutes.post("/timings/:id/approve", async (c) => {
     if (!src) return c.json({ error: "video_missing" }, 409);
     videoKey = "public/" + t.video_key.slice("pending/".length);
     await env.MEDIA.put(videoKey, src.body, { httpMetadata: { contentType: "video/mp4", cacheControl: "public, max-age=31536000, immutable" } });
+    await recordObject(env, videoKey, src.size);
     copied = videoKey;
   }
 
@@ -179,7 +172,7 @@ adminRoutes.post("/timings/:id/approve", async (c) => {
     const res = await db.batch(stmts);
     changed = res[res.length - 1].meta.changes;
   } catch (err) {
-    if (copied) await env.MEDIA.delete(copied);
+    if (copied) await deleteMedia(env, [copied]);
     throw err;
   }
   if (!changed) {

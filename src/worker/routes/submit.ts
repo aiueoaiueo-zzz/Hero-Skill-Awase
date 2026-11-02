@@ -7,7 +7,7 @@ import { toHero, type HeroRow } from "../lib/heroes";
 import { genCode, genSecret, nowIso, sha256Hex, ulid } from "../lib/ids";
 import { hasR2Credentials, presignPut } from "../lib/presign";
 import { mediaUrl } from "../lib/media";
-import { videoAccepting } from "../lib/storage";
+import { deleteMedia, recordStmt, videoAccepting } from "../lib/storage";
 import { verifyTurnstile } from "../lib/turnstile";
 
 // 投稿・審査状況・取り下げ（ログイン不要）
@@ -29,7 +29,9 @@ submitRoutes.post("/uploads", async (c) => {
   const parsed = uploadRequestSchema.safeParse(await c.req.json().catch(() => null));
   if (!parsed.success) return c.json({ error: "invalid_request" }, 400);
   if (!(await verifyTurnstile(c.env, c.req.raw, parsed.data.turnstileToken))) return c.json({ error: "turnstile_failed" }, 403);
-  if (!(await videoAccepting(c.env))) return c.json({ error: "video_not_accepting" }, 503);
+  // 課金防止：これから受け付ける分も含めて上限を超えないか
+  const incoming = parsed.data.files.reduce((s, f) => s + f.size, 0);
+  if (!(await videoAccepting(c.env, incoming))) return c.json({ error: "video_not_accepting" }, 503);
 
   const ticket = genSecret();
   const now = nowIso();
@@ -42,6 +44,8 @@ submitRoutes.post("/uploads", async (c) => {
       c.env.DB.prepare(
         "INSERT INTO uploads (video_key, ticket, declared_size, content_type, created_at) VALUES (?, ?, ?, ?, ?)",
       ).bind(videoKey, ticket, f.size, f.contentType, now),
+      // 容量の台帳に宣言サイズで予約（アップロードされなければ Cron が 24 時間後に消す）
+      recordStmt(c.env, videoKey, f.size, now),
     );
     // 本番：ブラウザから R2 へ直接 PUT（署名付き URL、10 分）。
     // R2 の認証情報がないローカル開発では、Worker 経由で受け取る。
@@ -157,7 +161,7 @@ submitRoutes.post("/entries", async (c) => {
     if (!head) return c.json({ error: "video_not_uploaded" }, 400);
     if (head.size > LIMITS.videoBytes || head.size !== up.declared_size) {
       // 宣言と違う・大きすぎる動画はすぐに消す（署名付き URL ではサイズを縛れないため、ここで確認する）
-      await c.env.MEDIA.delete(key);
+      await deleteMedia(c.env, [key]);
       return c.json({ error: "video_too_large" }, 400);
     }
     sizes.push(head.size);
@@ -186,6 +190,8 @@ submitRoutes.post("/entries", async (c) => {
           .bind(ulid(), subId, input.attackerId, input.targetId, i, t.attackType, t.cueType, t.timingText, t.note, t.videoKey, sizes[i], now),
       ),
       ...keys.filter((k) => k.startsWith("pending/")).map((k) => db.prepare("UPDATE uploads SET used_at = ? WHERE video_key = ?").bind(now, k)),
+      // 台帳を実際のサイズに合わせる
+      ...keys.flatMap((k, i) => (k.startsWith("pending/") ? [recordStmt(c.env, k, sizes[i], now)] : [])),
     ];
     try {
       await db.batch(stmts);
@@ -265,6 +271,6 @@ submitRoutes.post("/status/:code/withdraw", async (c) => {
   );
   // 承認待ちの動画を削除（公開中の動画を流用した修正提案の場合は消さない）
   const del = results.map((t) => t.video_key).filter((k) => k.startsWith("pending/"));
-  if (del.length) await c.env.MEDIA.delete(del);
+  if (del.length) await deleteMedia(c.env, del);
   return c.json({ withdrawn: results.length });
 });
