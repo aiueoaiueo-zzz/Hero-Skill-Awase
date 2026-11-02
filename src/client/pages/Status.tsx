@@ -1,5 +1,7 @@
 import { useEffect, useState } from "react";
-import type { StatusResponse } from "../../shared/types";
+import { STATUS_LABEL } from "../../shared/constants";
+import { formatCue } from "../../shared/text";
+import type { StatusResponse, StatusTiming } from "../../shared/types";
 import { EntryCard } from "../components/EntryCard";
 import { Header } from "../components/Header";
 import { api, ApiError } from "../lib/api";
@@ -9,9 +11,27 @@ import { fmtDate, toast } from "../lib/ui";
 
 const fetchStatus = (code: string) => api<StatusResponse>(`/api/status/${encodeURIComponent(code)}`);
 
+/** 承認済みのタイミングは、最初は折りたたんでおく（縦に長くなりすぎないように） */
+const foldable = (t: StatusTiming) => t.status === "approved" || t.status === "merged";
+
+/** 折りたたみの ▶／▼ ボタン */
+const FoldButton = ({ open, onClick }: { open: boolean; onClick: () => void }) => (
+  <button type="button" className="sbtn foldbtn" aria-expanded={open} aria-label={open ? "折りたたむ" : "開く"} onClick={onClick}>
+    {open ? "▼" : "▶"}
+  </button>
+);
+
 /** 受付番号ごとのまとまり（タイミングごとのステータス） */
 function Group({ s, deleteKey, onChanged }: { s: StatusResponse; deleteKey?: string; onChanged: () => void }) {
   const [armed, setArmed] = useState(false);
+  const [opened, setOpened] = useState<Set<string>>(new Set());
+  const toggle = (id: string) =>
+    setOpened((s) => {
+      const n = new Set(s);
+      if (n.has(id)) n.delete(id);
+      else n.add(id);
+      return n;
+    });
   const pending = s.timings.some((t) => t.status === "pending");
   useEffect(() => {
     if (!armed) return;
@@ -34,7 +54,20 @@ function Group({ s, deleteKey, onChanged }: { s: StatusResponse; deleteKey?: str
       <div className="sec">
         {s.code}・{fmtDate(s.createdAt)}・{s.isFix ? "修正提案" : `${s.timings.length}件`}
       </div>
-      {s.timings.map((t) => (
+      {s.timings.map((t) => {
+        const label = s.timings.length > 1 ? `タイミング ${t.position + 1} / ${s.timings.length}` : undefined;
+        const open = !foldable(t) || opened.has(t.id);
+        if (!open)
+          return (
+            <div className="entry fold" key={t.id}>
+              <FoldButton open={false} onClick={() => toggle(t.id)} />
+              <span className={`chip st-${t.status}`} style={{ marginRight: 0, whiteSpace: "nowrap" }}>
+                {STATUS_LABEL[t.status]}
+              </span>
+              <div className="tim">{formatCue(t.cueType, t.timingText)}</div>
+            </div>
+          );
+        return (
         <EntryCard
           key={t.id}
           points={[{ attackType: t.attackType, cueType: t.cueType, timingText: t.timingText, note: t.note, videoUrl: t.videoUrl }]}
@@ -43,7 +76,16 @@ function Group({ s, deleteKey, onChanged }: { s: StatusResponse; deleteKey?: str
           status={t.status}
           nickname={s.nickname}
           supportCode={s.supportCode}
-          label={s.timings.length > 1 ? `タイミング ${t.position + 1} / ${s.timings.length}` : undefined}
+          label={
+            foldable(t) ? (
+              <span style={{ display: "inline-flex", alignItems: "center", gap: 8 }}>
+                <FoldButton open onClick={() => toggle(t.id)} />
+                {label}
+              </span>
+            ) : (
+              label
+            )
+          }
           dateText={t.status === "approved" && t.reviewedAt ? `${fmtDate(t.reviewedAt)} 承認` : `${fmtDate(s.createdAt)} 投稿`}
           actions={
             t.status === "rejected" && t.rejectReason ? (
@@ -51,7 +93,8 @@ function Group({ s, deleteKey, onChanged }: { s: StatusResponse; deleteKey?: str
             ) : undefined
           }
         />
-      ))}
+        );
+      })}
       {deleteKey && pending && (
         <div className="acts" style={{ margin: "-2px 0 12px" }}>
           <button className={`sbtn danger ${armed ? "armed" : ""}`} onClick={withdraw}>

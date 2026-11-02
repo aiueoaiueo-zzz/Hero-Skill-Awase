@@ -1,11 +1,14 @@
-import { useState } from "react";
-import { Navigate, useNavigate, useParams } from "react-router";
+import { useEffect, useRef, useState } from "react";
+import { Navigate, useLocation, useNavigate, useParams } from "react-router";
 import { ATTACK_LABEL, ATTACK_TAB, ATTACK_TYPES, type AttackType } from "../../shared/constants";
 import type { PairResponse } from "../../shared/types";
 import { Avatar } from "../components/Avatar";
 import { Header } from "../components/Header";
 import { TimingCard } from "../components/TimingCard";
+import { timingLink, timingShareText } from "../../shared/share";
 import { useApi } from "../lib/api";
+import { useData } from "../lib/data";
+import { shareToX } from "../lib/share";
 import { PROG, useBootFx } from "../lib/fx";
 
 // 組み合わせごとに選んだタブを覚えておく（画面を行き来しても戻る）
@@ -18,6 +21,27 @@ export function Detail() {
   const { data, error } = useApi<PairResponse>(`/api/pairs/${encodeURIComponent(a)}/${encodeURIComponent(t)}`);
   const key = `${a}/${t}`;
   const [tab, setTab] = useState<AttackType | undefined>(tabMemory.get(key));
+  const { publicAppUrl } = useData();
+  const { hash } = useLocation();
+  // 共有リンク（#t-<タイミングID>）で開いたとき：そのタイミングのタブを開いて、そこまで移動する
+  const linkedId = hash.startsWith("#t-") ? decodeURIComponent(hash.slice(3)) : null;
+  const [flashId, setFlashId] = useState<string | null>(null);
+  const scrolled = useRef<string | null>(null);
+  useEffect(() => {
+    if (!data || !linkedId || scrolled.current === linkedId) return;
+    const t = data.timings.find((x) => x.id === linkedId);
+    if (!t) return;
+    if (tab !== t.attackType) {
+      setTab(t.attackType);
+      return; // タブが切り替わってから移動する
+    }
+    scrolled.current = linkedId;
+    requestAnimationFrame(() => {
+      document.getElementById(`t-${linkedId}`)?.scrollIntoView({ behavior: "smooth", block: "start" });
+      setFlashId(linkedId);
+      setTimeout(() => setFlashId(null), 2500);
+    });
+  }, [data, linkedId, tab]);
   useBootFx(!!data || !!error);
   if (error?.status === 404) return <Navigate to="/" replace />;
 
@@ -93,12 +117,34 @@ export function Detail() {
                 list.map((x, i) => (
                   <TimingCard
                     key={x.id}
+                    id={`t-${x.id}`}
+                    flash={flashId === x.id}
                     t={x}
                     num={i + 1}
                     actions={
-                      <button className="sbtn" onClick={() => nav(`/submit?fix=${x.id}`)}>
-                        修正を提案
-                      </button>
+                      <>
+                        <button
+                          className="sbtn"
+                          onClick={() =>
+                            shareToX(
+                              timingShareText({
+                                attacker: A!.name,
+                                target: T!.name,
+                                attackType: x.attackType,
+                                timingText: x.timingText,
+                                nickname: x.nickname,
+                                supportCode: x.supportCode,
+                              }),
+                              timingLink(publicAppUrl, A!.slug, T!.slug, x.id),
+                            )
+                          }
+                        >
+                          Xで共有
+                        </button>
+                        <button className="sbtn" onClick={() => nav(`/submit?fix=${x.id}`)}>
+                          修正を提案
+                        </button>
+                      </>
                     }
                   />
                 ))

@@ -15,7 +15,8 @@ publicRoutes.use("*", async (c, next) => {
 
 publicRoutes.get("/bootstrap", async (c) => {
   const [heroes, settings] = await Promise.all([listHeroes(c.env), getSettings(c.env)]);
-  return c.json({ heroes, settings, turnstileSiteKey: c.env.TURNSTILE_SITE_KEY || "" });
+  const publicAppUrl = (c.env.PUBLIC_APP_URL || new URL(c.req.url).origin).replace(/\/+$/, "");
+  return c.json({ heroes, settings, turnstileSiteKey: c.env.TURNSTILE_SITE_KEY || "", publicAppUrl });
 });
 
 publicRoutes.get("/heroes/:slug/targets", async (c) => {

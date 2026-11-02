@@ -99,6 +99,7 @@ const setAll = (key, value) => {
   conf = conf.replace(new RegExp(`("${key}"\\s*:\\s*)"[^"]*"`, "g"), `$1${JSON.stringify(value)}`);
 };
 setAll("database_id", dbId);
+setAll("PUBLIC_APP_URL", appUrl); // X 共有のリンク先（管理用の Worker からも一般向けを指す）
 if (env.TURNSTILE_SITE_KEY) setAll("TURNSTILE_SITE_KEY", env.TURNSTILE_SITE_KEY);
 if (env.ACCESS_TEAM_DOMAIN) setAll("ACCESS_TEAM_DOMAIN", env.ACCESS_TEAM_DOMAIN);
 if (env.ACCESS_AUD) setAll("ACCESS_AUD", env.ACCESS_AUD);

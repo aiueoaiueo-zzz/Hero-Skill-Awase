@@ -416,3 +416,14 @@ header::before{content:"";position:absolute;left:0;bottom:3px;height:4px;width:v
 /* ===== オーナー指定の変更（docs/DECISIONS.md D） ===== */
 /* 進捗バーはオレンジ一色（試作版はオレンジと水色の縞模様） */
 .prog i{background:var(--accent)}
+/* 処理中の回転アイコン（承認・却下などのボタン内） */
+.spin{display:inline-block;width:12px;height:12px;border:2px solid currentColor;border-right-color:transparent;border-radius:50%;vertical-align:-2px;margin-right:6px;animation:spin .8s linear infinite}
+.acts .sbtn:disabled:not(.busy),.btns button:disabled:not(.busy){opacity:.45}
+/* 共有リンクで開いたタイミングを目立たせる */
+.entry.flash{outline:2px solid var(--accent);outline-offset:2px;transition:outline-color 1.2s}
+/* 審査状況：承認済みを折りたたんだ行 */
+.entry.fold{padding:8px 12px;display:flex;align-items:center;gap:8px;margin-bottom:8px}
+.entry.fold .tim{flex:1;min-width:0;margin:0;padding:5px 10px;font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.foldbtn{min-height:30px!important;min-width:32px;padding:2px 8px!important;font-size:11px!important}
+.btns .primary.busy:disabled,.acts .sbtn.busy:disabled{opacity:1}
+.entry{scroll-margin-top:96px} /* 共有リンクで移動したとき、固定ヘッダーの下に隠れないように */

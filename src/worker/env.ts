@@ -19,6 +19,8 @@ export interface Env {
   STORAGE_LIMIT_BYTES: string;
   PENDING_LIMIT_BYTES: string;
   MEDIA_BASE_URL: string;
+  /** 一般向けアプリの URL（X 共有のリンク先。管理用の Worker からも一般向けを指すため） */
+  PUBLIC_APP_URL?: string;
   /** 14 日以上審査されない承認待ち："keep"（残す・初期値）／"delete"（取り下げて動画を削除） */
   PENDING_EXPIRE_ACTION?: string;
 }

@@ -250,6 +250,7 @@ npm run deploy:all     # 一般向け → 管理用の順にデプロイ
 | `STORAGE_LIMIT_BYTES` | vars | 動画の受付を止める合計容量 | `9663676416`（9GB） |
 | `PENDING_LIMIT_BYTES` | vars | 承認待ちの容量上限 | `2147483648`（2GB） |
 | `MEDIA_BASE_URL` | vars | 動画・画像の配信元 | `/media` |
+| `PUBLIC_APP_URL` | vars | 一般向けアプリの URL（X 共有のリンク先。GitHub Actions が自動で設定。空なら開いているページのアドレス） | 空 |
 | `PENDING_EXPIRE_ACTION` | vars | 14 日以上審査されない承認待ち：`keep`（残す）／`delete`（却下扱いにして動画を削除） | `keep` |
 
 フロント側（ビルド時）：
