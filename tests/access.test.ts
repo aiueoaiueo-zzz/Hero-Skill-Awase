@@ -1,5 +1,5 @@
 import { beforeAll, describe, expect, it } from "vitest";
-import { accessTokenFrom, normalizeTeamDomain, verifyAccessJwt, type JwksFetcher } from "../src/worker/lib/access";
+import { accessTokenFrom, normalizeTeamDomain, verifyAccessJwt, verifyAccessJwtDetailed, type JwksFetcher } from "../src/worker/lib/access";
 
 const TEAM = "myteam.cloudflareaccess.com";
 const ISS = "https://myteam.cloudflareaccess.com";
@@ -84,10 +84,32 @@ describe("verifyAccessJwt", () => {
   });
 });
 
+describe("verifyAccessJwtDetailed（失敗の理由）", () => {
+  const v = (t: string, o: Partial<{ teamDomain: string; aud: string }> = {}) =>
+    verifyAccessJwtDetailed(t, { teamDomain: TEAM, aud: AUD, ...o }, fetcher).then((r) => (r.ok ? "ok" : r.reason));
+  it("JWKs の URL をまるごと設定しても検証できる", async () => {
+    expect(await v(await sign(good()), { teamDomain: "https://myteam.cloudflareaccess.com/cdn-cgi/access/certs" })).toBe("ok");
+  });
+  it("AUD の前後に空白があっても検証できる", async () => {
+    expect(await v(await sign(good()), { aud: ` ${AUD} ` })).toBe("ok");
+  });
+  it("理由を返す", async () => {
+    expect(await v("abc")).toBe("malformed");
+    expect(await v(await sign(good(), { key: otherPair.privateKey }))).toBe("signature");
+    expect(await v(await sign({ ...good(), exp: now - 3600 }))).toBe("expired");
+    expect(await v(await sign({ ...good(), aud: ["other"] }))).toBe("audience");
+    expect(await v(await sign({ ...good(), iss: "https://evil.cloudflareaccess.com" }))).toBe("issuer");
+    expect(await v(await sign(good(), { kid: "unknown" }))).toBe("kid_not_found");
+  });
+});
+
 describe("helpers", () => {
   it("normalizeTeamDomain", () => {
     expect(normalizeTeamDomain("myteam")).toBe(ISS);
     expect(normalizeTeamDomain("https://myteam.cloudflareaccess.com/")).toBe(ISS);
+    // JWKs の URL をまるごと貼った場合・前後の空白・大文字
+    expect(normalizeTeamDomain("https://myteam.cloudflareaccess.com/cdn-cgi/access/certs")).toBe(ISS);
+    expect(normalizeTeamDomain("  MyTeam.cloudflareaccess.com/cdn-cgi/access/certs ")).toBe(ISS);
   });
   it("accessTokenFrom：ヘッダー優先、なければ Cookie", () => {
     expect(accessTokenFrom(new Request("https://x/", { headers: { "Cf-Access-Jwt-Assertion": "H", Cookie: "CF_Authorization=C" } }))).toBe("H");
