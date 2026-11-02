@@ -26,7 +26,8 @@ export function Footer() {
         <Link to="/terms">注意事項・プライバシー</Link>
         <Link to="/contact">お問い合わせ・ご要望</Link>
       </nav>
-      <div className="copy">HS明け早見アプリ（ファンメイド）</div>
+      <div className="rights">©NHN PlayArt Corp. ©DWANGO Co., Ltd.</div>
+      <div className="copy">HS明け早見アプリ（非公式ファンツール）</div>
     </footer>
   );
 }
