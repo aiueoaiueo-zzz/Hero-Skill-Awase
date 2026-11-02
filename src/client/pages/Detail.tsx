@@ -1,6 +1,11 @@
 import { useEffect, useRef, useState } from "react";
 import { Navigate, useLocation, useNavigate, useParams } from "react-router";
-import { ATTACK_LABEL, ATTACK_TAB, ATTACK_TYPES, type AttackType } from "../../shared/constants";
+import {
+  ATTACK_LABEL,
+  ATTACK_TAB,
+  ATTACK_TYPES,
+  type AttackType,
+} from "../../shared/constants";
 import type { PairResponse } from "../../shared/types";
 import { Avatar } from "../components/Avatar";
 import { Header } from "../components/Header";
@@ -18,13 +23,18 @@ const tabMemory = new Map<string, AttackType>();
 export function Detail() {
   const { a = "", t = "" } = useParams();
   const nav = useNavigate();
-  const { data, error } = useApi<PairResponse>(`/api/pairs/${encodeURIComponent(a)}/${encodeURIComponent(t)}`);
+  const { data, error } = useApi<PairResponse>(
+    `/api/pairs/${encodeURIComponent(a)}/${encodeURIComponent(t)}`,
+    { cached: true },
+  );
   const key = `${a}/${t}`;
   const [tab, setTab] = useState<AttackType | undefined>(tabMemory.get(key));
-  const { publicAppUrl } = useData();
+  const { publicAppUrl, heroes } = useData();
   const { hash } = useLocation();
   // 共有リンク（#t-<タイミングID>）で開いたとき：そのタイミングのタブを開いて、そこまで移動する
-  const linkedId = hash.startsWith("#t-") ? decodeURIComponent(hash.slice(3)) : null;
+  const linkedId = hash.startsWith("#t-")
+    ? decodeURIComponent(hash.slice(3))
+    : null;
   const [flashId, setFlashId] = useState<string | null>(null);
   const scrolled = useRef<string | null>(null);
   useEffect(() => {
@@ -37,7 +47,9 @@ export function Detail() {
     }
     scrolled.current = linkedId;
     requestAnimationFrame(() => {
-      document.getElementById(`t-${linkedId}`)?.scrollIntoView({ behavior: "smooth", block: "start" });
+      document
+        .getElementById(`t-${linkedId}`)
+        ?.scrollIntoView({ behavior: "smooth", block: "start" });
       setFlashId(linkedId);
       setTimeout(() => setFlashId(null), 2500);
     });
@@ -45,15 +57,19 @@ export function Detail() {
   useBootFx(!!data || !!error);
   if (error?.status === 404) return <Navigate to="/" replace />;
 
-  const A = data?.attacker;
-  const T = data?.target;
+  // キャラは最初の読み込みで分かっているので、タイミングを待たずに見出しと VS を出す
+  const A = data?.attacker ?? heroes.find((h) => h.slug === a);
+  const T = data?.target ?? heroes.find((h) => h.slug === t);
   const timings = data?.timings ?? [];
-  const counts = Object.fromEntries(ATTACK_TYPES.map(([k]) => [k, timings.filter((x) => x.attackType === k).length])) as Record<
-    AttackType,
-    number
-  >;
+  const counts = Object.fromEntries(
+    ATTACK_TYPES.map(([k]) => [
+      k,
+      timings.filter((x) => x.attackType === k).length,
+    ]),
+  ) as Record<AttackType, number>;
   // 初期表示は、件数が 1 件以上ある最初のタブ
-  const cur: AttackType = tab ?? (ATTACK_TYPES.find(([k]) => counts[k] > 0) ?? ATTACK_TYPES[0])[0];
+  const cur: AttackType =
+    tab ?? (ATTACK_TYPES.find(([k]) => counts[k] > 0) ?? ATTACK_TYPES[0])[0];
   const list = timings.filter((x) => x.attackType === cur);
   const select = (k: AttackType) => {
     tabMemory.set(key, k);
@@ -69,26 +85,28 @@ export function Detail() {
         prog={PROG.step3}
       />
       {error && <div className="empty">読み込みに失敗しました</div>}
+      {A && T && (
+        <div className="vs">
+          <div className="side atk">
+            <small>攻撃する側</small>
+            <Avatar hero={A} />
+            <b>{A!.name}</b>
+          </div>
+          <div className="x">
+            HS明けに
+            <br />
+            合わせる
+            <br />▶
+          </div>
+          <div className="side def">
+            <small>HSを使う相手</small>
+            <Avatar hero={T} />
+            <b>{T!.name}</b>
+          </div>
+        </div>
+      )}
       {data && (
         <>
-          <div className="vs">
-            <div className="side atk">
-              <small>攻撃する側</small>
-              <Avatar hero={A} />
-              <b>{A!.name}</b>
-            </div>
-            <div className="x">
-              HS明けに
-              <br />
-              合わせる
-              <br />▶
-            </div>
-            <div className="side def">
-              <small>HSを使う相手</small>
-              <Avatar hero={T} />
-              <b>{T!.name}</b>
-            </div>
-          </div>
           {!timings.length ? (
             <div className="empty">
               まだ情報がありません。
@@ -99,7 +117,11 @@ export function Detail() {
             <>
               <div className="atabs">
                 {ATTACK_TYPES.map(([k]) => (
-                  <button key={k} className={`${k === cur ? "on" : ""} ${counts[k] ? "" : "zero"}`} onClick={() => select(k)}>
+                  <button
+                    key={k}
+                    className={`${k === cur ? "on" : ""} ${counts[k] ? "" : "zero"}`}
+                    onClick={() => select(k)}
+                  >
                     <span>
                       {ATTACK_TAB[k][0]}
                       {ATTACK_TAB[k][1] && (
@@ -136,13 +158,23 @@ export function Detail() {
                                 nickname: x.nickname,
                                 supportCode: x.supportCode,
                               }),
-                              url: x.shareCode ? shortLink(publicAppUrl, x.shareCode) : timingLink(publicAppUrl, A!.slug, T!.slug, x.id),
+                              url: x.shareCode
+                                ? shortLink(publicAppUrl, x.shareCode)
+                                : timingLink(
+                                    publicAppUrl,
+                                    A!.slug,
+                                    T!.slug,
+                                    x.id,
+                                  ),
                             })
                           }
                         >
                           共有
                         </button>
-                        <button className="sbtn" onClick={() => nav(`/submit?fix=${x.id}`)}>
+                        <button
+                          className="sbtn"
+                          onClick={() => nav(`/submit?fix=${x.id}`)}
+                        >
                           修正を提案
                         </button>
                       </>
@@ -150,11 +182,20 @@ export function Detail() {
                   />
                 ))
               ) : (
-                <div className="empty">「{ATTACK_LABEL[cur]}」での合わせ方はまだありません</div>
+                <div className="empty">
+                  「{ATTACK_LABEL[cur]}」での合わせ方はまだありません
+                </div>
               )}
             </>
           )}
-          <button className="fab" onClick={() => nav(`/submit?a=${encodeURIComponent(a)}&t=${encodeURIComponent(t)}`)}>
+          <button
+            className="fab"
+            onClick={() =>
+              nav(
+                `/submit?a=${encodeURIComponent(a)}&t=${encodeURIComponent(t)}`,
+              )
+            }
+          >
             ＋ この組み合わせを投稿
           </button>
         </>

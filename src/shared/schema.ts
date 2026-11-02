@@ -92,7 +92,7 @@ export const heroMoveSchema = z.object({ dir: z.union([z.literal(-1), z.literal(
 export const contactSchema = z.object({
   kind: z.enum(CONTACT_KINDS.map(([k]) => k) as [string, ...string[]]),
   ref: optText(CONTACT_LIMITS.ref),
-  body: text(CONTACT_LIMITS.body).refine((s) => s.length >= 5, { message: "内容を入力してください" }),
+  body: text(CONTACT_LIMITS.body).refine((s) => chars(s) >= CONTACT_LIMITS.bodyMin, { message: `内容は${CONTACT_LIMITS.bodyMin}文字以上で入力してください` }),
   replyTo: optText(CONTACT_LIMITS.replyTo),
   turnstileToken: z.string().max(4096).optional(),
 });

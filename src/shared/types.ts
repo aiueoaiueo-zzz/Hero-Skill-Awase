@@ -28,6 +28,8 @@ export type Bootstrap = {
   turnstileSiteKey: string;
   /** 一般向けアプリの URL（X 共有のリンク先） */
   publicAppUrl: string;
+  /** 公開中のタイミングがある組み合わせ（攻撃する側のキャラ ID → 相手のキャラ ID の一覧）。相手の選択画面をすぐ出すため */
+  registered: Record<string, string[]>;
 };
 
 export type PairResponse = {

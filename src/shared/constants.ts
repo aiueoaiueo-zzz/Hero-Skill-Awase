@@ -64,12 +64,13 @@ export const CONTACT_KINDS = [
   ["removal", "投稿の削除・非公開の依頼"],
   ["mistake", "掲載内容の誤り"],
   ["bug", "不具合の報告"],
+  ["request", "ご要望（こんな機能がほしい など）"],
   ["rights", "権利者の方からのご連絡"],
   ["other", "その他"],
 ] as const;
 export type ContactKind = (typeof CONTACT_KINDS)[number][0];
 export const CONTACT_KIND_LABEL = Object.fromEntries(CONTACT_KINDS) as Record<ContactKind, string>;
-export const CONTACT_LIMITS = { ref: 300, body: 2000, replyTo: 200 } as const;
+export const CONTACT_LIMITS = { ref: 300, bodyMin: 5, body: 2000, replyTo: 200 } as const;
 
 export const SETTING_KEYS = ["owner_support_code", "notices", "about", "terms"] as const;
 export type SettingKey = (typeof SETTING_KEYS)[number];
@@ -101,7 +102,7 @@ export const DEFAULT_TERMS = `本アプリをご利用いただく前に、以�
 - 本アプリは Cloudflare（配信・ロボット対策）などの外部サービスを利用しており、IP アドレスなどの接続情報が各サービスに送られることがあります。広告やアクセス解析のツールは使っていません。
 
 ## お問い合わせ
-投稿の削除の依頼や、権利者の方からのご連絡は、「お問い合わせ」からお送りください。
+投稿の削除の依頼や、権利者の方からのご連絡、ご要望は、「お問い合わせ」からお送りください。
 
 最終更新：2026年11月3日`;
 

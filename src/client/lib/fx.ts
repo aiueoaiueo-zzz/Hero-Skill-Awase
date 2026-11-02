@@ -8,14 +8,21 @@ const BOOT_SELECTOR =
 
 export function useBootFx(ready: boolean) {
   const loc = useLocation();
-  const done = useRef<string | null>(null);
+  const st = useRef<{ key: string | null; full: boolean }>({ key: null, full: false });
   useLayoutEffect(() => {
-    if (!ready || done.current === loc.key) return;
-    done.current = loc.key;
+    const s = st.current;
+    const first = s.key !== loc.key;
+    // 画面に入ったとき：その時点で出ているもの（ヘッダーなど）を再生する。
+    // データが届いたとき：まだ再生していない部分だけを再生する（ヘッダーをもう一度再生してちらつかせない）
+    if (!first && (s.full || !ready)) return;
+    s.key = loc.key;
+    s.full = ready;
     const root = document.getElementById("root");
     if (!root) return;
     let i = 0;
     root.querySelectorAll<HTMLElement>(BOOT_SELECTOR).forEach((el) => {
+      if (!first && el.dataset.boot === loc.key) return;
+      el.dataset.boot = loc.key;
       el.classList.remove("boot");
       void el.offsetWidth;
       el.style.animationDelay = Math.min(i++ * 28, 560) + "ms";
