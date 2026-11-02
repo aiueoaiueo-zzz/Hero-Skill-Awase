@@ -1,7 +1,7 @@
 import { Hono } from "hono";
 import { SETTING_KEYS } from "../../shared/constants";
 import { approveSchema, rejectSchema, settingsSchema } from "../../shared/schema";
-import type { AdminGroup, AdminPendingResponse, AdminTiming } from "../../shared/types";
+import type { AdminGroup, AdminPendingResponse, AdminPublished, AdminTiming } from "../../shared/types";
 import type { AppEnv, Env } from "../env";
 import { requireAdmin } from "../lib/admin-auth";
 import { adminHeroRoutes } from "./admin-heroes";
@@ -35,6 +35,9 @@ type Row = {
   video_size: number | null;
   status: string;
   reviewed_at: string | null;
+  hidden?: number;
+  share_code?: string | null;
+  credit_submission_id?: string | null;
 };
 
 /** 管理画面で再生する動画の URL（承認待ちは管理者用の配信、それ以外は公開 URL） */
@@ -69,7 +72,7 @@ adminRoutes.get("/pending", async (c) => {
     const ids = origIds.slice(i, i + 50);
     const { results: os } = await db
       .prepare(
-        `SELECT t.*, s.nickname, s.support_code FROM timings t JOIN submissions s ON s.id = t.submission_id WHERE t.id IN (${ids.map(() => "?").join(",")})`,
+        `SELECT t.*, s.nickname, s.support_code FROM timings t JOIN submissions s ON s.id = COALESCE(t.credit_submission_id, t.submission_id) WHERE t.id IN (${ids.map(() => "?").join(",")})`,
       )
       .bind(...ids)
       .all<Row & { nickname: string | null; support_code: string | null }>();
@@ -130,7 +133,8 @@ adminRoutes.post("/timings/:id/approve", async (c) => {
   let original: Row | null = null;
   if (fixOf) {
     original = await env.DB.prepare("SELECT * FROM timings WHERE id = ?").bind(fixOf).first<Row>();
-    if (!original || original.status !== "approved") return c.json({ error: "fix_target_not_approved" }, 409);
+    // 非公開にした元のタイミングへの修正提案は承認しない（公開に戻してから）
+    if (!original || original.status !== "approved" || original.hidden) return c.json({ error: "fix_target_not_approved" }, 409);
   }
 
   // 1. 動画を公開領域へコピー（pending/ → public/）
@@ -154,8 +158,11 @@ adminRoutes.post("/timings/:id/approve", async (c) => {
     // 修正提案：元のタイミングを修正案の内容で置き換え、修正案は merged にする
     stmts.push(
       db
-        .prepare(`UPDATE timings SET timing_text = ?, note = ?, video_key = ?, video_size = ?, updated_at = ? WHERE id = ? AND status = 'approved' AND ${stillPending}`)
-        .bind(v.timingText, v.note, videoKey, t.video_size, now, original.id, t.id),
+        // 表示する投稿者も、修正した人（修正提案の submission）にする
+        .prepare(
+          `UPDATE timings SET timing_text = ?, note = ?, video_key = ?, video_size = ?, credit_submission_id = ?, updated_at = ? WHERE id = ? AND status = 'approved' AND ${stillPending}`,
+        )
+        .bind(v.timingText, v.note, videoKey, t.video_size, t.submission_id, now, original.id, t.id),
       db
         .prepare("UPDATE timings SET status = 'merged', timing_text = ?, note = ?, video_key = ?, reviewed_at = ?, updated_at = ? WHERE id = ? AND status = 'pending'")
         .bind(v.timingText, v.note, videoKey, now, now, t.id),
@@ -212,6 +219,114 @@ adminRoutes.post("/timings/:id/reject", async (c) => {
 });
 
 adminRoutes.route("/heroes", adminHeroRoutes);
+
+// ===== 公開中のタイミングの管理（非公開・公開に戻す・削除） =====
+
+/** R2 のファイルを別のキーにコピーして、容量の記録にも追加する */
+async function copyObject(env: Env, from: string, to: string) {
+  const src = await env.MEDIA.get(from);
+  if (!src) throw new Error("video_missing");
+  await env.MEDIA.put(to, src.body, { httpMetadata: { contentType: "video/mp4", cacheControl: "public, max-age=31536000, immutable" } });
+  await recordObject(env, to, src.size);
+}
+
+/** 公開中・非公開のタイミングの一覧（新しく承認した順） */
+adminRoutes.get("/published", async (c) => {
+  const { results } = await c.env.DB.prepare(
+    `SELECT t.*, s.code, cs.nickname, cs.support_code
+       FROM timings t
+       JOIN submissions s ON s.id = t.submission_id
+       JOIN submissions cs ON cs.id = COALESCE(t.credit_submission_id, t.submission_id)
+      WHERE t.status = 'approved'
+      ORDER BY t.reviewed_at DESC
+      LIMIT 1000`,
+  ).all<Row & { code: string; nickname: string | null; support_code: string | null }>();
+  const heroes = new Map((await listHeroes(c.env)).map((h) => [h.id, h]));
+  const items: AdminPublished[] = results.map((r) => ({
+    id: r.id,
+    attacker: heroes.get(r.attacker_id)!,
+    target: heroes.get(r.target_id)!,
+    attackType: r.attack_type,
+    cueType: r.cue_type,
+    timingText: r.timing_text,
+    note: r.note,
+    videoUrl: adminVideoUrl(c.env, r.video_key),
+    nickname: r.nickname,
+    supportCode: r.support_code,
+    reviewedAt: r.reviewed_at,
+    hidden: !!r.hidden,
+    shareCode: r.share_code ?? null,
+    code: r.code,
+  }));
+  return c.json({ items });
+});
+
+/** 非公開にする：一般向けから外し、動画も pending/ に移して /media から見えなくする */
+adminRoutes.post("/timings/:id/hide", async (c) => {
+  const env = c.env;
+  const t = await env.DB.prepare("SELECT * FROM timings WHERE id = ? AND status = 'approved'").bind(c.req.param("id")).first<Row>();
+  if (!t) return c.json({ error: "not_found" }, 404);
+  if (t.hidden) return c.json({ ok: true });
+  const to = t.video_key.startsWith("public/") ? "pending/" + t.video_key.slice("public/".length) : t.video_key;
+  if (to !== t.video_key) {
+    try {
+      await copyObject(env, t.video_key, to);
+    } catch {
+      return c.json({ error: "video_missing" }, 409);
+    }
+  }
+  const r = await env.DB.prepare("UPDATE timings SET hidden = 1, video_key = ?, updated_at = ? WHERE id = ? AND status = 'approved' AND hidden = 0")
+    .bind(to, nowIso(), t.id)
+    .run();
+  if (!r.meta.changes) return c.json({ error: "conflict" }, 409);
+  if (to !== t.video_key) await deleteIfUnused(env, [t.video_key]); // ほかの修正提案が同じ動画を使っていれば残る
+  return c.json({ ok: true });
+});
+
+/** 公開に戻す */
+adminRoutes.post("/timings/:id/unhide", async (c) => {
+  const env = c.env;
+  const t = await env.DB.prepare("SELECT * FROM timings WHERE id = ? AND status = 'approved'").bind(c.req.param("id")).first<Row>();
+  if (!t) return c.json({ error: "not_found" }, 404);
+  if (!t.hidden) return c.json({ ok: true });
+  const to = t.video_key.startsWith("pending/") ? "public/" + t.video_key.slice("pending/".length) : t.video_key;
+  if (to !== t.video_key) {
+    try {
+      await copyObject(env, t.video_key, to);
+    } catch {
+      return c.json({ error: "video_missing" }, 409);
+    }
+  }
+  const r = await env.DB.prepare("UPDATE timings SET hidden = 0, video_key = ?, updated_at = ? WHERE id = ? AND status = 'approved' AND hidden = 1")
+    .bind(to, nowIso(), t.id)
+    .run();
+  if (!r.meta.changes) return c.json({ error: "conflict" }, 409);
+  if (to !== t.video_key) await deleteIfUnused(env, [t.video_key]);
+  return c.json({ ok: true });
+});
+
+/** 削除：タイミングと動画を消す（元に戻せない）。投稿にほかのタイミングが残っていなければ投稿ごと消す */
+adminRoutes.delete("/timings/:id", async (c) => {
+  const env = c.env;
+  const db = env.DB;
+  const t = await db.prepare("SELECT * FROM timings WHERE id = ? AND status = 'approved'").bind(c.req.param("id")).first<Row>();
+  if (!t) return c.json({ error: "not_found" }, 404);
+  await db.batch([
+    // このタイミングへの修正提案（承認待ち・反映済み）からの参照を外す
+    db.prepare("UPDATE submissions SET replaces_timing_id = NULL WHERE replaces_timing_id = ?").bind(t.id),
+    db.prepare("DELETE FROM timings WHERE id = ?").bind(t.id),
+    // 投稿にタイミングが残っておらず、ほかのタイミングの投稿者表示にも使われていなければ投稿ごと削除
+    db
+      .prepare(
+        `DELETE FROM submissions WHERE id = ?
+           AND NOT EXISTS (SELECT 1 FROM timings WHERE submission_id = ?)
+           AND NOT EXISTS (SELECT 1 FROM timings WHERE credit_submission_id = ?)`,
+      )
+      .bind(t.submission_id, t.submission_id, t.submission_id),
+  ]);
+  await deleteIfUnused(env, [t.video_key]);
+  return c.json({ ok: true });
+});
 
 /** 承認待ちの動画（管理者のみ） */
 adminRoutes.on(["GET", "HEAD"], "/media/*", async (c) => {
