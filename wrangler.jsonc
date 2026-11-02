@@ -1,0 +1,73 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  // 同じソースから 2 つの Worker をデプロイする（README 3 章）
+  //   hs-awase       … 一般向け（APP_ROLE=public）。/admin・/api/admin は 404
+  //   hs-awase-admin … 管理用（APP_ROLE=admin、--env admin）。workers.dev 全体を Cloudflare Access で保護
+  // D1・R2 は共通。
+  "name": "hs-awase",
+  "main": "src/worker/index.ts",
+  "compatibility_date": "2026-10-01",
+  "compatibility_flags": ["nodejs_compat"],
+  // バージョンごとのプレビュー用 URL は作らない（Access を通らない入口を増やさないため）
+  "preview_urls": false,
+  // フロント（Vite のビルド結果）を同じ Worker から配信する。
+  // 次のパスは Worker が先に処理し、それ以外は SPA として index.html を返す。
+  "assets": {
+    "binding": "ASSETS",
+    "not_found_handling": "single-page-application",
+    "run_worker_first": ["/", "/api/*", "/media/*", "/admin", "/admin/*"]
+  },
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "hs-awase",
+      // 本番：npx wrangler d1 create hs-awase で表示された ID に書き換える（README 3-2）。env.admin 側も同じ ID に
+      "database_id": "00000000-0000-0000-0000-000000000000",
+      "migrations_dir": "migrations"
+    }
+  ],
+  "r2_buckets": [{ "binding": "MEDIA", "bucket_name": "hs-awase-media" }],
+  "vars": {
+    "APP_ROLE": "public",
+    "STORAGE_LIMIT_BYTES": "9663676416",
+    "PENDING_LIMIT_BYTES": "2147483648",
+    "MEDIA_BASE_URL": "/media",
+    "PENDING_EXPIRE_ACTION": "keep",
+    "ACCESS_TEAM_DOMAIN": "",
+    "ACCESS_AUD": "",
+    "TURNSTILE_SITE_KEY": ""
+  },
+  // 毎日 3:17（日本時間）に不要な動画の削除と容量の照合（一般向けの Worker だけで動かす）
+  "triggers": { "crons": ["17 18 * * *"] },
+  "observability": { "enabled": true },
+
+  "env": {
+    // 管理用：npm run deploy:admin（= CLOUDFLARE_ENV=admin でビルドして wrangler deploy）
+    "admin": {
+      "name": "hs-awase-admin",
+      "preview_urls": false,
+      "d1_databases": [
+        {
+          "binding": "DB",
+          "database_name": "hs-awase",
+          // 上と同じ ID にする
+          "database_id": "00000000-0000-0000-0000-000000000000",
+          "migrations_dir": "migrations"
+        }
+      ],
+      "r2_buckets": [{ "binding": "MEDIA", "bucket_name": "hs-awase-media" }],
+      "vars": {
+        "APP_ROLE": "admin",
+        "STORAGE_LIMIT_BYTES": "9663676416",
+        "PENDING_LIMIT_BYTES": "2147483648",
+        "MEDIA_BASE_URL": "/media",
+        "PENDING_EXPIRE_ACTION": "keep",
+        // Cloudflare Access の JWT 検証用（README 3-8）
+        "ACCESS_TEAM_DOMAIN": "",
+        "ACCESS_AUD": "",
+        "TURNSTILE_SITE_KEY": ""
+      },
+      "triggers": { "crons": [] }
+    }
+  }
+}
