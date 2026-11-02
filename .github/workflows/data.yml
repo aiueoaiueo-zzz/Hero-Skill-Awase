@@ -1,0 +1,37 @@
+# 本番データの確認・削除（PC は不要。GitHub の「Actions」→「データの確認・削除」→「Run workflow」）
+# - list：投稿の一覧と保存容量の記録を表示（何も変更しない）
+# - delete：指定した受付番号の投稿を、データベースと動画ファイル（R2）から削除（元に戻せません）
+name: データの確認・削除
+
+on:
+  workflow_dispatch:
+    inputs:
+      action:
+        description: "list（一覧を見る）／delete（削除する）"
+        type: choice
+        options: [list, delete]
+        default: list
+      codes:
+        description: "delete のとき：削除する受付番号（カンマ区切り。例：HS-2TYGM4, HS-ABC123）"
+        required: false
+        default: ""
+
+permissions:
+  contents: read
+
+jobs:
+  data:
+    runs-on: ubuntu-latest
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 22
+      - name: ${{ inputs.action == 'delete' && '投稿を削除' || '投稿の一覧' }}
+        env:
+          ACTION: ${{ inputs.action }}
+          CODES: ${{ inputs.codes }}
+        run: node scripts/ci-data.mjs
