@@ -1,5 +1,5 @@
 import { Hono } from "hono";
-import { LIMITS } from "../../shared/constants";
+import { LIMITS, type AttackType } from "../../shared/constants";
 import { codeSchema, entryInputSchema, uploadRequestSchema, withdrawSchema } from "../../shared/schema";
 import type { EntryResponse, FixSource, StatusResponse, StatusTiming, UploadResponse } from "../../shared/types";
 import type { AppEnv } from "../env";
@@ -7,7 +7,8 @@ import { toHero, type HeroRow } from "../lib/heroes";
 import { genCode, genSecret, nowIso, sha256Hex, ulid } from "../lib/ids";
 import { hasR2Credentials, presignPut } from "../lib/presign";
 import { mediaUrl } from "../lib/media";
-import { deleteMedia, recordStmt, videoAccepting } from "../lib/storage";
+import { capacityPayload, newSubmissionPayload, sendDiscord, sendDiscordThrottled } from "../lib/notify";
+import { deleteMedia, getUsage, recordStmt, videoAccepting } from "../lib/storage";
 import { verifyTurnstile } from "../lib/turnstile";
 
 // 投稿・審査状況・取り下げ（ログイン不要）
@@ -31,7 +32,11 @@ submitRoutes.post("/uploads", async (c) => {
   if (!(await verifyTurnstile(c.env, c.req.raw, parsed.data.turnstileToken))) return c.json({ error: "turnstile_failed" }, 403);
   // 課金防止：これから受け付ける分も含めて上限を超えないか
   const incoming = parsed.data.files.reduce((s, f) => s + f.size, 0);
-  if (!(await videoAccepting(c.env, incoming))) return c.json({ error: "video_not_accepting" }, 503);
+  if (!(await videoAccepting(c.env, incoming))) {
+    // 管理者に知らせる（12 時間に 1 回まで）
+    c.executionCtx.waitUntil(getUsage(c.env).then((u) => sendDiscordThrottled(c.env, "capacity", 12 * 60 * 60 * 1000, capacityPayload(c.env, u))));
+    return c.json({ error: "video_not_accepting" }, 503);
+  }
 
   const ticket = genSecret();
   const now = nowIso();
@@ -196,6 +201,32 @@ submitRoutes.post("/entries", async (c) => {
     ];
     try {
       await db.batch(stmts);
+      // 管理者に Discord で知らせる（返事を待たせない）
+      if (c.env.DISCORD_WEBHOOK_URL) {
+        c.executionCtx.waitUntil(
+          (async () => {
+            const names = await db
+              .prepare("SELECT id, name FROM heroes WHERE id IN (?, ?)")
+              .bind(input.attackerId, input.targetId)
+              .all<{ id: string; name: string }>();
+            const name = (id: string) => names.results.find((h) => h.id === id)?.name ?? "?";
+            const pending = await db.prepare("SELECT COUNT(*) AS n FROM timings WHERE status = 'pending'").first<{ n: number }>();
+            await sendDiscord(
+              c.env,
+              newSubmissionPayload(c.env, {
+                code,
+                attacker: name(input.attackerId),
+                target: name(input.targetId),
+                attackTypes: input.timings.map((t) => t.attackType as AttackType),
+                timingCount: input.timings.length,
+                nickname: input.nickname,
+                isFix: !!original,
+                pendingTotal: pending?.n ?? input.timings.length,
+              }),
+            );
+          })(),
+        );
+      }
       return c.json<EntryResponse>({ code, deleteKey });
     } catch (e) {
       if (String(e).includes("UNIQUE") && String(e).includes("code")) continue; // 受付番号の衝突 → 作り直す
