@@ -1,6 +1,6 @@
-# アプリのアイコン（案 2-B「HS合わせ」）
+# アプリのアイコン（案 1「照準リング」）
 
-- `icon-source.html`：アイコンの元データ（SVG）。通常版（`#std`）と、Android の丸型切り抜き用のマスカブル版（`#mask`）。
+- `icon-source.html`：アイコンの元データ（SVG）。通常版（`#std`）、タブ用の小さい版（`#small`）、、Android の丸型切り抜き用のマスカブル版（`#mask`）。
 - `render.cjs`：各サイズの PNG を `public/` に書き出すスクリプト。
 
 ```bash
