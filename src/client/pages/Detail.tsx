@@ -8,7 +8,7 @@ import { TimingCard } from "../components/TimingCard";
 import { timingLink, timingShareText } from "../../shared/share";
 import { useApi } from "../lib/api";
 import { useData } from "../lib/data";
-import { shareToX } from "../lib/share";
+import { openShare } from "../lib/share";
 import { PROG, useBootFx } from "../lib/fx";
 
 // 組み合わせごとに選んだタブを覚えておく（画面を行き来しても戻る）
@@ -126,8 +126,9 @@ export function Detail() {
                         <button
                           className="sbtn"
                           onClick={() =>
-                            shareToX(
-                              timingShareText({
+                            openShare({
+                              title: `${A!.name} → ${T!.name}｜HS明け早見`,
+                              text: timingShareText({
                                 attacker: A!.name,
                                 target: T!.name,
                                 attackType: x.attackType,
@@ -135,11 +136,11 @@ export function Detail() {
                                 nickname: x.nickname,
                                 supportCode: x.supportCode,
                               }),
-                              timingLink(publicAppUrl, A!.slug, T!.slug, x.id),
-                            )
+                              url: timingLink(publicAppUrl, A!.slug, T!.slug, x.id),
+                            })
                           }
                         >
-                          Xで共有
+                          共有
                         </button>
                         <button className="sbtn" onClick={() => nav(`/submit?fix=${x.id}`)}>
                           修正を提案
