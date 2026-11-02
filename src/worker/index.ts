@@ -4,12 +4,29 @@ import type { AppEnv, Env } from "./env";
 import { requireAdmin } from "./lib/admin-auth";
 import { appRole, isAdminPath } from "./lib/role";
 import { adminRoutes } from "./routes/admin";
+import { contactRoutes } from "./routes/contact";
 import { mediaRoutes } from "./routes/media";
 import { publicRoutes, shortLinkRoutes } from "./routes/public";
 import { submitRoutes } from "./routes/submit";
 
 const app = new Hono<AppEnv>();
 
+// セキュリティ用のヘッダー（ほかのサイトに埋め込ませない・ファイルの種類を推測させない など）。
+// Worker を通らない静的ファイルには public/_headers で同じものを付ける
+const SECURITY_HEADERS: Record<string, string> = {
+  "X-Content-Type-Options": "nosniff",
+  "X-Frame-Options": "DENY",
+  "Content-Security-Policy": "frame-ancestors 'none'",
+  "Referrer-Policy": "strict-origin-when-cross-origin",
+  "Permissions-Policy": "camera=(), microphone=(), geolocation=()",
+};
+app.use("*", async (c, next) => {
+  await next();
+  // fetch() や ASSETS から受け取ったレスポンスはヘッダーを書き換えられないので、作り直してから付ける
+  const res = new Response(c.res.body, c.res);
+  for (const [k, v] of Object.entries(SECURITY_HEADERS)) if (!res.headers.has(k)) res.headers.set(k, v);
+  c.res = res;
+});
 
 // 役割ごとの入口の制限
 app.use("*", async (c, next) => {
@@ -28,6 +45,7 @@ app.get("/api/health", async (c) => {
 });
 app.route("/api", publicRoutes);
 app.route("/api", submitRoutes);
+app.route("/api", contactRoutes);
 app.route("/api/admin", adminRoutes);
 
 // 管理画面の HTML も Worker で JWT を確認してから返す（Cloudflare Access と二重に確認）

@@ -1,4 +1,4 @@
-import type { AttackType, CueType, DisplayStatus, SettingKey, TimingStatus } from "./constants";
+import type { AttackType, ContactKind, CueType, DisplayStatus, SettingKey, TimingStatus } from "./constants";
 
 export type Hero = {
   id: string;
@@ -137,4 +137,16 @@ export type AdminPublished = {
   hidden: boolean;
   shareCode: string | null;
   code: string;
+};
+
+/** 管理：お問い合わせ */
+export type AdminContact = {
+  id: string;
+  kind: ContactKind;
+  ref: string | null;
+  body: string;
+  replyTo: string | null;
+  status: "open" | "done";
+  createdAt: string;
+  doneAt: string | null;
 };

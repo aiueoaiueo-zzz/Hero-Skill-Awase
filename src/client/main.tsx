@@ -5,9 +5,11 @@ import { Footer } from "./components/Footer";
 import { ShareSheet } from "./components/ShareSheet";
 import { DataProvider } from "./lib/data";
 import { About } from "./pages/About";
+import { Contact } from "./pages/Contact";
 import { Detail } from "./pages/Detail";
 import { Done } from "./pages/Done";
 import { Home } from "./pages/Home";
+import { AdminContacts } from "./pages/admin/AdminContacts";
 import { AdminHeroes } from "./pages/admin/AdminHeroes";
 import { AdminPending } from "./pages/admin/AdminPending";
 import { AdminPublished } from "./pages/admin/AdminPublished";
@@ -15,6 +17,7 @@ import { AdminSettings } from "./pages/admin/AdminSettings";
 import { Status } from "./pages/Status";
 import { Submit } from "./pages/Submit";
 import { Targets } from "./pages/Targets";
+import { Terms } from "./pages/Terms";
 import "./styles.css";
 
 function Layout() {
@@ -45,11 +48,14 @@ function App() {
         <Route path="/h/:a" element={<Keyed><Targets /></Keyed>} />
         <Route path="/h/:a/:t" element={<Keyed><Detail /></Keyed>} />
         <Route path="/about" element={<About />} />
+        <Route path="/terms" element={<Terms />} />
+        <Route path="/contact" element={<Contact />} />
         <Route path="/submit" element={<Keyed><Submit /></Keyed>} />
         <Route path="/submit/done/:code" element={<Done />} />
         <Route path="/status" element={<Status />} />
         <Route path="/admin" element={<AdminPending />} />
         <Route path="/admin/published" element={<AdminPublished />} />
+        <Route path="/admin/contacts" element={<AdminContacts />} />
         <Route path="/admin/heroes" element={<AdminHeroes />} />
         <Route path="/admin/settings" element={<AdminSettings />} />
         <Route path="*" element={<Navigate to="/" replace />} />

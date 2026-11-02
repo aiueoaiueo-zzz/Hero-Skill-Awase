@@ -10,14 +10,14 @@ const env = {
 } as Env;
 
 describe("presignPut", () => {
-  it("R2 の署名付き PUT URL を作る（10 分・Content-Type を署名）", async () => {
-    const u = new URL(await presignPut(env, "pending/01ABC.mp4", "video/mp4", 600));
+  it("R2 の署名付き PUT URL を作る（10 分・Content-Type・Content-Length を署名）", async () => {
+    const u = new URL(await presignPut(env, "pending/01ABC.mp4", "video/mp4", 1234567, 600));
     expect(u.origin).toBe("https://acc123.r2.cloudflarestorage.com");
     expect(u.pathname).toBe("/hs-awase-media/pending/01ABC.mp4");
     expect(u.searchParams.get("X-Amz-Expires")).toBe("600");
     expect(u.searchParams.get("X-Amz-Algorithm")).toBe("AWS4-HMAC-SHA256");
     expect(u.searchParams.get("X-Amz-Credential")).toMatch(/^AKIDEXAMPLE\/\d{8}\/auto\/s3\/aws4_request$/);
-    expect(u.searchParams.get("X-Amz-SignedHeaders")).toBe("content-type;host");
+    expect(u.searchParams.get("X-Amz-SignedHeaders")).toBe("content-length;content-type;host");
     expect(u.searchParams.get("X-Amz-Signature")).toMatch(/^[0-9a-f]{64}$/);
   });
   it("認証情報が揃っていなければ使わない", () => {

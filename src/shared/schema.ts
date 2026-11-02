@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { ATTACK_TYPES, CUE_TYPES, LIMITS } from "./constants";
+import { ATTACK_TYPES, CONTACT_KINDS, CONTACT_LIMITS, CUE_TYPES, LIMITS } from "./constants";
 
 // 文字数は「文字」単位で数える（絵文字なども 1 文字。D1 の length() と同じ数え方）
 const chars = (s: string) => Array.from(s).length;
@@ -69,6 +69,7 @@ export const settingsSchema = z.object({
   owner_support_code: optText(LIMITS.supportCode).transform((s) => s ?? "").optional(),
   notices: z.string().max(5000).optional(),
   about: z.string().max(20000).optional(),
+  terms: z.string().max(20000).optional(),
 });
 
 // キャラ管理
@@ -86,3 +87,13 @@ export const heroAddSchema = z.object({
 });
 export const heroPatchSchema = z.object({ name: heroNameSchema.optional(), slug: slugSchema.optional() });
 export const heroMoveSchema = z.object({ dir: z.union([z.literal(-1), z.literal(1)]) });
+
+// お問い合わせ
+export const contactSchema = z.object({
+  kind: z.enum(CONTACT_KINDS.map(([k]) => k) as [string, ...string[]]),
+  ref: optText(CONTACT_LIMITS.ref),
+  body: text(CONTACT_LIMITS.body).refine((s) => s.length >= 5, { message: "内容を入力してください" }),
+  replyTo: optText(CONTACT_LIMITS.replyTo),
+  turnstileToken: z.string().max(4096).optional(),
+});
+export const contactStatusSchema = z.object({ status: z.enum(["open", "done"]) });
