@@ -4,6 +4,7 @@ import { approveSchema, rejectSchema, settingsSchema } from "../../shared/schema
 import type { AdminGroup, AdminPendingResponse, AdminTiming } from "../../shared/types";
 import type { AppEnv, Env } from "../env";
 import { requireAdmin } from "../lib/admin-auth";
+import { adminHeroRoutes } from "./admin-heroes";
 import { listHeroes } from "../lib/heroes";
 import { nowIso } from "../lib/ids";
 import { mediaUrl } from "../lib/media";
@@ -205,6 +206,8 @@ adminRoutes.post("/timings/:id/reject", async (c) => {
   if (t.video_key.startsWith("pending/")) await deleteIfUnused(c.env, [t.video_key]);
   return c.json({ ok: true });
 });
+
+adminRoutes.route("/heroes", adminHeroRoutes);
 
 /** 承認待ちの動画（管理者のみ） */
 adminRoutes.on(["GET", "HEAD"], "/media/*", async (c) => {

@@ -114,3 +114,5 @@ export type AdminGroup = {
 export type StorageUsage = { totalBytes: number; pendingBytes: number; limitBytes: number; pendingLimitBytes: number };
 
 export type AdminPendingResponse = { groups: AdminGroup[]; usage: StorageUsage };
+
+export type AdminHero = Hero & { sortOrder: number; timingCount: number };

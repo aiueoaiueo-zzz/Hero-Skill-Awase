@@ -70,3 +70,19 @@ export const settingsSchema = z.object({
   notices: z.string().max(5000).optional(),
   about: z.string().max(20000).optional(),
 });
+
+// キャラ管理
+export const heroNameSchema = z
+  .string()
+  .trim()
+  .min(1, "名前を入力してください")
+  .refine((s) => chars(s) <= 40, { message: "名前は40文字以内です" });
+export const slugSchema = z
+  .string()
+  .trim()
+  .regex(/^[a-z0-9][a-z0-9-]{0,39}$/, "slug は英小文字・数字・ハイフン（先頭は英数字、40文字以内）です");
+export const heroAddSchema = z.object({
+  items: z.array(z.object({ name: heroNameSchema, slug: slugSchema.optional() })).min(1).max(200),
+});
+export const heroPatchSchema = z.object({ name: heroNameSchema.optional(), slug: slugSchema.optional() });
+export const heroMoveSchema = z.object({ dir: z.union([z.literal(-1), z.literal(1)]) });
