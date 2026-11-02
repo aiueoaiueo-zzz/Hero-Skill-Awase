@@ -5,6 +5,7 @@ import type { EntryResponse, FixSource, StatusResponse, StatusTiming, UploadResp
 import type { AppEnv } from "../env";
 import { toHero, type HeroRow } from "../lib/heroes";
 import { genCode, genSecret, nowIso, sha256Hex, ulid } from "../lib/ids";
+import { hasR2Credentials, presignPut } from "../lib/presign";
 import { mediaUrl } from "../lib/media";
 import { videoAccepting } from "../lib/storage";
 import { verifyTurnstile } from "../lib/turnstile";
@@ -42,15 +43,20 @@ submitRoutes.post("/uploads", async (c) => {
         "INSERT INTO uploads (video_key, ticket, declared_size, content_type, created_at) VALUES (?, ?, ?, ?, ?)",
       ).bind(videoKey, ticket, f.size, f.contentType, now),
     );
-    // ステップ 5 で R2 への署名付き URL に置き換える。それまでは Worker 経由で受け取る。
-    uploads.push({ videoKey, url: `/api/uploads/${id}?t=${ticket}`, method: "PUT", headers: { "Content-Type": f.contentType } });
+    // 本番：ブラウザから R2 へ直接 PUT（署名付き URL、10 分）。
+    // R2 の認証情報がないローカル開発では、Worker 経由で受け取る。
+    const url = hasR2Credentials(c.env)
+      ? await presignPut(c.env, videoKey, f.contentType, UPLOAD_URL_TTL_MS / 1000)
+      : `/api/uploads/${id}?t=${ticket}`;
+    uploads.push({ videoKey, url, method: "PUT", headers: { "Content-Type": f.contentType } });
   }
   await c.env.DB.batch(stmts);
   return c.json<UploadResponse>({ ticket, uploads });
 });
 
-/** Worker 経由のアップロード先（R2 の S3 互換 API が使えないローカル開発用） */
+/** Worker 経由のアップロード先（R2 の S3 互換 API が使えないローカル開発用。認証情報があるときは使わない） */
 submitRoutes.put("/uploads/:id", async (c) => {
+  if (hasR2Credentials(c.env)) return c.json({ error: "not_found" }, 404);
   const key = `pending/${c.req.param("id")}.mp4`;
   const row = await c.env.DB.prepare("SELECT ticket, declared_size, created_at, used_at FROM uploads WHERE video_key = ?")
     .bind(key)
@@ -142,11 +148,18 @@ submitRoutes.post("/entries", async (c) => {
       sizes.push(v?.video_size ?? 0);
       continue;
     }
-    const up = await db.prepare("SELECT ticket, used_at FROM uploads WHERE video_key = ?").bind(key).first<{ ticket: string; used_at: string | null }>();
+    const up = await db
+      .prepare("SELECT ticket, used_at, declared_size FROM uploads WHERE video_key = ?")
+      .bind(key)
+      .first<{ ticket: string; used_at: string | null; declared_size: number }>();
     if (!up || up.used_at || (ticket && up.ticket !== ticket)) return c.json({ error: "invalid_video" }, 400);
     const head = await c.env.MEDIA.head(key);
     if (!head) return c.json({ error: "video_not_uploaded" }, 400);
-    if (head.size > LIMITS.videoBytes) return c.json({ error: "video_too_large" }, 400);
+    if (head.size > LIMITS.videoBytes || head.size !== up.declared_size) {
+      // 宣言と違う・大きすぎる動画はすぐに消す（署名付き URL ではサイズを縛れないため、ここで確認する）
+      await c.env.MEDIA.delete(key);
+      return c.json({ error: "video_too_large" }, 400);
+    }
     sizes.push(head.size);
   }
 

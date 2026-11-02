@@ -1,5 +1,10 @@
 # ローカル開発用の secret（.dev.vars にコピーして使う。Git には入れない）
-TURNSTILE_SECRET_KEY=1x0000000000000000000000000000000AA
+
+# Turnstile：空のままなら localhost に限り検証を省略。
+# Cloudflare のテスト用キー（常に成功）を使う場合は、wrangler.jsonc の TURNSTILE_SITE_KEY に 1x00000000000000000000AA を入れる
+TURNSTILE_SECRET_KEY=
+
+# R2 の S3 互換 API（署名付き URL の発行用）。空のままなら、動画は Worker 経由でローカルの R2 に保存する
 R2_ACCOUNT_ID=
 R2_ACCESS_KEY_ID=
 R2_SECRET_ACCESS_KEY=

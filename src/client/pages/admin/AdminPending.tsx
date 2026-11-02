@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import type { AdminGroup, AdminPendingResponse, AdminTiming, StorageUsage } from "../../../shared/types";
 import { EntryCard, type EntryPoint } from "../../components/EntryCard";
-import { PointsEditor, type PointDraft } from "../../components/PointsEditor";
+import { pointId, PointsEditor, type PointDraft } from "../../components/PointsEditor";
 import { Sheet } from "../../components/Sheet";
 import { api, ApiError } from "../../lib/api";
 import { useBootFx } from "../../lib/fx";
@@ -224,6 +224,7 @@ function EditSheet({
 }) {
   const [points, setPoints] = useState<PointDraft[]>([
     {
+      id: pointId(),
       attackType: t.attackType,
       cueType: t.cueType,
       timingText: t.timingText,
@@ -245,7 +246,7 @@ function EditSheet({
         return onApprove(t, { attackType: p.attackType, cueType: p.cueType, timingText: p.timingText.trim(), note: p.note.trim() || null });
       }}
     >
-      <PointsEditor points={points} onChange={setPoints} opts={{ upload: false, single: true, locked: isFix }} />
+      <PointsEditor points={points} update={setPoints} opts={{ upload: false, single: true, locked: isFix }} />
     </Sheet>
   );
 }

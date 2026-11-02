@@ -1,11 +1,11 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { useNavigate, useSearchParams } from "react-router";
 import { LIMITS } from "../../shared/constants";
 import type { EntryResponse, FixSource, Hero, UploadResponse } from "../../shared/types";
 import { EntryCard } from "../components/EntryCard";
 import { Header } from "../components/Header";
 import { HeroPickButton, HeroPicker } from "../components/HeroPicker";
-import { newPoint, PointsEditor, type PointDraft } from "../components/PointsEditor";
+import { newPoint, pointId, PointsEditor, type PointDraft } from "../components/PointsEditor";
 import { Turnstile, type TurnstileHandle } from "../components/Turnstile";
 import { api, ApiError, useApi } from "../lib/api";
 import { useData } from "../lib/data";
@@ -26,8 +26,27 @@ type Draft = {
   upload: { ticket: string; items: { videoKey: string; url: string; headers: Record<string, string>; done: boolean }[] } | null;
 };
 
-// 入力中の内容は、ほかの画面へ移動しても残す（同じ URL に戻ったら続きから）
+// 入力中の内容は画面の外に持つ（ほかの画面へ移動しても残り、同じ URL に戻ったら続きから）。
+// 動画の変換は時間がかかるので、変換が終わったときに画面が変わっていても結果を書き込めるようにする。
 let saved: { key: string; draft: Draft } | null = null;
+const listeners = new Set<() => void>();
+const subscribe = (l: () => void) => {
+  listeners.add(l);
+  return () => listeners.delete(l);
+};
+type DraftUpdate = Draft | ((d: Draft) => Draft);
+function writeDraft(key: string, u: DraftUpdate) {
+  if (typeof u === "function") {
+    if (!saved || saved.key !== key) return; // 別の投稿に切り替わっていたら捨てる
+    saved = { key, draft: u(saved.draft) };
+  } else saved = { key, draft: u };
+  listeners.forEach((l) => l());
+}
+const clearDraft = () => {
+  saved = null;
+  listeners.forEach((l) => l());
+};
+type SetDraft = (u: DraftUpdate) => void;
 
 const chars = (s: string) => Array.from(s.trim()).length;
 const charLimit = (len: number, max: number) => len > max;
@@ -47,11 +66,8 @@ export function Submit() {
   const { heroes } = useData();
   const fixRes = useApi<FixSource>(fixId ? `/api/timings/${encodeURIComponent(fixId)}` : null);
 
-  const [draft, setDraftState] = useState<Draft | null>(() => (saved?.key === key ? saved.draft : null));
-  const setDraft = (d: Draft) => {
-    saved = { key, draft: d };
-    setDraftState(d);
-  };
+  const draft = useSyncExternalStore(subscribe, () => (saved?.key === key ? saved.draft : null));
+  const setDraft: SetDraft = (u) => writeDraft(key, u);
 
   // 初期値（URL の ?a= &t= ／ ?fix=）
   useEffect(() => {
@@ -65,13 +81,16 @@ export function Submit() {
         attackerId: f.attacker.id,
         targetId: f.target.id,
         fix: f,
-        points: [{ attackType: f.attackType, cueType: f.cueType, timingText: f.timingText, note: f.note ?? "", existing: { key: f.videoKey, url: f.videoUrl } }],
+        points: [
+          { id: pointId(), attackType: f.attackType, cueType: f.cueType, timingText: f.timingText, note: f.note ?? "", existing: { key: f.videoKey, url: f.videoUrl } },
+        ],
       });
     } else {
       const a = heroes.find((h) => h.slug === sp.get("a"));
       const t = heroes.find((h) => h.slug === sp.get("t"));
       setDraft({ ...base, attackerId: a?.id ?? "", targetId: t?.id ?? "", fix: null, points: [newPoint()] });
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [draft, fixId, fixRes.data, heroes, sp]);
 
   useBootFx(!!draft || !!fixRes.error);
@@ -84,13 +103,13 @@ export function Submit() {
     );
   if (!draft) return <Header title={fixId ? "修正を提案" : "タイミングを投稿"} sub="ログイン不要・承認後に公開されます" prog={PROG.step1} />;
   return draft.step === "preview" ? (
-    <Preview draft={draft} setDraft={setDraft} heroes={heroes} onDone={() => (saved = null)} />
+    <Preview draft={draft} setDraft={setDraft} heroes={heroes} onDone={clearDraft} />
   ) : (
     <Edit draft={draft} setDraft={setDraft} heroes={heroes} />
   );
 }
 
-function Edit({ draft, setDraft, heroes }: { draft: Draft; setDraft: (d: Draft) => void; heroes: Hero[] }) {
+function Edit({ draft, setDraft, heroes }: { draft: Draft; setDraft: SetDraft; heroes: Hero[] }) {
   const [picker, setPicker] = useState<"a" | "t" | null>(null);
   const status = useApi<{ accepting: boolean }>("/api/uploads/status");
   const accepting = status.data?.accepting ?? true;
@@ -105,10 +124,11 @@ function Edit({ draft, setDraft, heroes }: { draft: Draft; setDraft: (d: Draft) 
     if (bad >= 0) return toast(`タイミング${bad + 1}を入力してください`);
     const long = draft.points.findIndex((p) => charLimit(chars(p.timingText), LIMITS.timingText) || charLimit(chars(p.note), LIMITS.note));
     if (long >= 0) return toast(`タイミング${long + 1}の文字数が多すぎます`);
+    if (draft.points.some((p) => p.converting != null)) return toast("動画を軽くしています。完了までお待ちください");
     const nov = draft.points.findIndex((p) => !p.file && !p.existing);
     if (nov >= 0) return toast(accepting ? `タイミング${nov + 1}の動画を選択してください` : "現在、動画の受付を停止しています");
     if (chars(draft.nick) > LIMITS.nickname || chars(draft.sup) > LIMITS.supportCode) return toast("ニックネーム・応援コードは20文字以内です");
-    setDraft({ ...draft, step: "preview" });
+    setDraft((d) => ({ ...d, step: "preview" }));
     window.scrollTo(0, 0);
   };
 
@@ -138,7 +158,7 @@ function Edit({ draft, setDraft, heroes }: { draft: Draft; setDraft: (d: Draft) 
         {fix && <div style={{ height: 14 }} />}
         <PointsEditor
           points={draft.points}
-          onChange={(points) => setDraft({ ...draft, points, upload: null })}
+          update={(fn) => setDraft((d) => ({ ...d, points: fn(d.points), upload: null }))}
           opts={{ upload: true, locked: !!fix, accepting }}
         />
         <label className="h" htmlFor="f-nick">
@@ -150,7 +170,7 @@ function Edit({ draft, setDraft, heroes }: { draft: Draft; setDraft: (d: Draft) 
           maxLength={LIMITS.nickname}
           value={draft.nick}
           placeholder="任意（未入力なら表示されません）"
-          onChange={(e) => setDraft({ ...draft, nick: e.target.value })}
+          onChange={(e) => setDraft((d) => ({ ...d, nick: e.target.value }))}
         />
         <label className="h" htmlFor="f-sup">
           応援コード
@@ -163,7 +183,7 @@ function Edit({ draft, setDraft, heroes }: { draft: Draft; setDraft: (d: Draft) 
           placeholder="任意（例：A1B2C3D4）未入力なら表示されません"
           autoCapitalize="characters"
           autoComplete="off"
-          onChange={(e) => setDraft({ ...draft, sup: e.target.value })}
+          onChange={(e) => setDraft((d) => ({ ...d, sup: e.target.value }))}
         />
         <div className="btns">
           <button className="primary" onClick={next}>
@@ -177,7 +197,7 @@ function Edit({ draft, setDraft, heroes }: { draft: Draft; setDraft: (d: Draft) 
           title={picker === "a" ? "① 攻撃する側（自分）のキャラ" : "② HSを使う相手のキャラ"}
           onClose={() => setPicker(null)}
           onPick={(h) => {
-            setDraft(picker === "a" ? { ...draft, attackerId: h.id } : { ...draft, targetId: h.id });
+            setDraft((d) => (picker === "a" ? { ...d, attackerId: h.id } : { ...d, targetId: h.id }));
             setPicker(null);
           }}
         />
@@ -186,7 +206,7 @@ function Edit({ draft, setDraft, heroes }: { draft: Draft; setDraft: (d: Draft) 
   );
 }
 
-function Preview({ draft, setDraft, heroes, onDone }: { draft: Draft; setDraft: (d: Draft) => void; heroes: Hero[]; onDone: () => void }) {
+function Preview({ draft, setDraft, heroes, onDone }: { draft: Draft; setDraft: SetDraft; heroes: Hero[]; onDone: () => void }) {
   const nav = useNavigate();
   const { turnstileSiteKey } = useData();
   const ts = useRef<TurnstileHandle>(null);
@@ -219,7 +239,8 @@ function Preview({ draft, setDraft, heroes, onDone }: { draft: Draft; setDraft: 
           body: JSON.stringify({ turnstileToken: token, files: files.map((p) => ({ size: p.file!.size, contentType: "video/mp4" })) }),
         });
         upload = { ticket: r.ticket, items: r.uploads.map((u) => ({ ...u, done: false })) };
-        setDraft({ ...draft, upload });
+        const up = upload;
+        setDraft((d) => ({ ...d, upload: up }));
       }
       // 2. 動画をアップロード（進捗を表示）
       if (upload) {
@@ -234,7 +255,8 @@ function Preview({ draft, setDraft, heroes, onDone }: { draft: Draft; setDraft: 
           );
           u.done = true;
           base += f.size;
-          setDraft({ ...draft, upload: { ...upload } });
+          const up = { ...upload };
+          setDraft((d) => ({ ...d, upload: up }));
         }
       }
       // 3. エントリを登録
@@ -268,10 +290,11 @@ function Preview({ draft, setDraft, heroes, onDone }: { draft: Draft; setDraft: 
       // Turnstile のトークンは 1 回しか使えないので取り直す。期限切れのアップロードはやり直す
       if (code === "turnstile_failed" || !upload) ts.current?.reset();
       if (["upload_expired", "invalid_video", "video_not_uploaded"].includes(code)) {
-        setDraft({ ...draft, upload: null });
+        setDraft((d) => ({ ...d, upload: null }));
         ts.current?.reset();
       }
       setFailed(ERRORS[code] ?? "送信に失敗しました。通信状況を確認して、もう一度お試しください");
+      setProgress(null);
       setBusy(false);
     }
   };
@@ -300,7 +323,7 @@ function Preview({ draft, setDraft, heroes, onDone }: { draft: Draft; setDraft: 
         <button
           disabled={busy}
           onClick={() => {
-            setDraft({ ...draft, step: "edit" });
+            setDraft((d) => ({ ...d, step: "edit" }));
             window.scrollTo(0, 0);
           }}
         >
