@@ -16,6 +16,12 @@ export const timingLink = (base: string, attackerSlug: string, targetSlug: strin
 
 export const xShareUrl = (text: string, url: string) => `${X_INTENT}?text=${encodeURIComponent(text)}&url=${encodeURIComponent(url)}`;
 
+/** X のダイレクトメッセージ（送り先は X の画面で選ぶ） */
+export const xDmUrl = (text: string, url: string) => `https://x.com/messages/compose?text=${encodeURIComponent(`${text}\n${url}`)}`;
+
+/** LINE で送る（送り先は LINE の画面で選ぶ） */
+export const lineShareUrl = (text: string, url: string) => `https://line.me/R/share?text=${encodeURIComponent(`${text}\n${url}`)}`;
+
 type Base = { attacker: string; target: string; attackType: AttackType; nickname?: string | null; supportCode?: string | null };
 const credit = (p: Base) => [p.nickname && `投稿者：${clip(p.nickname, 20)}`, p.supportCode && `応援コード：${clip(p.supportCode, 20)}`].filter(Boolean);
 

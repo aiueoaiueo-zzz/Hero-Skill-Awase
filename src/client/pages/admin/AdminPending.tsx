@@ -7,7 +7,7 @@ import { approvedShareText, timingLink } from "../../../shared/share";
 import { ATTACK_LABEL } from "../../../shared/constants";
 import { api, ApiError } from "../../lib/api";
 import { useData } from "../../lib/data";
-import { shareToX } from "../../lib/share";
+import { openShare } from "../../lib/share";
 import { useBootFx } from "../../lib/fx";
 import { fmtDate, fmtSize, toast } from "../../lib/ui";
 import { AdminLayout, adminErrorMessage } from "./AdminLayout";
@@ -128,8 +128,9 @@ export function AdminPending() {
     setBusy(null);
   };
   const share = (a: Approved) =>
-    shareToX(
-      approvedShareText({
+    openShare({
+      title: `${a.group.attacker.name} → ${a.group.target.name}｜HS明け早見`,
+      text: approvedShareText({
         attacker: a.group.attacker.name,
         target: a.group.target.name,
         attackType: a.timing.attackType,
@@ -137,8 +138,8 @@ export function AdminPending() {
         supportCode: a.group.supportCode,
         updated: a.updated,
       }),
-      timingLink(publicAppUrl, a.group.attacker.slug, a.group.target.slug, a.linkId),
-    );
+      url: timingLink(publicAppUrl, a.group.attacker.slug, a.group.target.slug, a.linkId),
+    });
 
   const count = data ? data.groups.reduce((s, g) => s + g.timings.length, 0) : undefined;
   return (
@@ -150,7 +151,7 @@ export function AdminPending() {
           {approved.length > 0 && (
             <div className="box">
               <p>
-                <b style={{ color: "var(--text)" }}>承認したタイミング</b>（X で共有できます。この画面を閉じると消えます）
+                <b style={{ color: "var(--text)" }}>承認したタイミング</b>（X・LINE などで共有できます。この画面を閉じると消えます）
               </p>
               {approved.map((a) => (
                 <div key={a.key} style={{ display: "flex", alignItems: "center", gap: 8, padding: "6px 0", borderTop: "1px solid var(--line)" }}>
@@ -159,7 +160,7 @@ export function AdminPending() {
                     {a.group.nickname && <span style={{ color: "var(--sub)", fontSize: 12 }}>　投稿者：{a.group.nickname}</span>}
                   </span>
                   <button className="sbtn" style={{ whiteSpace: "nowrap" }} onClick={() => share(a)}>
-                    Xで共有
+                    共有
                   </button>
                 </div>
               ))}

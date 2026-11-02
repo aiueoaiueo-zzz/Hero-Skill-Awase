@@ -2,6 +2,7 @@ import { StrictMode, useEffect } from "react";
 import { createRoot } from "react-dom/client";
 import { BrowserRouter, Navigate, Outlet, Route, Routes, useLocation } from "react-router";
 import { Footer } from "./components/Footer";
+import { ShareSheet } from "./components/ShareSheet";
 import { DataProvider } from "./lib/data";
 import { About } from "./pages/About";
 import { Detail } from "./pages/Detail";
@@ -24,6 +25,7 @@ function Layout() {
     <>
       <Outlet />
       {!pathname.startsWith("/admin") && <Footer />}
+      <ShareSheet />
     </>
   );
 }
