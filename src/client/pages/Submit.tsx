@@ -13,6 +13,7 @@ import { PROG, useBootFx } from "../lib/fx";
 import { addMy, loadNick, loadSup, saveNickSup } from "../lib/storage";
 import { toast } from "../lib/ui";
 import { putWithProgress } from "../lib/video";
+import { keepScreenOn } from "../lib/wakelock";
 
 type Draft = {
   step: "edit" | "preview";
@@ -229,6 +230,7 @@ function Preview({ draft, setDraft, heroes, onDone }: { draft: Draft; setDraft: 
     setBusy(true);
     setFailed(null);
     let upload = draft.upload;
+    const release = keepScreenOn(); // アップロード中は画面の自動ロックを防ぐ
     try {
       const files = draft.points.filter((p) => p.file);
       // 1. 動画のアップロード先を受け取る（Turnstile を検証）
@@ -296,6 +298,8 @@ function Preview({ draft, setDraft, heroes, onDone }: { draft: Draft; setDraft: 
       setFailed(ERRORS[code] ?? "送信に失敗しました。通信状況を確認して、もう一度お試しください");
       setProgress(null);
       setBusy(false);
+    } finally {
+      release();
     }
   };
 
@@ -315,6 +319,9 @@ function Preview({ draft, setDraft, heroes, onDone }: { draft: Draft; setDraft: 
           </div>
           <div className="prog">
             <i style={{ width: progress.pct + "%" }} />
+          </div>
+          <div className="hint" style={{ fontSize: 11.5, color: "var(--sub)", marginTop: 4 }}>
+            完了するまでこの画面を開いたままお待ちください。途中で止まった場合は「再試行」で続きから送れます。
           </div>
         </div>
       )}
