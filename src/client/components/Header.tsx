@@ -17,6 +17,9 @@ export function Header({ title, sub, back, right, prog }: Props) {
           ←
         </button>
       )}
+      <button className="homeicon" aria-label="最初の画面へ" onClick={() => nav(pathname.startsWith("/admin") ? "/admin" : "/")}>
+        <img src="/icon-192.png" alt="" width={36} height={36} />
+      </button>
       <h1>
         {title}
         {sub && <small>{sub}</small>}
