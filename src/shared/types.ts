@@ -18,6 +18,8 @@ export type PublicTiming = {
   nickname: string | null;
   supportCode: string | null;
   reviewedAt: string;
+  /** 共有用の短いコード（/s/<コード>） */
+  shareCode: string | null;
 };
 
 export type Bootstrap = {

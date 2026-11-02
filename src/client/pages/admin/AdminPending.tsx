@@ -3,7 +3,7 @@ import type { AdminGroup, AdminPendingResponse, AdminTiming, StorageUsage } from
 import { EntryCard, type EntryPoint } from "../../components/EntryCard";
 import { pointId, PointsEditor, type PointDraft } from "../../components/PointsEditor";
 import { Sheet } from "../../components/Sheet";
-import { approvedShareText, timingLink } from "../../../shared/share";
+import { approvedShareText, shortLink, timingLink } from "../../../shared/share";
 import { ATTACK_LABEL } from "../../../shared/constants";
 import { api, ApiError } from "../../lib/api";
 import { useData } from "../../lib/data";
@@ -61,7 +61,7 @@ const changes = (o: AdminTiming, t: AdminTiming) =>
   ) as string[];
 
 /** 承認したタイミング（X で共有するため、この画面を開いている間だけ覚えておく） */
-type Approved = { key: string; group: AdminGroup; timing: AdminTiming; linkId: string; updated: boolean };
+type Approved = { key: string; group: AdminGroup; timing: AdminTiming; linkId: string; updated: boolean; shareCode: string | null };
 
 /** 処理中のボタン：回転アイコン付き */
 const Busy = ({ on, label, busyLabel }: { on: boolean; label: string; busyLabel: string }) =>
@@ -100,11 +100,11 @@ export function AdminPending() {
   const approve = async (t: AdminTiming, g: AdminGroup, edits?: Record<string, unknown>) => {
     setBusy({ id: t.id, action: edits ? "edit" : "approve" });
     try {
-      const r = await api<{ merged: boolean }>(`/api/admin/timings/${t.id}/approve`, { method: "POST", body: JSON.stringify(edits ? { edits } : {}) });
+      const r = await api<{ merged: boolean; shareCode: string | null }>(`/api/admin/timings/${t.id}/approve`, { method: "POST", body: JSON.stringify(edits ? { edits } : {}) });
       toast(r.merged ? "承認し、公開中のタイミングに反映しました" : "承認しました");
       // 共有用に覚えておく（修正提案は、置き換わった元のタイミングへのリンクにする）
       const timing = edits ? { ...t, ...(edits as Partial<AdminTiming>) } : t;
-      setApproved((a) => [{ key: t.id, group: g, timing, linkId: r.merged && g.original ? g.original.id : t.id, updated: r.merged }, ...a]);
+      setApproved((a) => [{ key: t.id, group: g, timing, linkId: r.merged && g.original ? g.original.id : t.id, updated: r.merged, shareCode: r.shareCode }, ...a]);
       await load();
       return true;
     } catch (e) {
@@ -138,7 +138,7 @@ export function AdminPending() {
         supportCode: a.group.supportCode,
         updated: a.updated,
       }),
-      url: timingLink(publicAppUrl, a.group.attacker.slug, a.group.target.slug, a.linkId),
+      url: a.shareCode ? shortLink(publicAppUrl, a.shareCode) : timingLink(publicAppUrl, a.group.attacker.slug, a.group.target.slug, a.linkId),
     });
 
   const count = data ? data.groups.reduce((s, g) => s + g.timings.length, 0) : undefined;

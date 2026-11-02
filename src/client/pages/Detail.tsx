@@ -5,7 +5,7 @@ import type { PairResponse } from "../../shared/types";
 import { Avatar } from "../components/Avatar";
 import { Header } from "../components/Header";
 import { TimingCard } from "../components/TimingCard";
-import { timingLink, timingShareText } from "../../shared/share";
+import { shortLink, timingLink, timingShareText } from "../../shared/share";
 import { useApi } from "../lib/api";
 import { useData } from "../lib/data";
 import { openShare } from "../lib/share";
@@ -136,7 +136,7 @@ export function Detail() {
                                 nickname: x.nickname,
                                 supportCode: x.supportCode,
                               }),
-                              url: timingLink(publicAppUrl, A!.slug, T!.slug, x.id),
+                              url: x.shareCode ? shortLink(publicAppUrl, x.shareCode) : timingLink(publicAppUrl, A!.slug, T!.slug, x.id),
                             })
                           }
                         >

@@ -14,6 +14,9 @@ const clip = (s: string, n: number) => {
 export const timingLink = (base: string, attackerSlug: string, targetSlug: string, timingId: string) =>
   `${base.replace(/\/+$/, "")}/h/${encodeURIComponent(attackerSlug)}/${encodeURIComponent(targetSlug)}#t-${encodeURIComponent(timingId)}`;
 
+/** 共有用の短いリンク（/s/<コード>。開くとそのタイミングへ移動する） */
+export const shortLink = (base: string, shareCode: string) => `${base.replace(/\/+$/, "")}/s/${shareCode}`;
+
 export const xShareUrl = (text: string, url: string) => `${X_INTENT}?text=${encodeURIComponent(text)}&url=${encodeURIComponent(url)}`;
 
 /** X のダイレクトメッセージ（送り先は X の画面で選ぶ） */
