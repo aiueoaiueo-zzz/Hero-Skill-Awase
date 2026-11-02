@@ -10,6 +10,7 @@ import { nowIso } from "../lib/ids";
 import { mediaUrl } from "../lib/media";
 import { serveR2 } from "../lib/serve";
 import { getSettings } from "../lib/settings";
+import { ensureShareCodes } from "../lib/share-code";
 import { deleteIfUnused, deleteMedia, getUsage, recordObject } from "../lib/storage";
 
 // 管理者向け API（/api/admin/*）。Cloudflare Access で保護し、Worker でも JWT を検証する
@@ -187,7 +188,10 @@ adminRoutes.post("/timings/:id/approve", async (c) => {
   if (copied) garbage.push(t.video_key);
   if (original && original.video_key !== videoKey) garbage.push(original.video_key);
   await deleteIfUnused(env, garbage);
-  return c.json({ ok: true, merged: !!original });
+  // 共有用の短いコード（修正提案は、置き換えた元のタイミングのコード）
+  const publicId = original ? original.id : t.id;
+  const shareCode = (await ensureShareCodes(env, [publicId])).get(publicId) ?? null;
+  return c.json({ ok: true, merged: !!original, shareCode });
 });
 
 /** 却下（理由は任意）。動画は削除する */
