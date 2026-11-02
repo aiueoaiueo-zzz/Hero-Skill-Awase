@@ -9,7 +9,7 @@ export function Terms() {
   useBootFx(true);
   return (
     <>
-      <Header title="注意事項・プライバシー" back="/" prog={PROG.other} />
+      <Header title="注意事項" sub="プライバシーについても記載" back="/" prog={PROG.other} />
       <div className="about" dangerouslySetInnerHTML={{ __html: mdLite(settings.terms) }} />
     </>
   );

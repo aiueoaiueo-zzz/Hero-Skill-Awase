@@ -46,6 +46,11 @@ adminContactRoutes.get("/", async (c) => {
   const { results } = await c.env.DB.prepare("SELECT * FROM contacts ORDER BY status = 'done', created_at DESC LIMIT 300").all<Row>();
   return c.json({ contacts: results.map(toContact) });
 });
+/** 未対応の件数（管理画面のタブに表示） */
+adminContactRoutes.get("/count", async (c) => {
+  const r = await c.env.DB.prepare("SELECT COUNT(*) AS n FROM contacts WHERE status = 'open'").first<{ n: number }>();
+  return c.json({ open: r?.n ?? 0 });
+});
 adminContactRoutes.put("/:id", async (c) => {
   const parsed = contactStatusSchema.safeParse(await c.req.json().catch(() => null));
   if (!parsed.success) return c.json({ error: "invalid_request" }, 400);

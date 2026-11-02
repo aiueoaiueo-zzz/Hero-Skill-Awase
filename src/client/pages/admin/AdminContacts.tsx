@@ -44,7 +44,7 @@ export function AdminContacts() {
   const openCount = (items ?? []).filter((c) => c.status === "open").length;
 
   return (
-    <AdminLayout tab="contacts" pendingCount={pending.data?.groups.reduce((s, g) => s + g.timings.length, 0)}>
+    <AdminLayout tab="contacts" pendingCount={pending.data?.groups.reduce((s, g) => s + g.timings.length, 0)} contactCount={items ? openCount : undefined}>
       {error !== null && <div className="empty">{adminErrorMessage(error)}</div>}
       {items && (
         <>

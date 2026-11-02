@@ -1,17 +1,21 @@
 import type { ReactNode } from "react";
 import { useNavigate } from "react-router";
 import { Header } from "../../components/Header";
+import { useApi } from "../../lib/api";
 import { PROG } from "../../lib/fx";
 
 export type AdminTab = "pending" | "published" | "contacts" | "heroes" | "settings";
 
 /** 管理画面の共通部分（タブ）。一般向けのヘッダーボタンとフッターは出さない */
-export function AdminLayout({ tab, pendingCount, children }: { tab: AdminTab; pendingCount?: number; children: ReactNode }) {
+export function AdminLayout({ tab, pendingCount, contactCount, children }: { tab: AdminTab; pendingCount?: number; contactCount?: number; children: ReactNode }) {
   const nav = useNavigate();
+  // 未対応のお問い合わせの件数（「問い合わせ」タブでは、そのページが持っている最新の件数を使う）
+  const contacts = useApi<{ open: number }>(contactCount === undefined ? "/api/admin/contacts/count" : null);
+  const openContacts = contactCount ?? contacts.data?.open;
   const tabs: [AdminTab, string, string][] = [
     ["pending", `承認待ち${pendingCount !== undefined ? ` (${pendingCount})` : ""}`, "/admin"],
     ["published", "公開中", "/admin/published"],
-    ["contacts", "問い合わせ", "/admin/contacts"],
+    ["contacts", `問い合わせ${openContacts !== undefined ? ` (${openContacts})` : ""}`, "/admin/contacts"],
     ["heroes", "キャラ管理", "/admin/heroes"],
     ["settings", "設定", "/admin/settings"],
   ];
