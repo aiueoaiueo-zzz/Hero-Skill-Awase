@@ -11,6 +11,8 @@ export interface Env {
   TURNSTILE_SECRET_KEY?: string;
 
   // vars
+  /** "public"（一般向け）／"admin"（管理用）／"all"（ローカル開発：両方）。未設定は "all" */
+  APP_ROLE?: string;
   TURNSTILE_SITE_KEY: string;
   ACCESS_TEAM_DOMAIN: string;
   ACCESS_AUD: string;

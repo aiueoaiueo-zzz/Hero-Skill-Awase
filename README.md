@@ -14,7 +14,7 @@
 
 | 役割 | サービス | 無料枠の目安 |
 |---|---|---|
-| 画面・API の配信 | Cloudflare Workers（静的アセット込み、1 つの Worker） | 1 日 10 万リクエスト |
+| 画面・API の配信 | Cloudflare Workers（静的アセット込み。同じソースを一般向け・管理用の 2 つの Worker としてデプロイ） | 1 日 10 万リクエスト（アカウント全体） |
 | データベース | Cloudflare D1 | 5GB |
 | 動画・キャラ画像 | Cloudflare R2（バケット 1 つ） | 10GB、転送量無料 |
 | ボット対策 | Cloudflare Turnstile | 無料 |
@@ -22,10 +22,15 @@
 | 毎日の自動処理 | Workers Cron Triggers | 無料 |
 
 ```
-ブラウザ ─┬─ 画面（React）・/api/*（Hono）・/media/*（公開動画・画像） ── Worker ─┬─ D1
-          │                                                               └─ R2（pending/ public/ heroes/）
-          └─ 動画のアップロード：署名付き URL で R2 に直接 PUT
+一般の利用者 ─┬─ hs-awase.<サブドメイン>.workers.dev ──────── Worker「hs-awase」（APP_ROLE=public）──┐
+              │    画面・/api/*・/media/*（/admin と /api/admin は 404）                              ├─ D1
+              └─ 動画のアップロード：署名付き URL で R2 に直接 PUT ────────────────────────────────── ├─ R2（pending/ public/ heroes/）
+管理者 ──── Cloudflare Access のログイン ── hs-awase-admin.<サブドメイン>.workers.dev                 │
+                                             Worker「hs-awase-admin」（APP_ROLE=admin）─────────────┘
+                                             アドレス全体を Access で保護 ＋ Worker でも JWT を検証
 ```
+
+**管理画面を別の Worker にしている理由**：独自ドメインを使わず workers.dev で運用するため（未決事項 2）。workers.dev では Cloudflare Access を「Worker のアドレス全体」に対して設定するので、管理用の Worker を分け、そちらを丸ごと保護しています。ソースと設定ファイルは 1 つで、`APP_ROLE` で役割を切り替えます（決定事項 C）。Cron（毎日の自動処理）は一般向けの Worker だけで動きます。
 
 | R2 のプレフィックス | 中身 | 見られる人 |
 |---|---|---|
@@ -52,7 +57,7 @@
 
 ```bash
 npm install
-cp .dev.vars.example .dev.vars   # ローカル用の secret（空のままで動きます）
+cp .dev.vars.example .dev.vars   # ローカル用の設定（APP_ROLE=all で一般向け・管理画面の両方が動く）
 npm run db:migrate:local         # D1（ローカル）にマイグレーションと初期データを適用
 npm run sample:local             # （任意）表示確認用のサンプルデータと動画を投入
 npm run dev                      # http://localhost:5173 （Vite ＋ Workers ランタイム。D1・R2 ともローカル）
@@ -91,7 +96,7 @@ npx wrangler login
 npx wrangler d1 create hs-awase
 ```
 
-表示された `database_id` を `wrangler.jsonc` の `d1_databases[0].database_id` に書き換え、マイグレーションを適用します（初期キャラ 27 体も入ります）。
+表示された `database_id` を `wrangler.jsonc` の **2 か所**（一番上の `d1_databases` と、`env.admin` の `d1_databases`）に書き換え、マイグレーションを適用します（初期キャラ 27 体も入ります）。
 
 ```bash
 npm run db:migrate:remote
@@ -113,15 +118,21 @@ npm run db:migrate:remote
    - バケットごと公開すると、承認待ちの動画（`pending/`）まで見えてしまいます。
    - 動画と画像は Worker の `/media/*` から配信します（承認済み・キャラ画像だけを返し、Range にも対応）。
 
-### 3-4. 最初のデプロイ
+### 3-4. 最初のデプロイ（2 つの Worker）
 
 ```bash
-npm run deploy
+npm run deploy         # 一般向け：hs-awase
+npm run deploy:admin   # 管理用：hs-awase-admin（CLOUDFLARE_ENV=admin でビルドしてデプロイ）
 ```
 
-表示された URL（`https://hs-awase.<サブドメイン>.workers.dev`）を控えます。以降、この URL を「アプリの URL」と呼びます。
+表示された 2 つの URL を控えます。
 
-> この時点では Turnstile・R2 の認証情報・Access が未設定なので、投稿と管理画面は使えません（閲覧のみ）。
+| 呼び方 | URL | 使う人 |
+|---|---|---|
+| アプリの URL | `https://hs-awase.<サブドメイン>.workers.dev` | 一般の利用者 |
+| 管理画面の URL | `https://hs-awase-admin.<サブドメイン>.workers.dev` | 管理者のみ |
+
+> この時点では Turnstile・R2 の認証情報・Access が未設定なので、投稿と管理画面は使えません（閲覧のみ。管理用の Worker は設定漏れで素通りしないよう 503 を返します）。
 
 ### 3-5. 動画アップロード用の R2 API トークン（署名付き URL の発行用）
 
@@ -137,6 +148,8 @@ npx wrangler secret put R2_SECRET_ACCESS_KEY
 npx wrangler secret put R2_BUCKET_NAME        # hs-awase-media
 ```
 
+> 動画をアップロードするのは一般向けの Worker だけなので、secret は `hs-awase` にだけ登録すれば足ります（管理用の Worker のキャラ画像は Worker 経由で保存するため不要）。
+
 ### 3-6. R2 の CORS 設定
 
 ブラウザから R2 へ直接アップロードするために必要です。`r2-cors.example.json` をコピーして `origins` をアプリの URL に書き換え、設定します。
@@ -149,7 +162,7 @@ npx wrangler r2 bucket cors list hs-awase-media   # 確認
 
 | 項目 | 値 | 理由 |
 |---|---|---|
-| origins | アプリの URL だけ | ほかのサイトから使わせない |
+| origins | アプリの URL だけ（管理画面の URL は不要） | ほかのサイトから使わせない |
 | methods | `PUT` だけ | アップロードにしか使わない（読み出しは Worker 経由） |
 | headers | `content-type` | 署名付き URL に Content-Type（`video/mp4`）を含めているため |
 
@@ -159,7 +172,7 @@ npx wrangler r2 bucket cors list hs-awase-media   # 確認
 ### 3-7. Turnstile
 
 1. ダッシュボードの **Turnstile → ウィジェットを追加** で作成します。
-   - ホスト名：`hs-awase.<サブドメイン>.workers.dev`
+   - ホスト名：`hs-awase.<サブドメイン>.workers.dev`（一般向けだけ。投稿は一般向けの Worker で受け付けます）
    - モード：マネージド（推奨）
 2. **サイトキー** を `wrangler.jsonc` の `vars.TURNSTILE_SITE_KEY` に書きます（公開してよい値）。
 3. **シークレットキー** を secret に登録します。
@@ -170,38 +183,47 @@ npx wrangler secret put TURNSTILE_SECRET_KEY
 
 ### 3-8. 管理画面の認証（Cloudflare Access）
 
-> **⚠ 要確認（オーナーと相談中）**：workers.dev のアドレスで `/admin` と `/api/admin` の **パスだけ** を Access で保護できるかを、実際のダッシュボードで確認する必要があります。結果に合わせてこの節を確定します。
-
 管理画面は、次の 2 重で守っています。
-- **Cloudflare 側**：Access のログイン（登録したメールアドレスに届くワンタイムコード）
-- **Worker 側**：Access が付ける JWT（`Cf-Access-Jwt-Assertion` ヘッダー、または `CF_Authorization` Cookie）を、公開鍵で検証
+- **Cloudflare 側**：管理用の Worker（`hs-awase-admin`）の **アドレス全体** を Access で保護します。登録したメールアドレスに届くワンタイムコードでログインします。
+- **Worker 側**：Access が付ける JWT（`Cf-Access-Jwt-Assertion` ヘッダー、または `CF_Authorization` Cookie）を、公開鍵で検証します。
+- 一般向けの Worker（`hs-awase`）には、管理画面と管理 API がそもそもありません（404）。
 
-Access の保護対象にするパス：
-- `/admin`、`/admin/*`（管理画面）
-- `/api/admin/*`（管理 API・承認待ち動画の配信）
+手順：
+1. **Zero Trust を有効にする**（初回のみ）
+   - ダッシュボードの **Zero Trust** を開き、チーム名（例：`myteam` → `myteam.cloudflareaccess.com`）を決めます。
+   - プランは **Free**（50 ユーザーまで無料）です。
+2. **管理用の Worker に Access をかける**
+   - **Workers & Pages → hs-awase-admin → 設定 → ドメインとルート** を開きます。
+   - `workers.dev` の行で **Cloudflare Access を有効にする**（Enable Cloudflare Access）を選びます。
+   - 表示される **AUD（Audience）タグ** と **JWKs の URL**（`https://<チーム名>.cloudflareaccess.com/cdn-cgi/access/certs`）を控えます。
+3. **ログインできる人を管理者だけにする**
+   - 「Cloudflare Access を管理」（Manage Cloudflare Access）から、作られた Access アプリケーションのポリシーを開きます。
+   - **Include → Emails** に管理者のメールアドレスだけを入れます。初期状態ではアカウントのメンバー全員が対象なので、必ず確認してください。
+   - ログイン方法は **ワンタイム PIN**（初期状態で有効）のままで構いません。
+4. **Worker 側の JWT 検証の設定**
+   - `wrangler.jsonc` の **`env.admin.vars`** に書きます（一番上の `vars` ではありません）。
 
-設定の大まかな流れ：
-1. Zero Trust ダッシュボードでチーム名を決めます（例：`myteam` → `myteam.cloudflareaccess.com`）。プランは Free（50 ユーザーまで無料）。
-2. ログイン方法は「ワンタイム PIN」（初期状態で有効）を使います。
-3. Access アプリケーションを作り、ポリシーで **管理者のメールアドレスだけを許可** します。
-4. アプリケーションの **AUD タグ** とチームのドメインを `wrangler.jsonc` に書きます。
-
-```jsonc
-"vars": {
-  "ACCESS_TEAM_DOMAIN": "myteam.cloudflareaccess.com",  // https:// の有無は問わない
-  "ACCESS_AUD": "（Access アプリケーションの AUD タグ）"
-}
-```
+   ```jsonc
+   "env": {
+     "admin": {
+       "vars": {
+         "ACCESS_TEAM_DOMAIN": "myteam.cloudflareaccess.com",  // https:// の有無は問わない
+         "ACCESS_AUD": "（手順 2 で控えた AUD タグ）",
+         ...
+   ```
 
 確認方法：
-- ログインしていない状態でアプリの URL の `/admin` と `/api/admin/pending` を開くと、Access のログイン画面になること
-- ログイン後は管理画面が表示されること
-- 一般向けの画面（`/`）はログインなしで見られること
+- ログインしていない状態で **管理画面の URL** を開くと、Access のログイン画面になること
+- ログイン後、`/admin`（トップを開くと自動で移動）に管理画面が表示されること
+- **アプリの URL** の `/admin` と `/api/admin/pending` が 404 になること
+- アプリの URL のトップ（`/`）が、ログインなしで見られること
+
+> 両方の Worker で `preview_urls: false` にしています。バージョンごとのプレビュー用 URL が、Access を通らない入口にならないようにするためです。
 
 ### 3-9. もう一度デプロイ
 
 ```bash
-npm run deploy
+npm run deploy:all     # 一般向け → 管理用の順にデプロイ
 ```
 
 投稿 → 管理画面で承認 → 詳細画面に表示、まで通しで確認します。
@@ -220,7 +242,8 @@ npm run deploy
 | `R2_ACCOUNT_ID` / `R2_ACCESS_KEY_ID` / `R2_SECRET_ACCESS_KEY` / `R2_BUCKET_NAME` | secret | 署名付き URL の発行用（3-5） | — |
 | `TURNSTILE_SITE_KEY` | vars | Turnstile のサイトキー（3-7） | 空 |
 | `TURNSTILE_SECRET_KEY` | secret | Turnstile のシークレットキー（3-7） | — |
-| `ACCESS_TEAM_DOMAIN` / `ACCESS_AUD` | vars | Access の JWT 検証用（3-8） | 空 |
+| `APP_ROLE` | vars | Worker の役割：`public`（一般向け）／`admin`（管理用）／`all`（ローカル開発：両方） | 一般向け `public`、`env.admin` は `admin`、`.dev.vars` は `all` |
+| `ACCESS_TEAM_DOMAIN` / `ACCESS_AUD` | vars | Access の JWT 検証用（3-8。`env.admin.vars` に書く） | 空 |
 | `STORAGE_LIMIT_BYTES` | vars | 動画の受付を止める合計容量 | `9663676416`（9GB） |
 | `PENDING_LIMIT_BYTES` | vars | 承認待ちの容量上限 | `2147483648`（2GB） |
 | `MEDIA_BASE_URL` | vars | 動画・画像の配信元 | `/media` |
@@ -238,7 +261,7 @@ npm run deploy
 
 ### 管理画面
 
-アプリの URL の `/admin` を **直接** 開きます（一般向けの画面にはリンクを置いていません）。ブックマークやホーム画面への追加がおすすめです。
+**管理画面の URL**（`https://hs-awase-admin.<サブドメイン>.workers.dev`）を開きます。一般向けの画面にはリンクを置いていないので、ブックマークやホーム画面への追加がおすすめです。
 
 | タブ | できること |
 |---|---|
@@ -264,8 +287,10 @@ npm run deploy
 
 ```bash
 npm run db:migrate:remote   # migrations/ に新しいファイルを追加したときだけ
-npm run deploy
+npm run deploy:all          # 一般向け・管理用の両方
 ```
+
+> 片方だけデプロイすると、2 つの Worker でバージョンがずれます。基本は `deploy:all` を使ってください。
 
 ---
 
@@ -273,7 +298,7 @@ npm run deploy
 
 当面は workers.dev で運用し、動画は Worker 経由で配信します。独自ドメインを取得した場合：
 
-- **アプリ自体**：Workers のカスタムドメインに設定すると、Access をパス単位（`/admin` など）で設定しやすくなります。CORS の origins と Turnstile のホスト名も新しいドメインに変えます。
+- **アプリ自体**：Workers のカスタムドメインに設定します。CORS の origins と Turnstile のホスト名も新しいドメインに変えます。管理用の Worker は今の構成（別アドレスを丸ごと保護）のままで構いません（例：`admin.example.com`）。
 - **メディアの配信元**：`MEDIA_BASE_URL` を変えると、動画・画像の URL の前半が切り替わります（例：`https://media.example.com`）。
   - ただし、今のバケットにそのままカスタムドメインを接続すると、**承認待ちの `pending/` も公開されてしまいます**。
   - 直接配信に切り替える場合は、公開用のバケット（`public/` と `heroes/` だけを置く）を別に作る改修が必要です。
@@ -287,6 +312,8 @@ npm run deploy
 |---|---|
 | 投稿で「ロボットではないことの確認に失敗しました」 | `TURNSTILE_SITE_KEY`（vars）と `TURNSTILE_SECRET_KEY`（secret）が同じウィジェットの組か。ウィジェットのホスト名がアプリの URL と一致しているか |
 | 動画のアップロードで失敗する | R2 の CORS（3-6）の origins がアプリの URL と一致しているか。`R2_*` の secret が揃っているか。API トークンが対象バケットに書き込めるか |
-| 管理画面が「管理者としてログインしていません」 | `ACCESS_TEAM_DOMAIN` / `ACCESS_AUD` が正しいか。Access の保護対象に `/api/admin/*` も入っているか |
+| 管理画面が「管理者としてログインしていません」 | `env.admin.vars` の `ACCESS_TEAM_DOMAIN` / `ACCESS_AUD` が正しいか（一番上の `vars` に書いていないか）。`npm run deploy:admin` し直したか |
 | 管理画面・投稿が 503 になる | 本番で Access や Turnstile の設定が空のまま（設定漏れで素通りしないよう、わざと止めています） |
+| アプリの URL で `/admin` が 404 | 正常です。管理画面は管理画面の URL（`hs-awase-admin`）で開きます |
+| ローカルで `/admin` が 404 | `.dev.vars` に `APP_ROLE=all` があるか（`cp .dev.vars.example .dev.vars`） |
 | 古いブラウザで「変換機能を読み込めませんでした」 | WebCodecs が使えず、ffmpeg.wasm を CDN から読み込めなかった（通信状況を確認） |

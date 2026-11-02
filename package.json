@@ -13,7 +13,9 @@
     "db:migrate:remote": "wrangler d1 migrations apply DB --remote",
     "cf-typegen": "wrangler types src/worker/worker-configuration.d.ts",
     "sample:local": "wrangler d1 execute DB --local --file=scripts/dev-sample.sql && wrangler r2 object put hs-awase-media/public/demo.mp4 --file=scripts/demo.mp4 --content-type=video/mp4 --local && wrangler r2 object put hs-awase-media/pending/x.mp4 --file=scripts/demo.mp4 --content-type=video/mp4 --local && wrangler r2 object put hs-awase-media/pending/z.mp4 --file=scripts/demo.mp4 --content-type=video/mp4 --local",
-    "test": "vitest run"
+    "test": "vitest run",
+    "deploy:admin": "CLOUDFLARE_ENV=admin npm run build && wrangler deploy",
+    "deploy:all": "npm run deploy && npm run deploy:admin"
   },
   "dependencies": {
     "@ffmpeg/ffmpeg": "^0.12.15",
