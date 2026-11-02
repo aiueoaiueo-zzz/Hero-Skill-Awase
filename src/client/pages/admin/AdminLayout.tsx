@@ -3,13 +3,14 @@ import { useNavigate } from "react-router";
 import { Header } from "../../components/Header";
 import { PROG } from "../../lib/fx";
 
-export type AdminTab = "pending" | "heroes" | "settings";
+export type AdminTab = "pending" | "published" | "heroes" | "settings";
 
 /** 管理画面の共通部分（タブ）。一般向けのヘッダーボタンとフッターは出さない */
 export function AdminLayout({ tab, pendingCount, children }: { tab: AdminTab; pendingCount?: number; children: ReactNode }) {
   const nav = useNavigate();
   const tabs: [AdminTab, string, string][] = [
     ["pending", `承認待ち${pendingCount !== undefined ? ` (${pendingCount})` : ""}`, "/admin"],
+    ["published", "公開中", "/admin/published"],
     ["heroes", "キャラ管理", "/admin/heroes"],
     ["settings", "設定", "/admin/settings"],
   ];

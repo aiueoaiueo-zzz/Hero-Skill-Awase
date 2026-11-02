@@ -92,6 +92,7 @@ if (action === "list") {
     const ids = timings.map((t) => t.id);
     // ほかの投稿（修正提案）からの参照を外してから削除する
     if (ids.length) await sql(`UPDATE submissions SET replaces_timing_id = NULL WHERE replaces_timing_id IN (${ids.map(() => "?").join(",")})`, ids);
+    await sql("UPDATE timings SET credit_submission_id = NULL WHERE credit_submission_id = ?", [sub.id]);
     await sql("DELETE FROM timings WHERE submission_id = ?", [sub.id]);
     await sql("DELETE FROM submissions WHERE id = ?", [sub.id]);
     // どこからも使われなくなった動画を R2 と容量の記録から削除

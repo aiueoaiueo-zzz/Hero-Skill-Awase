@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import { ATTACK_LABEL, CUE_LABEL, STATUS_LABEL, type AttackType, type CueType, type TimingStatus } from "../../shared/constants";
+import { ATTACK_LABEL, CUE_LABEL, STATUS_LABEL, type AttackType, type CueType, type DisplayStatus } from "../../shared/constants";
 import { formatCue } from "../../shared/text";
 import type { Hero } from "../../shared/types";
 import { Avatar } from "./Avatar";
@@ -19,7 +19,7 @@ type Props = {
   target?: Hero | null;
   nickname?: string | null;
   supportCode?: string | null;
-  status?: TimingStatus;
+  status?: DisplayStatus;
   label?: ReactNode;
   old?: boolean;
   /** 「タイミング 1」のように番号を振る（複数あるとき） */

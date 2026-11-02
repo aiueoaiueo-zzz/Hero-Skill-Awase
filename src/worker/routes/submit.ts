@@ -84,11 +84,12 @@ type TimingRow = {
   note: string | null;
   video_key: string;
   status: string;
+  hidden?: number;
 };
 
 /** 修正提案の元になる公開中のタイミング（承認済みのみ） */
 submitRoutes.get("/timings/:id", async (c) => {
-  const t = await c.env.DB.prepare("SELECT * FROM timings WHERE id = ? AND status = 'approved'").bind(c.req.param("id")).first<TimingRow>();
+  const t = await c.env.DB.prepare("SELECT * FROM timings WHERE id = ? AND status = 'approved' AND hidden = 0").bind(c.req.param("id")).first<TimingRow>();
   if (!t) return c.json({ error: "not_found" }, 404);
   const { results } = await c.env.DB.prepare("SELECT * FROM heroes WHERE id IN (?, ?)").bind(t.attacker_id, t.target_id).all<HeroRow>();
   const h = (id: string) => toHero(c.env, results.find((r) => r.id === id)!);
@@ -128,7 +129,7 @@ submitRoutes.post("/entries", async (c) => {
   // 修正提案：公開中のタイミング 1 つに対して 1 つだけ。攻撃方法・目印・キャラは変更できない
   let original: TimingRow | null = null;
   if (input.replacesTimingId) {
-    original = await db.prepare("SELECT * FROM timings WHERE id = ? AND status = 'approved'").bind(input.replacesTimingId).first<TimingRow>();
+    original = await db.prepare("SELECT * FROM timings WHERE id = ? AND status = 'approved' AND hidden = 0").bind(input.replacesTimingId).first<TimingRow>();
     if (!original) return c.json({ error: "fix_target_not_found" }, 400);
     const t = input.timings[0];
     if (
@@ -236,11 +237,12 @@ submitRoutes.get("/status/:code", async (c) => {
     cueType: t.cue_type as StatusTiming["cueType"],
     timingText: t.timing_text,
     note: t.note,
-    status: t.status as StatusTiming["status"],
+    // 管理者が非公開にしたものは「非公開」と表示する
+    status: (t.status === "approved" && t.hidden ? "hidden" : t.status) as StatusTiming["status"],
     rejectReason: t.status === "rejected" ? t.reject_reason : null,
     reviewedAt: t.reviewed_at,
-    // 承認待ち・却下の動画は一般には見せない（承認済みで公開領域にあるものだけ）
-    videoUrl: t.status === "approved" && t.video_key.startsWith("public/") ? mediaUrl(c.env, t.video_key) : null,
+    // 承認待ち・却下・非公開の動画は一般には見せない（承認済みで公開領域にあるものだけ）
+    videoUrl: t.status === "approved" && !t.hidden && t.video_key.startsWith("public/") ? mediaUrl(c.env, t.video_key) : null,
   }));
   return c.json<StatusResponse>({
     code: s.code,

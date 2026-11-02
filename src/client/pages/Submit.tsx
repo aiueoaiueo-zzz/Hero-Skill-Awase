@@ -14,6 +14,7 @@ import { addMy, loadNick, loadSup, saveNickSup } from "../lib/storage";
 import { toast } from "../lib/ui";
 import { putWithProgress } from "../lib/video";
 import { keepScreenOn } from "../lib/wakelock";
+import { idbClear, idbDelete, idbGet, idbKeys, idbPut } from "../lib/idb";
 
 type Draft = {
   step: "edit" | "preview";
@@ -42,11 +43,88 @@ function writeDraft(key: string, u: DraftUpdate) {
     saved = { key, draft: u(saved.draft) };
   } else saved = { key, draft: u };
   listeners.forEach((l) => l());
+  schedulePersist();
 }
 const clearDraft = () => {
   saved = null;
   listeners.forEach((l) => l());
+  try {
+    sessionStorage.removeItem(PERSIST_KEY);
+  } catch {
+    /* 保存できない環境 */
+  }
+  storedVideos.clear();
+  idbClear();
 };
+
+// ===== ページを読み込み直しても入力が消えないように保存する =====
+// 文字・選択・手順はこのタブの sessionStorage に、変換後の動画は IndexedDB に保存する（申請が終わったら消す）。
+// iPhone はほかのアプリに切り替えると、ページを読み込み直すことがあるため。
+const PERSIST_KEY = "hsawase-draft";
+const PERSIST_TTL_MS = 24 * 60 * 60 * 1000;
+type StoredPoint = Omit<PointDraft, "file" | "fileUrl" | "converting"> & { hasFile?: boolean; fileName?: string };
+type Stored = { v: 1; key: string; savedAt: number; draft: Omit<Draft, "points"> & { points: StoredPoint[] } };
+const storedVideos = new Set<string>(); // IndexedDB に保存済みの「ブロック ID:サイズ」
+let persistTimer: ReturnType<typeof setTimeout> | undefined;
+
+function schedulePersist() {
+  clearTimeout(persistTimer);
+  persistTimer = setTimeout(persistNow, 300);
+}
+async function persistNow() {
+  const cur = saved;
+  if (!cur) return;
+  const stored: Stored = {
+    v: 1,
+    key: cur.key,
+    savedAt: Date.now(),
+    draft: {
+      ...cur.draft,
+      points: cur.draft.points.map(({ file, fileUrl: _u, converting: _c, ...p }) => ({ ...p, hasFile: !!file, fileName: file?.name })),
+    },
+  };
+  try {
+    sessionStorage.setItem(PERSIST_KEY, JSON.stringify(stored));
+  } catch {
+    return; // 保存できない環境（プライベートブラウズなど）
+  }
+  // 変換後の動画を保存し、使われなくなったものを消す
+  const keep = new Set<string>();
+  for (const p of cur.draft.points) {
+    if (!p.file) continue;
+    keep.add(p.id);
+    const tag = `${p.id}:${p.file.size}`;
+    if (!storedVideos.has(tag)) {
+      storedVideos.add(tag);
+      await idbPut(p.id, p.file);
+    }
+  }
+  for (const k of await idbKeys()) if (!keep.has(k)) await idbDelete(k);
+}
+
+/** 保存しておいた入力を読み込む（同じ URL のときだけ。24 時間を過ぎたものは捨てる） */
+async function loadPersistedDraft(key: string): Promise<Draft | null> {
+  let stored: Stored | null = null;
+  try {
+    stored = JSON.parse(sessionStorage.getItem(PERSIST_KEY) || "null");
+  } catch {
+    stored = null;
+  }
+  if (!stored || stored.v !== 1 || stored.key !== key || Date.now() - stored.savedAt > PERSIST_TTL_MS) return null;
+  const points: PointDraft[] = [];
+  for (const { hasFile, fileName, ...p } of stored.draft.points) {
+    let file: File | null = null;
+    if (hasFile) {
+      const blob = await idbGet(p.id);
+      if (blob) {
+        file = new File([blob], fileName || "video.mp4", { type: "video/mp4" });
+        storedVideos.add(`${p.id}:${file.size}`);
+      }
+    }
+    points.push({ ...p, file, fileUrl: file ? URL.createObjectURL(file) : null, converting: null });
+  }
+  return { ...stored.draft, points };
+}
 type SetDraft = (u: DraftUpdate) => void;
 
 const chars = (s: string) => Array.from(s.trim()).length;
@@ -70,9 +148,27 @@ export function Submit() {
   const draft = useSyncExternalStore(subscribe, () => (saved?.key === key ? saved.draft : null));
   const setDraft: SetDraft = (u) => writeDraft(key, u);
 
+  // ページを読み込み直したときは、保存しておいた入力を戻す
+  const [restored, setRestored] = useState(() => saved?.key === key);
+  useEffect(() => {
+    if (restored) return;
+    let alive = true;
+    loadPersistedDraft(key).then((d) => {
+      if (!alive) return;
+      if (d && saved?.key !== key) {
+        writeDraft(key, d);
+        toast("前回の入力内容を戻しました");
+      }
+      setRestored(true);
+    });
+    return () => {
+      alive = false;
+    };
+  }, [key, restored]);
+
   // 初期値（URL の ?a= &t= ／ ?fix=）
   useEffect(() => {
-    if (draft) return;
+    if (draft || !restored) return;
     const base = { step: "edit" as const, nick: loadNick(), sup: loadSup(), upload: null };
     if (fixId) {
       const f = fixRes.data;
@@ -92,7 +188,7 @@ export function Submit() {
       setDraft({ ...base, attackerId: a?.id ?? "", targetId: t?.id ?? "", fix: null, points: [newPoint()] });
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [draft, fixId, fixRes.data, heroes, sp]);
+  }, [draft, restored, fixId, fixRes.data, heroes, sp]);
 
   useBootFx(!!draft || !!fixRes.error);
   if (fixRes.error)

@@ -10,6 +10,7 @@ import { Done } from "./pages/Done";
 import { Home } from "./pages/Home";
 import { AdminHeroes } from "./pages/admin/AdminHeroes";
 import { AdminPending } from "./pages/admin/AdminPending";
+import { AdminPublished } from "./pages/admin/AdminPublished";
 import { AdminSettings } from "./pages/admin/AdminSettings";
 import { Status } from "./pages/Status";
 import { Submit } from "./pages/Submit";
@@ -48,6 +49,7 @@ function App() {
         <Route path="/submit/done/:code" element={<Done />} />
         <Route path="/status" element={<Status />} />
         <Route path="/admin" element={<AdminPending />} />
+        <Route path="/admin/published" element={<AdminPublished />} />
         <Route path="/admin/heroes" element={<AdminHeroes />} />
         <Route path="/admin/settings" element={<AdminSettings />} />
         <Route path="*" element={<Navigate to="/" replace />} />

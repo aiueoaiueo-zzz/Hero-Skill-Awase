@@ -24,7 +24,7 @@ publicRoutes.get("/heroes/:slug/targets", async (c) => {
   const attacker = await heroBySlug(c.env, c.req.param("slug"));
   if (!attacker) return c.json({ error: "not_found" }, 404);
   const { results } = await c.env.DB.prepare(
-    "SELECT DISTINCT target_id FROM timings WHERE attacker_id = ? AND status = 'approved'",
+    "SELECT DISTINCT target_id FROM timings WHERE attacker_id = ? AND status = 'approved' AND hidden = 0",
   )
     .bind(attacker.id)
     .all<{ target_id: string }>();
@@ -53,8 +53,8 @@ publicRoutes.get("/pairs/:attacker/:target", async (c) => {
   const { results } = await c.env.DB.prepare(
     `SELECT t.id, t.attack_type, t.cue_type, t.timing_text, t.note, t.video_key, t.reviewed_at, t.share_code,
             s.nickname, s.support_code
-       FROM timings t JOIN submissions s ON s.id = t.submission_id
-      WHERE t.attacker_id = ? AND t.target_id = ? AND t.status = 'approved'
+       FROM timings t JOIN submissions s ON s.id = COALESCE(t.credit_submission_id, t.submission_id)
+      WHERE t.attacker_id = ? AND t.target_id = ? AND t.status = 'approved' AND t.hidden = 0
       ORDER BY t.reviewed_at, t.position`,
   )
     .bind(attacker.id, target.id)
@@ -88,7 +88,7 @@ shortLinkRoutes.get("/:code", async (c) => {
   const r = await c.env.DB.prepare(
     `SELECT t.id, a.slug AS a, h.slug AS t FROM timings t
        JOIN heroes a ON a.id = t.attacker_id JOIN heroes h ON h.id = t.target_id
-      WHERE t.share_code = ? AND t.status = 'approved'`,
+      WHERE t.share_code = ? AND t.status = 'approved' AND t.hidden = 0`,
   )
     .bind(code)
     .first<{ id: string; a: string; t: string }>();

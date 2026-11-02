@@ -1,4 +1,4 @@
-import type { AttackType, CueType, SettingKey, TimingStatus } from "./constants";
+import type { AttackType, CueType, DisplayStatus, SettingKey, TimingStatus } from "./constants";
 
 export type Hero = {
   id: string;
@@ -71,7 +71,7 @@ export type StatusTiming = {
   cueType: import("./constants").CueType;
   timingText: string;
   note: string | null;
-  status: TimingStatus;
+  status: DisplayStatus;
   rejectReason: string | null;
   reviewedAt: string | null;
   /** 公開済み（承認済み）のときだけ */
@@ -120,3 +120,21 @@ export type StorageUsage = { totalBytes: number; pendingBytes: number; limitByte
 export type AdminPendingResponse = { groups: AdminGroup[]; usage: StorageUsage };
 
 export type AdminHero = Hero & { sortOrder: number; timingCount: number };
+
+/** 管理：公開中（と非公開）のタイミング */
+export type AdminPublished = {
+  id: string;
+  attacker: Hero;
+  target: Hero;
+  attackType: AttackType;
+  cueType: CueType;
+  timingText: string;
+  note: string | null;
+  videoUrl: string | null;
+  nickname: string | null;
+  supportCode: string | null;
+  reviewedAt: string | null;
+  hidden: boolean;
+  shareCode: string | null;
+  code: string;
+};

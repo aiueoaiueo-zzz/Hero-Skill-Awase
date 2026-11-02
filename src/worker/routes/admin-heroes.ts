@@ -115,6 +115,7 @@ adminHeroRoutes.delete("/:id", async (c) => {
   stmts.push(db.prepare("DELETE FROM timings WHERE attacker_id = ? OR target_id = ?").bind(id, id));
   for (let i = 0; i < subIds.length; i += 50) {
     const part = subIds.slice(i, i + 50);
+    stmts.push(db.prepare(`UPDATE timings SET credit_submission_id = NULL WHERE credit_submission_id IN (${part.map(() => "?").join(",")})`).bind(...part));
     stmts.push(db.prepare(`DELETE FROM timings WHERE submission_id IN (${part.map(() => "?").join(",")})`).bind(...part));
     stmts.push(db.prepare(`DELETE FROM submissions WHERE id IN (${part.map(() => "?").join(",")})`).bind(...part));
   }

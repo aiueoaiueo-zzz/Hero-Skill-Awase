@@ -36,7 +36,10 @@ export const PLACEHOLDER: Record<CueType, string> = {
 
 export const TIMING_STATUSES = ["pending", "approved", "rejected", "withdrawn", "merged"] as const;
 export type TimingStatus = (typeof TIMING_STATUSES)[number];
-export const STATUS_LABEL: Record<TimingStatus, string> = {
+/** 表示用のステータス（DB の status に加え、管理者が非公開にした "hidden"） */
+export type DisplayStatus = TimingStatus | "hidden";
+export const STATUS_LABEL: Record<DisplayStatus, string> = {
+  hidden: "非公開",
   pending: "承認待ち",
   approved: "承認済み",
   merged: "承認済み（反映）",
