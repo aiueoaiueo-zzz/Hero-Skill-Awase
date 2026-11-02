@@ -92,5 +92,12 @@ export async function runMaintenance(env: Env, now = Date.now()): Promise<Mainte
   await db.prepare("DELETE FROM uploads WHERE created_at < ?").bind(new Date(now - 7 * 24 * HOUR).toISOString()).run();
 
   const total = await db.prepare("SELECT COALESCE(SUM(size), 0) AS n FROM media_objects").first<{ n: number }>();
-  return { r2Objects: objects.length, deleted: garbage, ledgerFixed: fixes.length, expiredPending, totalBytes: total?.n ?? 0 };
+  const report: MaintenanceReport = { r2Objects: objects.length, deleted: garbage, ledgerFixed: fixes.length, expiredPending, totalBytes: total?.n ?? 0 };
+
+  // 最後に動いた日時と結果を記録する（データが 0 件でも、動いたことを確認できるように）
+  await db
+    .prepare("INSERT INTO settings (key, value, updated_at) VALUES ('maintenance_last_run', ?, ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value, updated_at = excluded.updated_at")
+    .bind(JSON.stringify({ ...report, deleted: garbage.length, at: new Date(now).toISOString() }), iso)
+    .run();
+  return report;
 }
