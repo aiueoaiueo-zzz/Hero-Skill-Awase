@@ -87,6 +87,7 @@ console.log(
     `  ACCESS_AUD: ${has(env.ACCESS_AUD)}`,
     `  R2_ACCESS_KEY_ID: ${has(env.R2_ACCESS_KEY_ID)}`,
     `  R2_SECRET_ACCESS_KEY: ${has(env.R2_SECRET_ACCESS_KEY)}`,
+    `  DISCORD_WEBHOOK_URL（任意）: ${has(env.DISCORD_WEBHOOK_URL)}`,
   ].join("\n"),
 );
 for (const k of ["TURNSTILE_SITE_KEY", "ACCESS_TEAM_DOMAIN", "ACCESS_AUD", "TURNSTILE_SECRET_KEY", "R2_ACCESS_KEY_ID", "R2_SECRET_ACCESS_KEY"]) if (env[k]) env[k] = env[k].trim();
@@ -100,6 +101,7 @@ const setAll = (key, value) => {
 };
 setAll("database_id", dbId);
 setAll("PUBLIC_APP_URL", appUrl); // X 共有のリンク先（管理用の Worker からも一般向けを指す）
+setAll("ADMIN_APP_URL", adminUrl); // Discord 通知のリンク先
 if (env.TURNSTILE_SITE_KEY) setAll("TURNSTILE_SITE_KEY", env.TURNSTILE_SITE_KEY);
 if (env.ACCESS_TEAM_DOMAIN) setAll("ACCESS_TEAM_DOMAIN", env.ACCESS_TEAM_DOMAIN);
 if (env.ACCESS_AUD) setAll("ACCESS_AUD", env.ACCESS_AUD);
@@ -116,6 +118,7 @@ if (env.R2_ACCESS_KEY_ID && env.R2_SECRET_ACCESS_KEY) {
   });
 }
 if (env.TURNSTILE_SECRET_KEY) secrets.TURNSTILE_SECRET_KEY = env.TURNSTILE_SECRET_KEY;
+if (env.DISCORD_WEBHOOK_URL) secrets.DISCORD_WEBHOOK_URL = env.DISCORD_WEBHOOK_URL.trim();
 writeFileSync(env.RUNNER_TEMP ? `${env.RUNNER_TEMP}/secrets.json` : "secrets.json", JSON.stringify(secrets));
 output("has_secrets", Object.keys(secrets).length ? "true" : "false");
 output("app_url", appUrl);
