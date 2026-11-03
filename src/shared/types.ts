@@ -3,6 +3,8 @@ import type { AttackType, ContactKind, CueType, DisplayStatus, SettingKey, Timin
 export type Hero = {
   id: string;
   name: string;
+  /** 正式名称（任意）。カードの下・キャラ選択・検索に使う。未設定なら null */
+  fullName: string | null;
   slug: string;
   imageUrl: string | null;
 };

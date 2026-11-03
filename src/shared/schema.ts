@@ -85,7 +85,18 @@ export const slugSchema = z
 export const heroAddSchema = z.object({
   items: z.array(z.object({ name: heroNameSchema, slug: slugSchema.optional() })).min(1).max(200),
 });
-export const heroPatchSchema = z.object({ name: heroNameSchema.optional(), slug: slugSchema.optional() });
+export const heroPatchSchema = z.object({
+  name: heroNameSchema.optional(),
+  slug: slugSchema.optional(),
+  // 正式名称：空文字で未設定に戻す
+  fullName: z
+    .string()
+    .trim()
+    .refine((s) => chars(s) <= 60, { message: "正式名称は60文字以内です" })
+    .transform((s) => s || null)
+    .nullable()
+    .optional(),
+});
 export const heroMoveSchema = z.object({ dir: z.union([z.literal(-1), z.literal(1)]) });
 
 // お問い合わせ

@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
-import { normalizeForSearch } from "../../shared/text";
+import { displayName, heroMatches } from "../../shared/text";
 import type { Hero } from "../../shared/types";
 import { Avatar } from "./Avatar";
 
@@ -12,7 +12,7 @@ export function HeroPicker({ heroes, title, onPick, onClose }: { heroes: Hero[];
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
   }, [onClose]);
-  const list = heroes.filter((h) => normalizeForSearch(h.name).includes(normalizeForSearch(q)));
+  const list = heroes.filter((h) => heroMatches(h, q));
   return createPortal(
     <div className="modal" onClick={(e) => e.target === e.currentTarget && onClose()}>
       <div className="sheet" role="dialog" aria-label={title}>
@@ -24,7 +24,7 @@ export function HeroPicker({ heroes, title, onPick, onClose }: { heroes: Hero[];
               <button key={h.id} className="row" onClick={() => onPick(h)}>
                 <Avatar hero={h} />
                 <div className="t">
-                  <b>{h.name}</b>
+                  <b>{displayName(h)}</b>
                 </div>
               </button>
             ))

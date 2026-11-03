@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router";
-import { normalizeForSearch } from "../../shared/text";
+import { heroMatches } from "../../shared/text";
 import { Header } from "../components/Header";
 import { HeroGrid } from "../components/HeroGrid";
 import { useData } from "../lib/data";
@@ -11,7 +11,7 @@ export function Home() {
   const { heroes } = useData();
   const nav = useNavigate();
   const [q, setQ] = useState("");
-  const list = heroes.filter((h) => normalizeForSearch(h.name).includes(normalizeForSearch(q)));
+  const list = heroes.filter((h) => heroMatches(h, q));
   useBootFx(true);
   return (
     <>

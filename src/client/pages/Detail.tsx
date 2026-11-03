@@ -8,6 +8,7 @@ import {
 } from "../../shared/constants";
 import type { PairResponse } from "../../shared/types";
 import { Avatar } from "../components/Avatar";
+import { displayName } from "../../shared/text";
 import { Header } from "../components/Header";
 import { TimingCard } from "../components/TimingCard";
 import { shortLink, timingLink, timingShareText } from "../../shared/share";
@@ -90,7 +91,7 @@ export function Detail() {
           <div className="side atk">
             <small>自分</small>
             <Avatar hero={A} />
-            <b>{A!.name}</b>
+            <b>{displayName(A!)}</b>
           </div>
           <div className="x">
             HS明けに
@@ -101,7 +102,7 @@ export function Detail() {
           <div className="side def">
             <small>相手</small>
             <Avatar hero={T} />
-            <b>{T!.name}</b>
+            <b>{displayName(T!)}</b>
           </div>
         </div>
       )}
