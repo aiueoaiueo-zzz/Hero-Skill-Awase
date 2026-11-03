@@ -1,0 +1,40 @@
+# 一時的なワークフロー（紹介動画の作成用）：本番のキャラ一覧と画像を取得して、このブランチの promo-assets/ に保存する。
+# 動画を作り終えたら、このファイルと promo-assets/ は削除する。
+name: 紹介動画用の素材取得（一時）
+on:
+  push:
+    branches: [claude/quirky-cray-fex7l1]
+    paths: [.github/workflows/promo-assets.yml]
+permissions:
+  contents: write
+jobs:
+  fetch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - name: キャラ一覧と画像を取得
+        run: |
+          set -e
+          BASE=https://hs-awase.cmps.workers.dev
+          mkdir -p promo-assets/heroes
+          curl -fsS "$BASE/api/bootstrap" -o promo-assets/bootstrap.json
+          node -e '
+            const b = require("./promo-assets/bootstrap.json");
+            const list = b.heroes.filter((h) => h.imageUrl).map((h) => h.imageUrl);
+            require("fs").writeFileSync("promo-assets/urls.txt", list.join("\n") + "\n");
+            console.log("画像あり", list.length, "/", b.heroes.length);
+          '
+          while read -r u; do
+            [ -z "$u" ] && continue
+            case "$u" in http*) url="$u" ;; *) url="$BASE$u" ;; esac
+            f="promo-assets/heroes/$(basename "${u%%\?*}")"
+            curl -fsS "$url" -o "$f"
+          done < promo-assets/urls.txt
+          ls promo-assets/heroes | wc -l
+      - name: ブランチに保存
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add promo-assets
+          git commit -m "紹介動画用の素材（一時）" || echo "変更なし"
+          git push
