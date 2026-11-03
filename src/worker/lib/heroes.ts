@@ -1,6 +1,7 @@
 import type { Hero } from "../../shared/types";
 import type { Env } from "../env";
 import { mediaUrl } from "./media";
+import { appRole } from "./role";
 
 export type HeroRow = { id: string; name: string; slug: string; image_key: string | null; sort_order: number };
 
@@ -8,7 +9,8 @@ export const toHero = (env: Env, r: HeroRow): Hero => ({
   id: r.id,
   name: r.name,
   slug: r.slug,
-  imageUrl: mediaUrl(env, r.image_key),
+  // 一般向けにはキャラ画像を出さない（権利への配慮。画面ではキャラ名のカードを使う）。管理画面だけ画像を確認できる
+  imageUrl: appRole(env) === "public" ? null : mediaUrl(env, r.image_key),
 });
 
 export const listHeroes = async (env: Env): Promise<Hero[]> => {
