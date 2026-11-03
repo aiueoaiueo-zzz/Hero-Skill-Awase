@@ -1,6 +1,7 @@
 // 本番データの確認・削除（GitHub Actions の「データの確認・削除」から実行する。PC は不要）
 //   ACTION=list    投稿の一覧と、保存容量の記録・最後の自動処理の形跡を表示する（何も変更しない）
 //   ACTION=delete  CODES（受付番号、カンマ区切り）の投稿を、D1 と R2 の両方から削除する
+//   ACTION=delete-hero-images  全キャラの画像を、D1（image_key）と R2（heroes/）の両方から削除する
 // 必要な環境変数：CLOUDFLARE_API_TOKEN, CLOUDFLARE_ACCOUNT_ID
 import { appendFileSync } from "node:fs";
 
@@ -63,6 +64,9 @@ if (action === "list") {
   const u = usage[0] || {};
   log(`\n## 保存容量の記録\n\n- ファイル数：${u.n}／合計：${mb(u.total || 0)}／うち承認待ち：${mb(u.pending || 0)}`);
   log(`- 記録の最終更新：${u.last || "なし"}`);
+  const own = (await sql("SELECT value FROM settings WHERE key = 'owner_support_code'"))[0];
+  const img = (await sql("SELECT COUNT(*) AS n FROM heroes WHERE image_key IS NOT NULL"))[0];
+  log(`\n## 設定\n\n- 制作者の応援コード：${own?.value || "（未設定）"}\n- 画像が設定されているキャラ：${img?.n ?? 0} 体`);
   const last = (await sql("SELECT value FROM settings WHERE key = 'maintenance_last_run'"))[0];
   if (last) {
     const m = JSON.parse(last.value);
@@ -106,6 +110,39 @@ if (action === "list") {
     }
     log(`- ${code}：タイミング ${timings.length} 件（${timings.map((t) => t.status).join(", ")}）と動画 ${deleted.length} 本を削除しました`);
   }
+} else if (action === "delete-hero-images") {
+  // 1. データベースに登録されている画像
+  const heroes = await sql("SELECT id, name, image_key FROM heroes WHERE image_key IS NOT NULL");
+  const keys = new Set(heroes.map((h) => h.image_key));
+  // 2. R2 に残っている heroes/ のファイル（データベースから外れたものも含めて消す）
+  try {
+    let cursor = "";
+    do {
+      const res = await fetch(`https://api.cloudflare.com/client/v4/accounts/${env.CLOUDFLARE_ACCOUNT_ID}/r2/buckets/${BUCKET}/objects?prefix=heroes/&per_page=1000${cursor ? `&cursor=${encodeURIComponent(cursor)}` : ""}`, {
+        headers: { Authorization: `Bearer ${env.CLOUDFLARE_API_TOKEN}` },
+      });
+      const data = await res.json();
+      for (const o of data.result || []) keys.add(o.key);
+      cursor = data.result_info?.is_truncated ? data.result_info.cursor : "";
+    } while (cursor);
+  } catch (e) {
+    console.warn(`R2 の一覧を取得できませんでした（データベースに登録された分だけ消します）：${e.message}`);
+  }
+  log(`## キャラ画像の削除\n\n- データベースに登録された画像：${heroes.length} 体\n- 削除するファイル：${keys.size} 個`);
+  let ok = 0;
+  for (const key of keys) {
+    try {
+      await deleteObject(key);
+      ok++;
+    } catch (e) {
+      console.warn(`R2 の削除に失敗：${key}：${e.message}`);
+    }
+    await sql("DELETE FROM media_objects WHERE key = ?", [key]);
+  }
+  await sql("UPDATE heroes SET image_key = NULL WHERE image_key IS NOT NULL");
+  const left = (await sql("SELECT COUNT(*) AS n FROM heroes WHERE image_key IS NOT NULL"))[0];
+  log(`- R2 から ${ok} 個を削除しました`);
+  log(`- 画像が設定されているキャラ：${left?.n ?? "?"} 体（0 なら完了）`);
 } else {
-  fail(`action は list か delete を指定してください（${action}）`);
+  fail(`action は list・delete・delete-hero-images のどれかを指定してください（${action}）`);
 }
