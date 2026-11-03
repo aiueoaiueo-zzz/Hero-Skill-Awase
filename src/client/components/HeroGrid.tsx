@@ -1,4 +1,5 @@
 import { useNavigate } from "react-router";
+import { displayName } from "../../shared/text";
 import type { Hero } from "../../shared/types";
 import { prefetch } from "../lib/api";
 import { Avatar } from "./Avatar";
@@ -19,7 +20,7 @@ export function HeroGrid({ heroes, to, preload }: { heroes: Hero[]; to: (h: Hero
           }}
         >
           <Avatar hero={h} />
-          <div className="nm">{h.name}</div>
+          <div className="nm">{displayName(h)}</div>
         </button>
       ))}
     </div>

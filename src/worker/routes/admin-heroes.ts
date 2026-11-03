@@ -58,15 +58,17 @@ adminHeroRoutes.post("/", async (c) => {
   return c.json({ added: stmts.length, skipped, heroes: await listAdminHeroes(c.env) });
 });
 
-/** 名前・slug の変更 */
+/** 名前・正式名称・slug の変更 */
 adminHeroRoutes.patch("/:id", async (c) => {
   const body = heroPatchSchema.safeParse(await c.req.json().catch(() => null));
   if (!body.success) return c.json({ error: "invalid_request", issues: body.error.issues.map((i) => i.message) }, 400);
-  const { name, slug } = body.data;
-  if (name === undefined && slug === undefined) return c.json({ error: "invalid_request" }, 400);
+  const { name, slug, fullName } = body.data;
+  if (name === undefined && slug === undefined && fullName === undefined) return c.json({ error: "invalid_request" }, 400);
   try {
-    const r = await c.env.DB.prepare("UPDATE heroes SET name = COALESCE(?, name), slug = COALESCE(?, slug) WHERE id = ?")
-      .bind(name ?? null, slug ?? null, c.req.param("id"))
+    const r = await c.env.DB.prepare(
+      "UPDATE heroes SET name = COALESCE(?, name), slug = COALESCE(?, slug), full_name = CASE WHEN ? THEN ? ELSE full_name END WHERE id = ?",
+    )
+      .bind(name ?? null, slug ?? null, fullName !== undefined ? 1 : 0, fullName ?? null, c.req.param("id"))
       .run();
     if (!r.meta.changes) return c.json({ error: "not_found" }, 404);
   } catch (e) {

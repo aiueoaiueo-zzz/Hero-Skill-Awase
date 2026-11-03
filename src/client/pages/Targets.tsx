@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Navigate, useParams } from "react-router";
-import { normalizeForSearch } from "../../shared/text";
+import { heroMatches } from "../../shared/text";
 import { Header } from "../components/Header";
 import { HeroGrid } from "../components/HeroGrid";
 import { useData } from "../lib/data";
@@ -16,7 +16,7 @@ export function Targets() {
   if (!attacker) return <Navigate to="/" replace />;
 
   const registered = new Set(reg[attacker.id] ?? []);
-  const list = heroes.filter((h) => normalizeForSearch(h.name).includes(normalizeForSearch(q)));
+  const list = heroes.filter((h) => heroMatches(h, q));
   const w = list.filter((h) => registered.has(h.id));
   const wo = list.filter((h) => !registered.has(h.id));
   const to = (h: { slug: string }) => `/h/${attacker.slug}/${h.slug}`;

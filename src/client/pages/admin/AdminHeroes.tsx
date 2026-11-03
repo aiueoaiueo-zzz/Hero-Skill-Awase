@@ -68,7 +68,7 @@ export function ArmedButton({ className, label, armedLabel, onConfirm, ...rest }
 }
 
 /** その場で編集して、フォーカスが外れたら保存する入力欄 */
-function InlineInput({ value, onCommit, style, ...rest }: { value: string; onCommit: (v: string) => Promise<boolean>; style?: React.CSSProperties; "aria-label": string; placeholder?: string }) {
+function InlineInput({ value, onCommit, style, allowEmpty, ...rest }: { value: string; onCommit: (v: string) => Promise<boolean>; style?: React.CSSProperties; allowEmpty?: boolean; "aria-label": string; placeholder?: string }) {
   const [v, setV] = useState(value);
   useEffect(() => setV(value), [value]);
   return (
@@ -80,7 +80,7 @@ function InlineInput({ value, onCommit, style, ...rest }: { value: string; onCom
       onBlur={async () => {
         const t = v.trim();
         if (t === value) return setV(value);
-        if (!t || !(await onCommit(t))) setV(value);
+        if ((!t && !allowEmpty) || !(await onCommit(t))) setV(value);
       }}
       {...rest}
     />
@@ -170,8 +170,11 @@ export function AdminHeroes() {
         <>
           <div className="box">
             <p>
-              画像をタップするとキャラ画像を設定・変更できます（256×256に縮小して保存）。設定した画像は「画像を削除」で外せます。名前と
-              slug（URL 用の英数字）はタップで直接編集できます。▲▼で並び順を入れ替えられます（トップ画面などの表示順になります）。
+              名前（カードに出す短い名前）・正式名称・slug（URL 用の英数字）はタップで直接編集できます。
+              <br />
+              正式名称（任意）は、カードの下・キャラを選ぶ画面に表示され、検索でも当たるようになります。空にすると未設定に戻ります。
+              <br />
+              ▲▼で並び順を入れ替えられます（トップ画面などの表示順になります）。キャラ画像は一般向けの画面には表示されません。
             </p>
           </div>
           {heroes.map((h, i) => (
@@ -197,6 +200,14 @@ export function AdminHeroes() {
               </label>
               <div className="nm">
                 <InlineInput aria-label="名前" value={h.name} onCommit={(v) => run(call(`/api/admin/heroes/${h.id}`, "PATCH", { name: v }), "保存しました")} />
+                <InlineInput
+                  aria-label="正式名称"
+                  allowEmpty
+                  value={h.fullName ?? ""}
+                  placeholder="正式名称（任意）"
+                  style={{ fontSize: 12, padding: "0 0 2px" }}
+                  onCommit={(v) => run(call(`/api/admin/heroes/${h.id}`, "PATCH", { fullName: v }), v ? "正式名称を保存しました" : "正式名称を消しました")}
+                />
                 <div style={{ display: "flex", alignItems: "center", fontSize: 11, color: "var(--sub)" }}>
                   /h/
                   <InlineInput

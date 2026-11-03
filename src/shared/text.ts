@@ -1,6 +1,15 @@
 import type { CueType } from "./constants";
 
 /** 検索用の正規化：ひらがな→カタカナ、記号（・ = ' † 空白）を無視、英字は小文字 */
+/** カードの下・キャラ選択に出す名前（正式名称があればそれ） */
+export const displayName = (h: { name: string; fullName?: string | null }) => h.fullName || h.name;
+
+/** キャラ名の検索：短い名前と正式名称のどちらでも当たる */
+export const heroMatches = (h: { name: string; fullName?: string | null }, q: string) => {
+  const nq = normalizeForSearch(q);
+  return !nq || normalizeForSearch(h.name).includes(nq) || normalizeForSearch(h.fullName).includes(nq);
+};
+
 export const normalizeForSearch = (s: string | null | undefined): string =>
   (s || "")
     .toLowerCase()
