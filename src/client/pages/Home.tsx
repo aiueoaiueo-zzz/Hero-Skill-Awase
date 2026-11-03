@@ -15,7 +15,7 @@ export function Home() {
   useBootFx(true);
   return (
     <>
-      <Header title="HS明け早見アプリ" sub="① 攻撃する側（自分）のキャラを選択" prog={PROG.step1} />
+      <Header title="HS合わせアプリ" sub="① 攻撃する側（自分）のキャラを選択" prog={PROG.step1} />
       <input className="search" placeholder="キャラ名で検索" value={q} onChange={(e) => setQ(e.target.value)} />
       {list.length ? (
         <HeroGrid heroes={list} to={(h) => `/h/${h.slug}`} />

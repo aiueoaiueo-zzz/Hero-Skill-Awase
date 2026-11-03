@@ -149,7 +149,7 @@ export function Detail() {
                           className="sbtn"
                           onClick={() =>
                             openShare({
-                              title: `${A!.name} → ${T!.name}｜HS明け早見`,
+                              title: `${A!.name} → ${T!.name}｜HS合わせアプリ`,
                               text: timingShareText({
                                 attacker: A!.name,
                                 target: T!.name,
