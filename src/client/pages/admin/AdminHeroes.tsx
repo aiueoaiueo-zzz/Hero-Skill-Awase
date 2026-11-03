@@ -184,7 +184,7 @@ export function AdminHeroes() {
               }}
             >
               <label className="img" aria-label={`${h.name}の画像を設定`}>
-                <Avatar hero={h} />
+                <Avatar hero={h} showImage />
                 <input
                   type="file"
                   accept="image/*"

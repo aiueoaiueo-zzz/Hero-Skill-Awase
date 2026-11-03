@@ -446,3 +446,8 @@ header::before{content:"";position:absolute;left:0;bottom:3px;height:4px;width:v
 .unofficial{position:absolute;top:2px;right:0;font-size:9.5px;line-height:1;color:var(--sub);letter-spacing:.04em;pointer-events:none;white-space:nowrap}
 /* フッターの権利表記 */
 .sitefoot .rights{font-size:10.5px;text-align:center;margin:10px 0 2px;color:var(--sub);font-family:"Chakra Petch","Zen Kaku Gothic New",sans-serif;letter-spacing:.02em}
+
+/* キャラ名カード（画像の代わり）：グレーの背景に白い文字で名前を全部出す */
+.av.namecard{container-type:size;background:#6b6b6b!important;background-image:none!important;color:#fff!important;padding:0;overflow:hidden;text-align:center;font-family:"Zen Kaku Gothic New",sans-serif;font-weight:900;outline-color:var(--accent)}
+.av.namecard span{display:block;width:100%;padding:0 5%;font-size:min(36cqw,calc(86cqw / var(--n)));line-height:1.15;word-break:break-all;letter-spacing:0}
+.card:hover .av.namecard{background:#555!important}
