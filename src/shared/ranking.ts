@@ -13,11 +13,9 @@ export const isXId = (s: string | null | undefined): s is string => !!s && X_ID_
 export const RANKING_MIN_USERS = 5;
 /** ランキングに出す人数 */
 export const RANKING_TOP = 10;
-/** 今週のボーナス組み合わせの数 */
-export const BONUS_PAIRS_PER_WEEK = 7;
 
-/** ポイント */
-export const POINTS = { post: 1, postFixed: 0.5, fix: 0.5, bonus: 1 } as const;
+/** ポイント（firstPair：まだ投稿がなかった組み合わせで最初に承認された投稿に、通常の分に加えて） */
+export const POINTS = { post: 1, postFixed: 0.5, fix: 0.5, firstPair: 0.5 } as const;
 
 /** バッジ（累計ポイントで決まる。下から順に） */
 export const BADGES = [

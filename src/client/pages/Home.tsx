@@ -9,7 +9,7 @@ import { PROG, useBootFx } from "../lib/fx";
 
 /** 1. トップ（攻撃する側のキャラ選択） */
 export function Home() {
-  const { heroes, bonus } = useData();
+  const { heroes } = useData();
   const nav = useNavigate();
   const [q, setQ] = useState("");
   const list = heroes.filter((h) => heroMatches(h, q));
@@ -20,7 +20,7 @@ export function Home() {
       <RankBox />
       <input className="search" placeholder="キャラ名で検索" value={q} onChange={(e) => setQ(e.target.value)} />
       {list.length ? (
-        <HeroGrid heroes={list} to={(h) => `/h/${h.slug}`} marks={new Set(Object.keys(bonus))} />
+        <HeroGrid heroes={list} to={(h) => `/h/${h.slug}`} />
       ) : (
         <div className="empty">該当するキャラがいません</div>
       )}

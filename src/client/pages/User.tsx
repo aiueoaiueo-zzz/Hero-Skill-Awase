@@ -43,7 +43,7 @@ export function User() {
                 </div>
               </dl>
             )}
-            {!data.rankingActive && !data.excluded && <p className="note">ランキングは、投稿者が 5 人集まったら始まります。</p>}
+            {!data.rankingActive && !data.excluded && <p className="note">ランキング準備中です</p>}
             <p className="note">※ X の ID は、投稿した人が入力したものです。</p>
           </div>
           <div className="sec">公開中の合わせ（{data.timings.length} 件）</div>

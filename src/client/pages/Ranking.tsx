@@ -1,79 +1,49 @@
-import { Link, useNavigate } from "react-router";
-import { BADGES, BONUS_PAIRS_PER_WEEK, POINTS } from "../../shared/ranking";
+import { useNavigate } from "react-router";
+import { BADGES } from "../../shared/ranking";
 import type { RankingResponse } from "../../shared/types";
 import { Header } from "../components/Header";
 import { NotYet, RankList } from "../components/RankBits";
 import { useApi } from "../lib/api";
 import { PROG, useBootFx } from "../lib/fx";
 
-const md = (iso: string) => new Date(iso).toLocaleDateString("ja-JP", { month: "numeric", day: "numeric", timeZone: "Asia/Tokyo" });
-
-/** ランキング（累計・今月）と今週のボーナス組み合わせ */
+/** ランキング（今月・累計）と、参加の注意事項・バッジの種類 */
 export function Ranking() {
   const nav = useNavigate();
   const { data, error } = useApi<RankingResponse>("/api/ranking");
   useBootFx(!!data || !!error);
   return (
     <>
-      <Header title="ランキング" sub="承認された合わせの数で集計" back="/" prog={PROG.other} />
+      <Header title="ランキング" sub="承認された合わせで集計" back="/" prog={PROG.other} />
       {error && <div className="empty">読み込みに失敗しました</div>}
       {data && (
         <>
           <div className="box">
-            <p className="bt">
-              ★ 今週のボーナス組み合わせ
-              <small>
-                （{md(data.bonus.weekStart)}〜{md(new Date(Date.parse(data.bonus.weekEnd) - 1).toISOString())}）
-              </small>
-            </p>
-            <ul className="bonuslist">
-              {data.bonus.pairs.map((p) => (
-                <li key={p.attacker.id + p.target.id}>
-                  <Link to={`/h/${p.attacker.slug}/${p.target.slug}`}>
-                    {p.attacker.name} → {p.target.name}
-                  </Link>
-                </li>
-              ))}
-            </ul>
-            <p className="note">
-              毎週月曜 0:00 にランダムで {BONUS_PAIRS_PER_WEEK} つ選出。承認されると ＋{POINTS.bonus} ポイント
-              <br />※ 合わせが存在しない組み合わせの場合もあります
-            </p>
-          </div>
-          <div className="box">
             <p className="bt">今月のランキング</p>
-            {data.month ? <RankList rows={data.month} /> : <NotYet now={data.monthUsers} min={data.minUsers} label="今月のランキング" />}
+            {data.month ? <RankList rows={data.month} /> : <NotYet />}
           </div>
           <div className="box">
             <p className="bt">累計ランキング</p>
-            {data.total ? <RankList rows={data.total} /> : <NotYet now={data.totalUsers} min={data.minUsers} label="ランキング" />}
-          </div>
-          <div className="box rules">
-            <p className="bt">ポイントのルール</p>
-            <ul>
-              <li>投稿したタイミングが承認されると {POINTS.post} ポイント</li>
-              <li>修正提案が承認されると、修正した人に {POINTS.fix} ポイント（元の投稿は {POINTS.postFixed} ポイントになります）</li>
-              <li>今週のボーナス組み合わせは ＋{POINTS.bonus} ポイント</li>
-              <li>非公開・削除になったものは数えません。投稿時に X の ID を入力した投稿だけが対象です</li>
-              <li>今月のランキングは毎月 1 日 0:00 にリセット。同じポイントの場合は、先にそのポイントに届いた人が上になります</li>
-            </ul>
-            <p className="bt" style={{ marginTop: 12 }}>
-              バッジ（累計ポイント）
-            </p>
-            <ul className="badges">
-              {BADGES.map((b) => (
-                <li key={b.name}>
-                  <span className="badge">{b.name}</span> {b.min} ポイント〜
-                </li>
-              ))}
-            </ul>
-            <p className="note">
-              ※ X の ID はご自身のもののみ
-              <br />※ 動画は自分で撮影したもの、または撮影者の許可を得たもののみ
-            </p>
+            {data.total ? <RankList rows={data.total} /> : <NotYet />}
           </div>
           <div className="links">
             <button onClick={() => nav("/submit")}>＋ 投稿する</button>
+          </div>
+          <div className="box rules" style={{ marginTop: 18 }}>
+            <p className="bt">ランキング参加にあたっての注意事項</p>
+            <ul>
+              <li>X の ID はご自身のもののみ入力してください</li>
+              <li>投稿する動画は、ご自身で撮影したもの、または撮影者（友人・知人）の許可を得たもののみにしてください</li>
+            </ul>
+          </div>
+          <div className="box rules">
+            <p className="bt">バッジの種類</p>
+            <ul className="badges">
+              {BADGES.map((b) => (
+                <li key={b.name}>
+                  <span className="badge">{b.name}</span> 累計 {b.min} ポイント〜
+                </li>
+              ))}
+            </ul>
           </div>
         </>
       )}
