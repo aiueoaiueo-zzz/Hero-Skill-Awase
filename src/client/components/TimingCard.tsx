@@ -1,6 +1,6 @@
 import type { ReactNode } from "react";
 import { Link } from "react-router";
-import { isXId } from "../../shared/ranking";
+import { isXId, normalizeXId } from "../../shared/ranking";
 import { CUE_LABEL, type CueType } from "../../shared/constants";
 import { formatCue } from "../../shared/text";
 import { fmtDate } from "../lib/ui";
@@ -19,10 +19,11 @@ export type TimingCardData = {
 
 /** 投稿者の表示。X の ID なら「@ID」で投稿者ページへのリンク（古い投稿の自由入力の名前はそのまま） */
 export function Poster({ nickname, badge }: { nickname: string; badge?: string | null }) {
-  return isXId(nickname) ? (
+  const id = normalizeXId(nickname);
+  return isXId(id) ? (
     <>
-      <Link className="nick" to={`/u/${nickname}`}>
-        @{nickname}
+      <Link className="nick" to={`/u/${id}`}>
+        @{id}
       </Link>
       {badge && <span className="badge">{badge}</span>}
     </>

@@ -1,5 +1,5 @@
 import { ATTACK_LABEL, CUE_LABEL, type AttackType, type CueType } from "./constants";
-import { X_ID_RE } from "./ranking";
+import { X_ID_RE, normalizeXId } from "./ranking";
 
 // X（旧 Twitter）への共有。投稿画面（intent）を開くだけで、アプリから X に直接は送らない。
 const X_INTENT = "https://x.com/intent/tweet";
@@ -46,7 +46,7 @@ export const xWeight = (s: string) => {
 };
 
 /** 投稿者の表示。X の ID は「＠ID」、古い自由入力の名前は @ を全角にしてそのまま（X でほかの人に通知が飛ばないように） */
-const noMention = (s: string) => (X_ID_RE.test(s) ? `＠${s}` : s.replace(/@/g, "＠"));
+const noMention = (s: string) => (X_ID_RE.test(normalizeXId(s)) ? `＠${normalizeXId(s)}` : s.replace(/@/g, "＠"));
 
 type Base = {
   attacker: string;

@@ -35,8 +35,6 @@ export type Bootstrap = {
   publicAppUrl: string;
   /** 公開中のタイミングがある組み合わせ（攻撃する側のキャラ ID → 相手のキャラ ID の一覧）。相手の選択画面をすぐ出すため */
   registered: Record<string, string[]>;
-  /** 今週のボーナス組み合わせ（攻撃する側のキャラ ID → 相手のキャラ ID の一覧） */
-  bonus: Record<string, string[]>;
 };
 
 export type RankRow = { rank: number; xId: string; points: number; badge: string | null };
@@ -47,7 +45,6 @@ export type RankingResponse = {
   /** 人数が足りないうちは null */
   total: RankRow[] | null;
   month: RankRow[] | null;
-  bonus: { weekStart: string; weekEnd: string; pairs: { attacker: Hero; target: Hero }[] };
 };
 export type UserTiming = {
   id: string;

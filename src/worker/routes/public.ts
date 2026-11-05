@@ -1,12 +1,12 @@
 import { Hono } from "hono";
 import { PRIVATE_SETTING_KEYS } from "../../shared/constants";
 import { badgeFor, isXId, normalizeXId } from "../../shared/ranking";
-import type { Bootstrap, Hero, PairResponse, PublicTiming, RankingResponse, TargetsResponse, UserResponse, UserTiming } from "../../shared/types";
+import type { Bootstrap, PairResponse, PublicTiming, RankingResponse, TargetsResponse, UserResponse, UserTiming } from "../../shared/types";
 import type { AppEnv } from "../env";
 import { heroBySlug, listHeroes } from "../lib/heroes";
 import { mediaUrl } from "../lib/media";
 import { ensureShareCodes, SHARE_CODE_RE } from "../lib/share-code";
-import { computeScores, rankingSummary, weekBonus } from "../lib/ranking";
+import { computeScores, rankingSummary } from "../lib/ranking";
 import { getSettings } from "../lib/settings";
 
 // 一般向け API：承認済み（status = 'approved'）のタイミングしか返さない（仕様 7-2）
@@ -18,19 +18,16 @@ publicRoutes.use("*", async (c, next) => {
 });
 
 publicRoutes.get("/bootstrap", async (c) => {
-  const [heroes, settings, pairs, wb] = await Promise.all([
+  const [heroes, settings, pairs] = await Promise.all([
     listHeroes(c.env),
     getSettings(c.env),
     c.env.DB.prepare("SELECT DISTINCT attacker_id AS a, target_id AS t FROM timings WHERE status = 'approved' AND hidden = 0").all<{ a: string; t: string }>(),
-    weekBonus(c.env),
   ]);
   for (const k of PRIVATE_SETTING_KEYS) delete (settings as Partial<typeof settings>)[k];
-  const bonus: Record<string, string[]> = {};
-  for (const p of wb.pairs) (bonus[p.a] ??= []).push(p.t);
   const publicAppUrl = (c.env.PUBLIC_APP_URL || new URL(c.req.url).origin).replace(/\/+$/, "");
   const registered: Record<string, string[]> = {};
   for (const r of pairs.results) (registered[r.a] ??= []).push(r.t);
-  return c.json<Bootstrap>({ heroes, settings, turnstileSiteKey: c.env.TURNSTILE_SITE_KEY || "", publicAppUrl, registered, bonus });
+  return c.json<Bootstrap>({ heroes, settings, turnstileSiteKey: c.env.TURNSTILE_SITE_KEY || "", publicAppUrl, registered });
 });
 
 publicRoutes.get("/heroes/:slug/targets", async (c) => {
@@ -79,8 +76,11 @@ publicRoutes.get("/pairs/:attacker/:target", async (c) => {
     for (const r of results) if (!r.share_code) r.share_code = codes.get(r.id) ?? null;
   }
   // 投稿者のバッジ（ランキングの対象の X の ID のときだけ）
-  const { users } = results.some((r) => isXId(r.nickname)) ? await computeScores(c.env) : { users: new Map() };
-  const badgeOf = (x: string | null) => (isXId(x) ? badgeFor(users.get(x.toLowerCase())?.total ?? 0) : null);
+  const { users } = results.some((r) => isXId(normalizeXId(r.nickname))) ? await computeScores(c.env) : { users: new Map() };
+  const badgeOf = (raw: string | null) => {
+    const x = normalizeXId(raw);
+    return isXId(x) ? badgeFor(users.get(x.toLowerCase())?.total ?? 0) : null;
+  };
   const timings: PublicTiming[] = results.map((r) => ({
     id: r.id,
     attackType: r.attack_type,
@@ -97,17 +97,10 @@ publicRoutes.get("/pairs/:attacker/:target", async (c) => {
   return c.json<PairResponse>({ attacker, target, timings });
 });
 
-/** ランキング（累計・今月）と今週のボーナス組み合わせ */
+/** ランキング（累計・今月） */
 publicRoutes.get("/ranking", async (c) => {
-  const [r, wb, heroes] = await Promise.all([rankingSummary(c.env), weekBonus(c.env), listHeroes(c.env)]);
-  const byId = new Map(heroes.map((h) => [h.id, h]));
-  const pairs = wb.pairs
-    .map((p) => ({ attacker: byId.get(p.a), target: byId.get(p.t) }))
-    .filter((p): p is { attacker: Hero; target: Hero } => !!p.attacker && !!p.target);
-  return c.json<RankingResponse>({
-    ...r.view,
-    bonus: { weekStart: new Date(wb.week.start).toISOString(), weekEnd: new Date(wb.week.end).toISOString(), pairs },
-  });
+  const r = await rankingSummary(c.env);
+  return c.json<RankingResponse>(r.view);
 });
 
 /** 投稿者のページ：その人のポイント・バッジ・順位と、投稿・修正した公開中の合わせ */
@@ -121,7 +114,7 @@ publicRoutes.get("/users/:xid", async (c) => {
       .prepare(
         `SELECT t.id, t.attacker_id AS a, t.target_id AS tg, t.attack_type, t.cue_type, t.timing_text, t.reviewed_at AS at
            FROM timings t JOIN submissions s ON s.id = t.submission_id
-          WHERE lower(s.nickname) = lower(?) AND t.status = 'approved' AND t.hidden = 0`,
+          WHERE lower(ltrim(s.nickname, '@＠')) = lower(?) AND t.status = 'approved' AND t.hidden = 0`,
       )
       .bind(xid)
       .all<{ id: string; a: string; tg: string; attack_type: UserTiming["attackType"]; cue_type: UserTiming["cueType"]; timing_text: string; at: string }>(),
@@ -129,7 +122,7 @@ publicRoutes.get("/users/:xid", async (c) => {
       .prepare(
         `SELECT t.id, t.attacker_id AS a, t.target_id AS tg, t.attack_type, t.cue_type, t.timing_text, f.reviewed_at AS at
            FROM timings f JOIN submissions fs ON fs.id = f.submission_id JOIN timings t ON t.id = fs.replaces_timing_id
-          WHERE lower(fs.nickname) = lower(?) AND f.status = 'merged' AND t.status = 'approved' AND t.hidden = 0`,
+          WHERE lower(ltrim(fs.nickname, '@＠')) = lower(?) AND f.status = 'merged' AND t.status = 'approved' AND t.hidden = 0`,
       )
       .bind(xid)
       .all<{ id: string; a: string; tg: string; attack_type: UserTiming["attackType"]; cue_type: UserTiming["cueType"]; timing_text: string; at: string }>(),

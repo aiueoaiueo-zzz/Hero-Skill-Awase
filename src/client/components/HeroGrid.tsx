@@ -5,7 +5,7 @@ import { prefetch } from "../lib/api";
 import { Avatar } from "./Avatar";
 
 /** キャラの一覧。preload：タップした瞬間に次の画面のデータを読み始める（画面の切り替えを速くする） */
-export function HeroGrid({ heroes, to, preload, marks }: { heroes: Hero[]; to: (h: Hero) => string; preload?: (h: Hero) => string; marks?: Set<string> }) {
+export function HeroGrid({ heroes, to, preload }: { heroes: Hero[]; to: (h: Hero) => string; preload?: (h: Hero) => string }) {
   const nav = useNavigate();
   return (
     <div className="grid">
@@ -21,7 +21,6 @@ export function HeroGrid({ heroes, to, preload, marks }: { heroes: Hero[]; to: (
         >
           <Avatar hero={h} />
           <div className="nm">{displayName(h)}</div>
-          {marks?.has(h.id) && <span className="bonusmark">★ボーナス</span>}
         </button>
       ))}
     </div>

@@ -21,8 +21,4 @@ export function RankList({ rows }: { rows: RankRow[] }) {
 }
 
 /** 人数が足りないときの案内 */
-export const NotYet = ({ now, min, label }: { now: number; min: number; label: string }) => (
-  <p className="notyet">
-    {label}は、投稿者が {min} 人集まったら始まります（いま {now} 人）
-  </p>
-);
+export const NotYet = () => <p className="notyet">ランキング準備中です</p>;

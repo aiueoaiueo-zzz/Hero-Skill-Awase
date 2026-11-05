@@ -279,7 +279,7 @@ function Edit({ draft, setDraft, heroes }: { draft: Draft; setDraft: SetDraft; h
           onChange={(e) => setDraft((d) => ({ ...d, nick: e.target.value }))}
         />
         <div className="hint">
-          なるべくご自身の X の ID を入力してください。他の方の ID は入力しないでください。入力すると投稿者として表示され、ランキングの対象になります。
+          ※ ご自身の ID のみ（ランキングの対象になります）
         </div>
         <label className="h" htmlFor="f-sup">
           応援コード
