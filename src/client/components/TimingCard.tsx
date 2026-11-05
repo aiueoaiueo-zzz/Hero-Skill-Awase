@@ -1,4 +1,6 @@
 import type { ReactNode } from "react";
+import { Link } from "react-router";
+import { isXId } from "../../shared/ranking";
 import { CUE_LABEL, type CueType } from "../../shared/constants";
 import { formatCue } from "../../shared/text";
 import { fmtDate } from "../lib/ui";
@@ -10,17 +12,32 @@ export type TimingCardData = {
   note: string | null;
   videoUrl: string | null;
   nickname: string | null;
+  badge?: string | null;
   supportCode: string | null;
   reviewedAt: string | null;
 };
 
-export function Who({ nickname, supportCode }: { nickname: string | null; supportCode: string | null }) {
+/** 投稿者の表示。X の ID なら「@ID」で投稿者ページへのリンク（古い投稿の自由入力の名前はそのまま） */
+export function Poster({ nickname, badge }: { nickname: string; badge?: string | null }) {
+  return isXId(nickname) ? (
+    <>
+      <Link className="nick" to={`/u/${nickname}`}>
+        @{nickname}
+      </Link>
+      {badge && <span className="badge">{badge}</span>}
+    </>
+  ) : (
+    <span className="nick">{nickname}</span>
+  );
+}
+
+export function Who({ nickname, supportCode, badge }: { nickname: string | null; supportCode: string | null; badge?: string | null }) {
   if (!nickname && !supportCode) return null;
   return (
     <div className="foot who">
       {nickname && (
         <span>
-          投稿者：<span className="nick">{nickname}</span>
+          投稿者：<Poster nickname={nickname} badge={badge} />
         </span>
       )}
       {supportCode && <SupportCodeButton code={supportCode} />}
@@ -39,7 +56,7 @@ export function TimingCard({ t, num, actions, id, flash }: { t: TimingCardData; 
       </div>
       {t.note && <div className="note">{t.note}</div>}
       {t.videoUrl && <video src={t.videoUrl} controls playsInline preload="metadata" />}
-      <Who nickname={t.nickname} supportCode={t.supportCode} />
+      <Who nickname={t.nickname} supportCode={t.supportCode} badge={t.badge} />
       <div className="foot">
         <span>{t.reviewedAt ? `${fmtDate(t.reviewedAt)} 承認` : ""}</span>
         <span className="sp"></span>

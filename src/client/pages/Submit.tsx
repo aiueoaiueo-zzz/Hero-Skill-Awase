@@ -6,6 +6,7 @@ import { EntryCard } from "../components/EntryCard";
 import { Header } from "../components/Header";
 import { HeroPickButton, HeroPicker } from "../components/HeroPicker";
 import { newPoint, pointId, PointsEditor, type PointDraft } from "../components/PointsEditor";
+import { X_ID_RE, normalizeXId } from "../../shared/ranking";
 import { Turnstile, type TurnstileHandle } from "../components/Turnstile";
 import { api, ApiError, useApi } from "../lib/api";
 import { useData } from "../lib/data";
@@ -169,7 +170,9 @@ export function Submit() {
   // 初期値（URL の ?a= &t= ／ ?fix=）
   useEffect(() => {
     if (draft || !restored) return;
-    const base = { step: "edit" as const, nick: loadNick(), sup: loadSup(), upload: null };
+    // 前回の入力（以前の自由入力の名前は X の ID の形のときだけ引き継ぐ）
+    const lastNick = normalizeXId(loadNick());
+    const base = { step: "edit" as const, nick: X_ID_RE.test(lastNick) ? lastNick : "", sup: loadSup(), upload: null };
     if (fixId) {
       const f = fixRes.data;
       if (!f) return;
@@ -224,7 +227,9 @@ function Edit({ draft, setDraft, heroes }: { draft: Draft; setDraft: SetDraft; h
     if (draft.points.some((p) => p.converting != null)) return toast("動画を軽くしています。完了までお待ちください");
     const nov = draft.points.findIndex((p) => !p.file && !p.existing);
     if (nov >= 0) return toast(accepting ? `タイミング${nov + 1}の動画を選択してください` : "現在、動画の受付を停止しています");
-    if (chars(draft.nick) > LIMITS.nickname || chars(draft.sup) > LIMITS.supportCode) return toast("ニックネーム・応援コードは20文字以内です");
+    const xid = normalizeXId(draft.nick);
+    if (xid && !X_ID_RE.test(xid)) return toast("X の ID は英数字と _ の 15 文字までで入力してください");
+    if (chars(draft.sup) > LIMITS.supportCode) return toast("応援コードは20文字以内です");
     setDraft((d) => ({ ...d, step: "preview" }));
     window.scrollTo(0, 0);
   };
@@ -259,16 +264,23 @@ function Edit({ draft, setDraft, heroes }: { draft: Draft; setDraft: SetDraft; h
           opts={{ upload: true, locked: !!fix, accepting }}
         />
         <label className="h" htmlFor="f-nick">
-          ニックネーム
+          X の ID（任意）
         </label>
         <input
           type="text"
           id="f-nick"
-          maxLength={LIMITS.nickname}
+          maxLength={16}
           value={draft.nick}
-          placeholder="任意（未入力なら表示されません）"
+          placeholder="@xxxx"
+          inputMode="url"
+          autoCapitalize="none"
+          autoComplete="off"
+          spellCheck={false}
           onChange={(e) => setDraft((d) => ({ ...d, nick: e.target.value }))}
         />
+        <div className="hint">
+          なるべくご自身の X の ID を入力してください。他の方の ID は入力しないでください。入力すると投稿者として表示され、ランキングの対象になります。
+        </div>
         <label className="h" htmlFor="f-sup">
           応援コード
         </label>
@@ -365,7 +377,7 @@ function Preview({ draft, setDraft, heroes, onDone }: { draft: Draft; setDraft: 
         body: JSON.stringify({
           attackerId: draft.attackerId,
           targetId: draft.targetId,
-          nickname: draft.nick,
+          nickname: normalizeXId(draft.nick) || null,
           supportCode: draft.sup,
           replacesTimingId: draft.fix?.id ?? null,
           timings: draft.points.map((p, i) => ({
@@ -379,7 +391,7 @@ function Preview({ draft, setDraft, heroes, onDone }: { draft: Draft; setDraft: 
         }),
       });
       addMy({ code: res.code, deleteKey: res.deleteKey });
-      saveNickSup(draft.nick.trim(), draft.sup.trim());
+      saveNickSup(normalizeXId(draft.nick), draft.sup.trim());
       draft.points.forEach((p) => p.fileUrl && URL.revokeObjectURL(p.fileUrl));
       onDone();
       nav(`/submit/done/${res.code}`, { replace: true });
@@ -403,7 +415,7 @@ function Preview({ draft, setDraft, heroes, onDone }: { draft: Draft; setDraft: 
     <>
       <Header title="内容の確認" sub="この内容で申請します" prog={PROG.step2} />
       {draft.fix && <div className="demo">公開中のタイミングの修正案として申請します。</div>}
-      <EntryCard points={points} attacker={A} target={T} nickname={draft.nick.trim() || null} supportCode={draft.sup.trim() || null} />
+      <EntryCard points={points} attacker={A} target={T} nickname={normalizeXId(draft.nick) || null} supportCode={draft.sup.trim() || null} />
       <div className="box">
         <p>申請後、管理者が確認して承認されると公開されます。不適切な投稿は削除されることがあります。</p>
       </div>

@@ -17,7 +17,10 @@ export type PublicTiming = {
   timingText: string;
   note: string | null;
   videoUrl: string;
+  /** 投稿者（X の ID。古い投稿は自由入力の名前のことがある） */
   nickname: string | null;
+  /** 投稿者のバッジ（ランキングの対象の X の ID のときだけ） */
+  badge: string | null;
   supportCode: string | null;
   reviewedAt: string;
   /** 共有用の短いコード（/s/<コード>） */
@@ -32,6 +35,41 @@ export type Bootstrap = {
   publicAppUrl: string;
   /** 公開中のタイミングがある組み合わせ（攻撃する側のキャラ ID → 相手のキャラ ID の一覧）。相手の選択画面をすぐ出すため */
   registered: Record<string, string[]>;
+  /** 今週のボーナス組み合わせ（攻撃する側のキャラ ID → 相手のキャラ ID の一覧） */
+  bonus: Record<string, string[]>;
+};
+
+export type RankRow = { rank: number; xId: string; points: number; badge: string | null };
+export type RankingResponse = {
+  minUsers: number;
+  totalUsers: number;
+  monthUsers: number;
+  /** 人数が足りないうちは null */
+  total: RankRow[] | null;
+  month: RankRow[] | null;
+  bonus: { weekStart: string; weekEnd: string; pairs: { attacker: Hero; target: Hero }[] };
+};
+export type UserTiming = {
+  id: string;
+  kind: "post" | "fix";
+  attacker: Hero;
+  target: Hero;
+  attackType: AttackType;
+  cueType: CueType;
+  timingText: string;
+  at: string;
+};
+export type UserResponse = {
+  xId: string;
+  total: number;
+  month: number;
+  badge: string | null;
+  rankTotal: number | null;
+  rankMonth: number | null;
+  /** ランキングがまだ始まっていない（人数が足りない） */
+  rankingActive: boolean;
+  excluded: boolean;
+  timings: UserTiming[];
 };
 
 export type PairResponse = {

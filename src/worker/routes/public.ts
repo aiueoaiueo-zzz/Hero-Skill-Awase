@@ -1,9 +1,12 @@
 import { Hono } from "hono";
-import type { Bootstrap, PairResponse, PublicTiming, TargetsResponse } from "../../shared/types";
+import { PRIVATE_SETTING_KEYS } from "../../shared/constants";
+import { badgeFor, isXId, normalizeXId } from "../../shared/ranking";
+import type { Bootstrap, Hero, PairResponse, PublicTiming, RankingResponse, TargetsResponse, UserResponse, UserTiming } from "../../shared/types";
 import type { AppEnv } from "../env";
 import { heroBySlug, listHeroes } from "../lib/heroes";
 import { mediaUrl } from "../lib/media";
 import { ensureShareCodes, SHARE_CODE_RE } from "../lib/share-code";
+import { computeScores, rankingSummary, weekBonus } from "../lib/ranking";
 import { getSettings } from "../lib/settings";
 
 // 一般向け API：承認済み（status = 'approved'）のタイミングしか返さない（仕様 7-2）
@@ -15,15 +18,19 @@ publicRoutes.use("*", async (c, next) => {
 });
 
 publicRoutes.get("/bootstrap", async (c) => {
-  const [heroes, settings, pairs] = await Promise.all([
+  const [heroes, settings, pairs, wb] = await Promise.all([
     listHeroes(c.env),
     getSettings(c.env),
     c.env.DB.prepare("SELECT DISTINCT attacker_id AS a, target_id AS t FROM timings WHERE status = 'approved' AND hidden = 0").all<{ a: string; t: string }>(),
+    weekBonus(c.env),
   ]);
+  for (const k of PRIVATE_SETTING_KEYS) delete (settings as Partial<typeof settings>)[k];
+  const bonus: Record<string, string[]> = {};
+  for (const p of wb.pairs) (bonus[p.a] ??= []).push(p.t);
   const publicAppUrl = (c.env.PUBLIC_APP_URL || new URL(c.req.url).origin).replace(/\/+$/, "");
   const registered: Record<string, string[]> = {};
   for (const r of pairs.results) (registered[r.a] ??= []).push(r.t);
-  return c.json<Bootstrap>({ heroes, settings, turnstileSiteKey: c.env.TURNSTILE_SITE_KEY || "", publicAppUrl, registered });
+  return c.json<Bootstrap>({ heroes, settings, turnstileSiteKey: c.env.TURNSTILE_SITE_KEY || "", publicAppUrl, registered, bonus });
 });
 
 publicRoutes.get("/heroes/:slug/targets", async (c) => {
@@ -71,6 +78,9 @@ publicRoutes.get("/pairs/:attacker/:target", async (c) => {
     const codes = await ensureShareCodes(c.env, missing);
     for (const r of results) if (!r.share_code) r.share_code = codes.get(r.id) ?? null;
   }
+  // 投稿者のバッジ（ランキングの対象の X の ID のときだけ）
+  const { users } = results.some((r) => isXId(r.nickname)) ? await computeScores(c.env) : { users: new Map() };
+  const badgeOf = (x: string | null) => (isXId(x) ? badgeFor(users.get(x.toLowerCase())?.total ?? 0) : null);
   const timings: PublicTiming[] = results.map((r) => ({
     id: r.id,
     attackType: r.attack_type,
@@ -79,11 +89,85 @@ publicRoutes.get("/pairs/:attacker/:target", async (c) => {
     note: r.note,
     videoUrl: mediaUrl(c.env, r.video_key)!,
     nickname: r.nickname || null,
+    badge: badgeOf(r.nickname),
     supportCode: r.support_code || null,
     reviewedAt: r.reviewed_at,
     shareCode: r.share_code,
   }));
   return c.json<PairResponse>({ attacker, target, timings });
+});
+
+/** ランキング（累計・今月）と今週のボーナス組み合わせ */
+publicRoutes.get("/ranking", async (c) => {
+  const [r, wb, heroes] = await Promise.all([rankingSummary(c.env), weekBonus(c.env), listHeroes(c.env)]);
+  const byId = new Map(heroes.map((h) => [h.id, h]));
+  const pairs = wb.pairs
+    .map((p) => ({ attacker: byId.get(p.a), target: byId.get(p.t) }))
+    .filter((p): p is { attacker: Hero; target: Hero } => !!p.attacker && !!p.target);
+  return c.json<RankingResponse>({
+    ...r.view,
+    bonus: { weekStart: new Date(wb.week.start).toISOString(), weekEnd: new Date(wb.week.end).toISOString(), pairs },
+  });
+});
+
+/** 投稿者のページ：その人のポイント・バッジ・順位と、投稿・修正した公開中の合わせ */
+publicRoutes.get("/users/:xid", async (c) => {
+  const xid = normalizeXId(c.req.param("xid"));
+  if (!isXId(xid)) return c.json({ error: "not_found" }, 404);
+  const db = c.env.DB;
+  const [r, posts, fixes, heroes] = await Promise.all([
+    rankingSummary(c.env),
+    db
+      .prepare(
+        `SELECT t.id, t.attacker_id AS a, t.target_id AS tg, t.attack_type, t.cue_type, t.timing_text, t.reviewed_at AS at
+           FROM timings t JOIN submissions s ON s.id = t.submission_id
+          WHERE lower(s.nickname) = lower(?) AND t.status = 'approved' AND t.hidden = 0`,
+      )
+      .bind(xid)
+      .all<{ id: string; a: string; tg: string; attack_type: UserTiming["attackType"]; cue_type: UserTiming["cueType"]; timing_text: string; at: string }>(),
+    db
+      .prepare(
+        `SELECT t.id, t.attacker_id AS a, t.target_id AS tg, t.attack_type, t.cue_type, t.timing_text, f.reviewed_at AS at
+           FROM timings f JOIN submissions fs ON fs.id = f.submission_id JOIN timings t ON t.id = fs.replaces_timing_id
+          WHERE lower(fs.nickname) = lower(?) AND f.status = 'merged' AND t.status = 'approved' AND t.hidden = 0`,
+      )
+      .bind(xid)
+      .all<{ id: string; a: string; tg: string; attack_type: UserTiming["attackType"]; cue_type: UserTiming["cueType"]; timing_text: string; at: string }>(),
+    listHeroes(c.env),
+  ]);
+  const byId = new Map(heroes.map((h) => [h.id, h]));
+  const timings: UserTiming[] = [
+    ...posts.results.map((x) => ({ ...x, kind: "post" as const })),
+    ...fixes.results.map((x) => ({ ...x, kind: "fix" as const })),
+  ]
+    .filter((x) => byId.has(x.a) && byId.has(x.tg))
+    .sort((a, b) => b.at.localeCompare(a.at))
+    .map((x) => ({
+      id: x.id,
+      kind: x.kind,
+      attacker: byId.get(x.a)!,
+      target: byId.get(x.tg)!,
+      attackType: x.attack_type,
+      cueType: x.cue_type,
+      timingText: x.timing_text,
+      at: x.at,
+    }));
+  const k = xid.toLowerCase();
+  const u = r.users.get(k);
+  const excluded = !u && timings.length > 0 && (await computeScores(c.env)).excluded.has(k);
+  if (!u && !timings.length) return c.json({ error: "not_found" }, 404);
+  const active = r.view.total !== null;
+  return c.json<UserResponse>({
+    xId: u?.xId ?? xid,
+    total: u?.total ?? 0,
+    month: u?.month ?? 0,
+    badge: u ? badgeFor(u.total) : null,
+    rankTotal: active ? (r.total.find((x) => x.xId.toLowerCase() === k)?.rank ?? null) : null,
+    rankMonth: r.view.month ? (r.month.find((x) => x.xId.toLowerCase() === k)?.rank ?? null) : null,
+    rankingActive: active,
+    excluded,
+    timings,
+  });
 });
 
 // 共有用の短いリンク：/s/<コード> → そのタイミングの詳細画面（承認済みのみ）

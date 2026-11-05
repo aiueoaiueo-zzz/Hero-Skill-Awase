@@ -454,3 +454,43 @@ header::before{content:"";position:absolute;left:0;bottom:3px;height:4px;width:v
 
 /* トップの見出しの横の呼び名「ヒロアプ」 */
 header h1 .brand{display:inline-block;margin-left:8px;padding:2px 7px;font-size:11px;line-height:1.4;font-weight:700;vertical-align:4px;background:#000;color:#fff;letter-spacing:.04em}
+
+/* ===== ランキング ===== */
+.badge{display:inline-block;margin-left:6px;padding:1px 7px;font-size:10.5px;font-weight:700;line-height:1.5;background:#fff4ea;color:#c94f00;border:1px solid var(--accent);vertical-align:1px;white-space:nowrap}
+.badge.big{font-size:14px;padding:3px 10px;margin-left:0}
+a.nick{color:#000;text-decoration:underline;text-underline-offset:2px}
+.hint.warn{color:#c94f00;font-weight:700}
+.box .bt{color:#000;font-weight:700;font-size:14px;margin:0 0 8px}
+.box .bt small{font-weight:500;color:var(--sub);font-size:11.5px;margin-left:4px}
+.box .note{font-size:11.5px;line-height:1.7;margin:8px 0 0}
+.notyet{font-size:12.5px;color:var(--sub);margin:4px 0}
+.ranklist{list-style:none;margin:0;padding:0}
+.ranklist li{display:flex;align-items:center;gap:6px;padding:7px 2px;border-bottom:1px solid var(--line);font-size:13.5px}
+.ranklist li:last-child{border-bottom:none}
+.ranklist .no{width:26px;height:26px;display:grid;place-items:center;font-family:"Chakra Petch",sans-serif;font-weight:700;background:#eee;color:#000;flex:none}
+.ranklist li.top1 .no{background:#ff6a00;color:#000}
+.ranklist li.top2 .no{background:#000;color:#fff}
+.ranklist li.top3 .no{background:#6b6b6b;color:#fff}
+.ranklist .who{color:#000;font-weight:700;text-decoration:none;min-width:0;overflow:hidden;text-overflow:ellipsis}
+.ranklist .pt{margin-left:auto;font-family:"Chakra Petch",sans-serif;font-weight:700}
+.bonuslist{list-style:none;margin:0;padding:0;display:flex;flex-wrap:wrap;gap:6px}
+.bonuslist a{display:inline-block;padding:5px 10px;border:1px solid #000;background:#fff;color:#000;font-size:12.5px;font-weight:700;text-decoration:none;box-shadow:2px 2px 0 #000}
+.rules ul{margin:0;padding-left:1.2em;font-size:12.5px;line-height:1.8;color:#222}
+.rules ul.badges{list-style:none;padding:0}
+.rankbox{display:block;margin:0 0 12px;padding:10px 12px;border:2px solid #000;background:#fff;box-shadow:4px 4px 0 var(--accent);cursor:pointer;color:#000;text-decoration:none}
+.rankbox .rb-head{display:flex;align-items:center;justify-content:space-between;font-size:13px;margin-bottom:4px}
+.rankbox .rb-head a{font-size:11.5px;color:var(--sub);text-decoration:none}
+.rankbox .ranklist li{padding:4px 2px;font-size:12.5px}
+.rankbox .ranklist .no{width:22px;height:22px;font-size:12px}
+.rankbox .rb-bonus{margin-top:6px;padding-top:6px;border-top:1px dashed var(--line);font-size:11.5px;line-height:1.6}
+.rankbox .rb-bonus b{display:block;color:#c94f00;font-size:12px}
+.card{position:relative}
+.bonusmark{position:absolute;top:2px;left:2px;background:var(--accent);color:#000;font-size:9px;font-weight:800;padding:1px 4px;line-height:1.4;z-index:1}
+.userbox .ub-top{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.userbox .ub-top a.sbtn{text-decoration:none;color:#000;display:inline-flex;align-items:center}
+.ub-stats{display:flex;gap:10px;margin:12px 0 0}
+.ub-stats>div{flex:1;border:1px solid var(--line);background:#fff;padding:8px 10px}
+.ub-stats dt{font-size:11px;color:var(--sub)}
+.ub-stats dd{margin:2px 0 0;font-family:"Chakra Petch",sans-serif;font-weight:700;font-size:20px;color:#000}
+.ub-stats dd small{font-family:"Zen Kaku Gothic New",sans-serif;font-size:12px;font-weight:700;margin-left:4px}
+a.entry.ulink{display:block;text-decoration:none;color:inherit}

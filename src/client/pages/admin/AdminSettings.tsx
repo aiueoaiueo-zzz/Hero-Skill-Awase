@@ -17,6 +17,7 @@ export function AdminSettings() {
   const [notices, setNotices] = useState("");
   const [about, setAbout] = useState("");
   const [terms, setTerms] = useState("");
+  const [excluded, setExcluded] = useState("");
   const [preview, setPreview] = useState<string | null>(null);
   const [previewTerms, setPreviewTerms] = useState<string | null>(null);
   useEffect(() => {
@@ -25,6 +26,7 @@ export function AdminSettings() {
     setNotices(data.notices);
     setAbout(data.about);
     setTerms(data.terms);
+    setExcluded(data.ranking_excluded);
   }, [data]);
   useBootFx(!!data || !!error);
 
@@ -51,6 +53,19 @@ export function AdminSettings() {
             <div style={{ display: "flex", gap: 8 }}>
               <input className="inp" maxLength={20} value={own} placeholder="例：A1B2C3D4" onChange={(e) => setOwn(e.target.value)} />
               <button className="sbtn ok" style={{ whiteSpace: "nowrap" }} onClick={() => save({ owner_support_code: own.trim() }, "保存しました")}>
+                保存
+              </button>
+            </div>
+          </div>
+          <div className="box">
+            <p>
+              <b style={{ color: "var(--text)" }}>ランキングの対象外にする X の ID</b>
+              <br />
+              1 行に 1 つ（@ はあってもなくても OK）。ここに書いた ID は、ランキングとバッジの集計から外れます。運営者の ID を入れてください。
+            </p>
+            <textarea style={{ minHeight: 90 }} value={excluded} placeholder={"@your_id"} onChange={(e) => setExcluded(e.target.value)} />
+            <div className="btns">
+              <button className="primary" onClick={() => save({ ranking_excluded: excluded }, "対象外の ID を保存しました")}>
                 保存
               </button>
             </div>
