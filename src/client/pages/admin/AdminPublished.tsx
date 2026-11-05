@@ -66,7 +66,7 @@ export function AdminPublished() {
         <>
           <div className="box">
             <p>
-              公開中のタイミング {items.length - hiddenCount} 件{hiddenCount ? `・非公開 ${hiddenCount} 件` : ""}。▶ で開いて「非公開にする」「削除」ができます。
+              公開中のタイミング {items.length - hiddenCount} 件{hiddenCount ? `・非公開 ${hiddenCount} 件` : ""}。▶ で開いて「非公開にする」「削除」、投稿者の X の ID の修正ができます。
               <br />
               非公開：一般向けの画面と動画から外します（「公開に戻す」で戻せます）。削除：タイミングと動画を消します（元に戻せません）。
             </p>

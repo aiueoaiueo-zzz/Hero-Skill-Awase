@@ -16,34 +16,6 @@ const ERRORS: Record<string, string> = {
 const errMsg = (e: unknown) =>
   e instanceof ApiError ? (ERRORS[e.message] ?? (e.status === 400 ? "入力内容を確認してください（slug は英小文字・数字・ハイフン）" : "操作に失敗しました")) : "操作に失敗しました";
 
-/** 画像を正方形に切り抜いて 256×256 の WebP に縮小する（WebP を作れないブラウザでは JPEG） */
-async function resizeImage(file: File): Promise<Blob> {
-  const url = URL.createObjectURL(file);
-  try {
-    const img = await new Promise<HTMLImageElement>((res, rej) => {
-      const i = new Image();
-      i.onload = () => res(i);
-      i.onerror = rej;
-      i.src = url;
-    });
-    const S = 256;
-    const c = document.createElement("canvas");
-    c.width = c.height = S;
-    const s = Math.min(img.naturalWidth, img.naturalHeight);
-    const ctx = c.getContext("2d")!;
-    ctx.imageSmoothingQuality = "high";
-    ctx.drawImage(img, (img.naturalWidth - s) / 2, (img.naturalHeight - s) / 2, s, s, 0, 0, S, S);
-    const toBlob = (type: string) => new Promise<Blob | null>((r) => c.toBlob(r, type, 0.85));
-    const webp = await toBlob("image/webp");
-    if (webp && webp.type === "image/webp") return webp;
-    const jpg = await toBlob("image/jpeg");
-    if (!jpg) throw new Error("encode_failed");
-    return jpg;
-  } finally {
-    URL.revokeObjectURL(url);
-  }
-}
-
 /** 1 回目で確認の表示に変わり、2.5 秒以内にもう一度押すと実行（試作版 armed） */
 export function ArmedButton({ className, label, armedLabel, onConfirm, ...rest }: { className: string; label: ReactNode; armedLabel: string; onConfirm: () => void; "aria-label"?: string }) {
   const [armed, setArmed] = useState(false);
@@ -124,24 +96,6 @@ export function AdminHeroes() {
     await run(call(`/api/admin/heroes/${h.id}/move`, "POST", { dir }));
     requestAnimationFrame(() => rows.current.get(h.id)?.scrollIntoView({ block: "center" }));
   };
-  const setImage = async (h: AdminHero, file: File | undefined) => {
-    if (!file) return;
-    let blob: Blob;
-    try {
-      blob = await resizeImage(file);
-    } catch {
-      return toast("画像を読み込めませんでした");
-    }
-    await run(
-      async () => {
-        const res = await fetch(`/api/admin/heroes/${h.id}/image`, { method: "PUT", headers: { "Content-Type": blob.type }, body: blob });
-        const data = await res.json().catch(() => ({}));
-        if (!res.ok) throw new ApiError(res.status, data.error || "error");
-        return data;
-      },
-      "画像を設定しました",
-    );
-  };
   const add = async () => {
     const items = bulk
       .split("\n")
@@ -186,18 +140,10 @@ export function AdminHeroes() {
                 else rows.current.delete(h.id);
               }}
             >
-              <label className="img" aria-label={`${h.name}の画像を設定`}>
+              {/* キャラ画像は権利への配慮で使わないため、追加はできない（登録済みの画像は「画像を削除」で外せる） */}
+              <div className="img">
                 <Avatar hero={h} showImage />
-                <input
-                  type="file"
-                  accept="image/*"
-                  hidden
-                  onChange={(e) => {
-                    setImage(h, e.target.files?.[0]);
-                    e.target.value = "";
-                  }}
-                />
-              </label>
+              </div>
               <div className="nm">
                 <InlineInput aria-label="名前" value={h.name} onCommit={(v) => run(call(`/api/admin/heroes/${h.id}`, "PATCH", { name: v }), "保存しました")} />
                 <InlineInput

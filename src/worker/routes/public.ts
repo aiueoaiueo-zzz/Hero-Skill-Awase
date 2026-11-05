@@ -108,7 +108,7 @@ publicRoutes.get("/users/:xid", async (c) => {
   const xid = normalizeXId(c.req.param("xid"));
   if (!isXId(xid)) return c.json({ error: "not_found" }, 404);
   const db = c.env.DB;
-  const [r, posts, fixes, heroes] = await Promise.all([
+  const [r, posts, fixes, heroes, codes] = await Promise.all([
     rankingSummary(c.env),
     db
       .prepare(
@@ -127,6 +127,17 @@ publicRoutes.get("/users/:xid", async (c) => {
       .bind(xid)
       .all<{ id: string; a: string; tg: string; attack_type: UserTiming["attackType"]; cue_type: UserTiming["cueType"]; timing_text: string; at: string }>(),
     listHeroes(c.env),
+    // 公開中の投稿・修正提案で入力された応援コード（大文字・小文字と前後の空白は無視して比べる）
+    db
+      .prepare(
+        `SELECT DISTINCT upper(trim(s.support_code)) AS code FROM submissions s
+          WHERE lower(ltrim(s.nickname, '@＠')) = lower(?) AND trim(COALESCE(s.support_code, '')) <> ''
+            AND (EXISTS (SELECT 1 FROM timings t WHERE t.submission_id = s.id AND t.status = 'approved' AND t.hidden = 0)
+              OR EXISTS (SELECT 1 FROM timings f JOIN timings t ON t.id = s.replaces_timing_id
+                          WHERE f.submission_id = s.id AND f.status = 'merged' AND t.status = 'approved' AND t.hidden = 0))`,
+      )
+      .bind(xid)
+      .all<{ code: string }>(),
   ]);
   const byId = new Map(heroes.map((h) => [h.id, h]));
   const timings: UserTiming[] = [
@@ -159,6 +170,8 @@ publicRoutes.get("/users/:xid", async (c) => {
     rankMonth: r.view.month ? (r.month.find((x) => x.xId.toLowerCase() === k)?.rank ?? null) : null,
     rankingActive: active,
     excluded,
+    // 複数の応援コードが見つかったときは出さない（どれが本人のものか分からないため）
+    supportCode: codes.results.length === 1 ? codes.results[0].code : null,
     timings,
   });
 });
