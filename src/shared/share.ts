@@ -1,8 +1,14 @@
-import { ATTACK_LABEL, type AttackType } from "./constants";
+import { ATTACK_LABEL, CUE_LABEL, type AttackType, type CueType } from "./constants";
 
 // X（旧 Twitter）への共有。投稿画面（intent）を開くだけで、アプリから X に直接は送らない。
 const X_INTENT = "https://x.com/intent/tweet";
-const HASHTAGS = "#コンパス #HS合わせアプリ";
+const HASHTAGS = "#ヒロアプ #HS合わせ #コンパス";
+/** 管理者のお知らせの区切り線 */
+const RULE = "-".repeat(20);
+/** X の上限（重み付きの文字数） */
+export const X_LIMIT = 280;
+/** X が URL を数える長さ（どんな URL も 23） */
+const X_URL_WEIGHT = 23;
 
 /** 文字数（絵文字なども 1 文字）で切り詰める */
 const clip = (s: string, n: number) => {
@@ -25,25 +31,65 @@ export const xDmUrl = (text: string, url: string) => `https://x.com/messages/com
 /** LINE で送る（送り先は LINE の画面で選ぶ） */
 export const lineShareUrl = (text: string, url: string) => `https://line.me/R/share?text=${encodeURIComponent(`${text}\n${url}`)}`;
 
-type Base = { attacker: string; target: string; attackType: AttackType; nickname?: string | null; supportCode?: string | null };
-const credit = (p: Base) => [p.nickname && `投稿者：${clip(p.nickname, 20)}`, p.supportCode && `応援コード：${clip(p.supportCode, 20)}`].filter(Boolean);
+/**
+ * X の文字数の数え方（重み付き）：半角英数字・記号などは 1、日本語（全角）や絵文字は 2。URL は長さに関係なく 23。
+ * （twitter-text の既定の設定に合わせた近似）
+ */
+export const xWeight = (s: string) => {
+  let n = 0;
+  for (const c of s.replace(/https?:\/\/\S+/g, "u".repeat(X_URL_WEIGHT))) {
+    const o = c.codePointAt(0)!;
+    n += o <= 0x10ff || (o >= 0x2000 && o <= 0x200d) || (o >= 0x2010 && o <= 0x201f) || (o >= 0x2032 && o <= 0x2037) ? 1 : 2;
+  }
+  return n;
+};
+
+/** 投稿者名の @ は全角にする（X でほかの人に通知が飛ばないように） */
+const noMention = (s: string) => s.replace(/@/g, "＠");
+
+type Base = {
+  attacker: string;
+  target: string;
+  attackType: AttackType;
+  cueType: CueType;
+  timingText: string;
+  nickname?: string | null;
+  supportCode?: string | null;
+};
+
+/**
+ * 共有の文面を組み立てる。URL は X が後ろに付けるので、その分も数えて X の上限に収まるように、
+ * はみ出すときはタイミングの文を短くして「…」を付ける（それでも入らないときだけ投稿者名も短くする）。
+ */
+function build(p: Base, head: string[], nickMax = 20): string {
+  const cue = `（目印：${CUE_LABEL[p.cueType] ?? "その他"}）`;
+  const lines = (timing: string) =>
+    [
+      ...head,
+      "【HS合わせ】",
+      `${p.attacker}（攻撃方法：${ATTACK_LABEL[p.attackType]}）→ ${p.target}`,
+      "",
+      `${timing}${cue}`,
+      "",
+      ...(p.nickname ? [`投稿者：${noMention(clip(p.nickname, nickMax))}`] : []),
+      ...(p.supportCode ? [`応援コード：${clip(p.supportCode, 20)}`] : []),
+      HASHTAGS,
+    ].join("\n");
+  const full = Array.from(p.timingText.replace(/\s+/g, " ").trim());
+  const fits = (t: string) => xWeight(lines(t)) + 1 + X_URL_WEIGHT <= X_LIMIT;
+  if (fits(full.join(""))) return lines(full.join(""));
+  // タイミングの文は最低 10 文字は残す。それでも入らないときは投稿者名を短くする
+  for (let n = full.length - 1; n >= Math.min(10, full.length - 1); n--) {
+    const t = full.slice(0, n).join("") + "…";
+    if (fits(t)) return lines(t);
+  }
+  if (p.nickname && nickMax > 6) return build(p, head, nickMax - 4);
+  return lines(full.slice(0, 10).join("") + "…");
+}
 
 /** 利用者が詳細画面のタイミングを共有するときの文面 */
-export function timingShareText(p: Base & { timingText: string }) {
-  return [
-    `【HS合わせアプリ】${p.attacker} → ${p.target} のHS明けに合わせる（${ATTACK_LABEL[p.attackType]}）`,
-    clip(p.timingText, 50),
-    ...credit(p),
-    HASHTAGS,
-  ].join("\n");
-}
+export const timingShareText = (p: Base) => build(p, []);
 
-/** 管理者が承認したタイミングを知らせるときの文面 */
-export function approvedShareText(p: Base & { updated?: boolean }) {
-  return [
-    `【HS合わせアプリ】この合わせが${p.updated ? "更新" : "アップロード"}されました！`,
-    `${p.attacker} → ${p.target}（${ATTACK_LABEL[p.attackType]}）`,
-    ...credit(p),
-    HASHTAGS,
-  ].join("\n");
-}
+/** 管理者が承認したタイミングを知らせるときの文面（修正提案の承認は「更新」） */
+export const approvedShareText = (p: Base & { updated?: boolean }) =>
+  build(p, [`以下の合わせが${p.updated ? "更新" : "公開"}されました！`, RULE]);

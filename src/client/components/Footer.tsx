@@ -27,7 +27,7 @@ export function Footer() {
         <Link to="/contact">お問い合わせ・ご要望</Link>
       </nav>
       <div className="rights">©NHN PlayArt Corp. ©DWANGO Co., Ltd.</div>
-      <div className="copy">HS合わせアプリ（非公式ファンツール）</div>
+      <div className="copy">HS合わせ投稿Webアプリ（ヒロアプ）非公式ファンツール</div>
     </footer>
   );
 }
