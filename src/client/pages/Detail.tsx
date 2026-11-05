@@ -150,11 +150,12 @@ export function Detail() {
                           className="sbtn"
                           onClick={() =>
                             openShare({
-                              title: `${A!.name} → ${T!.name}｜HS合わせアプリ`,
+                              title: `${A!.name} → ${T!.name}｜ヒロアプ`,
                               text: timingShareText({
                                 attacker: A!.name,
                                 target: T!.name,
                                 attackType: x.attackType,
+                                cueType: x.cueType,
                                 timingText: x.timingText,
                                 nickname: x.nickname,
                                 supportCode: x.supportCode,

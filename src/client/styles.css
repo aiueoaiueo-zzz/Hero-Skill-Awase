@@ -451,3 +451,6 @@ header::before{content:"";position:absolute;left:0;bottom:3px;height:4px;width:v
 .av.namecard{container-type:size;background:#6b6b6b!important;background-image:none!important;color:#fff!important;padding:0;overflow:hidden;text-align:center;font-family:"Zen Kaku Gothic New",sans-serif;font-weight:900;outline-color:var(--accent)}
 .av.namecard span{display:block;width:100%;padding:0 5%;font-size:min(36cqw,calc(86cqw / var(--n)));line-height:1.15;word-break:break-all;letter-spacing:0}
 .card:hover .av.namecard{background:#555!important}
+
+/* トップの見出しの横の呼び名「ヒロアプ」 */
+header h1 .brand{display:inline-block;margin-left:8px;padding:2px 7px;font-size:11px;line-height:1.4;font-weight:700;vertical-align:4px;background:#000;color:#fff;letter-spacing:.04em}

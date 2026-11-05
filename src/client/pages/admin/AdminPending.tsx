@@ -129,11 +129,13 @@ export function AdminPending() {
   };
   const share = (a: Approved) =>
     openShare({
-      title: `${a.group.attacker.name} → ${a.group.target.name}｜HS合わせアプリ`,
+      title: `${a.group.attacker.name} → ${a.group.target.name}｜ヒロアプ`,
       text: approvedShareText({
         attacker: a.group.attacker.name,
         target: a.group.target.name,
         attackType: a.timing.attackType,
+        cueType: a.timing.cueType,
+        timingText: a.timing.timingText,
         nickname: a.group.nickname,
         supportCode: a.group.supportCode,
         updated: a.updated,
