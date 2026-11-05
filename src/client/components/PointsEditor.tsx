@@ -198,7 +198,7 @@ export function PointsEditor({ points, update, opts }: { points: PointDraft[]; u
                       }}
                     />
                     <div className="hint">MP4・MOV・WebM／30秒以内（投稿時に自動で軽くします）</div>
-                    <div className="hint warn">自分で撮影した動画、または撮影した人（知人・友人など）から許可をもらった動画のみ投稿してください。</div>
+                    <div className="hint warn">※ 自分で撮影した動画、または撮影者の許可を得た動画のみ</div>
                   </>
                 )
               ) : (

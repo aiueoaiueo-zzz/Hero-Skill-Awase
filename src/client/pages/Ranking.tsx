@@ -36,9 +36,8 @@ export function Ranking() {
               ))}
             </ul>
             <p className="note">
-              毎週月曜 0:00 に、まだ情報がない組み合わせの中からランダムで {BONUS_PAIRS_PER_WEEK} つ選ばれます。その週のうちにこの組み合わせの投稿が承認されると、＋
-              {POINTS.bonus} ポイント。
-              <br />※ ランダムで選ぶため、合わせるタイミング自体がない組み合わせが選ばれることもあります。
+              毎週月曜 0:00 にランダムで {BONUS_PAIRS_PER_WEEK} つ選出。承認されると ＋{POINTS.bonus} ポイント
+              <br />※ 合わせが存在しない組み合わせの場合もあります
             </p>
           </div>
           <div className="box">
@@ -69,8 +68,8 @@ export function Ranking() {
               ))}
             </ul>
             <p className="note">
-              ※ X の ID は、なるべくご自身のものを入力してください。他の方の ID は入力しないでください。
-              <br />※ 自分で撮影した動画、または撮影した人（知人・友人など）から許可をもらった動画のみ投稿してください。
+              ※ X の ID はご自身のもののみ
+              <br />※ 動画は自分で撮影したもの、または撮影者の許可を得たもののみ
             </p>
           </div>
           <div className="links">
