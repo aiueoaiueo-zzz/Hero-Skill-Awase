@@ -3,6 +3,7 @@ import { ATTACK_LABEL, CUE_LABEL } from "../../shared/constants";
 import { fmtPoints } from "../../shared/ranking";
 import type { UserResponse } from "../../shared/types";
 import { Header } from "../components/Header";
+import { SupportCodeButton } from "../components/SupportCode";
 import { useApi } from "../lib/api";
 import { PROG, useBootFx } from "../lib/fx";
 import { fmtDate } from "../lib/ui";
@@ -42,6 +43,11 @@ export function User() {
                   </dd>
                 </div>
               </dl>
+            )}
+            {data.supportCode && (
+              <div className="ub-code">
+                <SupportCodeButton code={data.supportCode} />
+              </div>
             )}
             {!data.rankingActive && !data.excluded && <p className="note">ランキング準備中です</p>}
             <p className="note">※ X の ID は、投稿した人が入力したものです。</p>

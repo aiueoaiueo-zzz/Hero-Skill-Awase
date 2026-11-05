@@ -66,6 +66,8 @@ export type UserResponse = {
   /** ランキングがまだ始まっていない（人数が足りない） */
   rankingActive: boolean;
   excluded: boolean;
+  /** 応援コード（公開中の投稿で使われた応援コードが 1 種類だけのとき。複数あれば null） */
+  supportCode: string | null;
   timings: UserTiming[];
 };
 

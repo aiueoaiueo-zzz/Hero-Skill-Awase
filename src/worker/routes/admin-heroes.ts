@@ -4,13 +4,11 @@ import type { AdminHero } from "../../shared/types";
 import type { AppEnv, Env } from "../env";
 import { toHero, type HeroRow } from "../lib/heroes";
 import { nowIso, ulid } from "../lib/ids";
-import { deleteIfUnused, deleteMedia, recordObject } from "../lib/storage";
+import { deleteIfUnused, deleteMedia } from "../lib/storage";
 
 // 管理：キャラ管理（仕様 4-7）。/api/admin/heroes 以下（requireAdmin は admin.ts 側で適用済み）
 export const adminHeroRoutes = new Hono<AppEnv>();
 
-const IMAGE_MAX_BYTES = 512 * 1024; // 256×256 の WebP なら通常 30KB 前後
-const IMAGE_TYPES: Record<string, string> = { "image/webp": "webp", "image/jpeg": "jpg", "image/png": "png" };
 
 async function listAdminHeroes(env: Env): Promise<AdminHero[]> {
   const { results } = await env.DB.prepare(
@@ -128,24 +126,8 @@ adminHeroRoutes.delete("/:id", async (c) => {
 });
 
 /** 画像の設定（ブラウザで 256×256 の WebP に縮小したもの）。ファイル名に内容のハッシュを入れる */
-adminHeroRoutes.put("/:id/image", async (c) => {
-  const id = c.req.param("id");
-  const type = (c.req.header("content-type") || "").split(";")[0].trim();
-  const ext = IMAGE_TYPES[type];
-  if (!ext) return c.json({ error: "invalid_type" }, 400);
-  const buf = await c.req.arrayBuffer();
-  if (!buf.byteLength || buf.byteLength > IMAGE_MAX_BYTES) return c.json({ error: "invalid_size" }, 400);
-  const hero = await c.env.DB.prepare("SELECT * FROM heroes WHERE id = ?").bind(id).first<HeroRow>();
-  if (!hero) return c.json({ error: "not_found" }, 404);
-  const digest = new Uint8Array(await crypto.subtle.digest("SHA-256", buf));
-  const hash = Array.from(digest.slice(0, 8), (b) => b.toString(16).padStart(2, "0")).join("");
-  const key = `heroes/${id}-${hash}.${ext}`;
-  await c.env.MEDIA.put(key, buf, { httpMetadata: { contentType: type, cacheControl: "public, max-age=31536000, immutable" } });
-  await recordObject(c.env, key, buf.byteLength);
-  await c.env.DB.prepare("UPDATE heroes SET image_key = ? WHERE id = ?").bind(key, id).run();
-  if (hero.image_key && hero.image_key !== key) await deleteIfUnused(c.env, [hero.image_key]);
-  return c.json({ heroes: await listAdminHeroes(c.env) });
-});
+// キャラ画像は権利への配慮で使わない（docs/DECISIONS.md S）。新しい画像は受け付けない（登録済みの画像の削除だけ残す）
+adminHeroRoutes.put("/:id/image", (c) => c.json({ error: "images_disabled" }, 403));
 
 /** 画像を外す（R2 からも削除。頭文字の代替表示に戻る） */
 adminHeroRoutes.delete("/:id/image", async (c) => {
