@@ -6,6 +6,8 @@ import { ShareSheet } from "./components/ShareSheet";
 import { DataProvider } from "./lib/data";
 import { About } from "./pages/About";
 import { Contact } from "./pages/Contact";
+import { Ranking } from "./pages/Ranking";
+import { User } from "./pages/User";
 import { Detail } from "./pages/Detail";
 import { Done } from "./pages/Done";
 import { Home } from "./pages/Home";
@@ -51,6 +53,8 @@ function App() {
         <Route path="/about" element={<About />} />
         <Route path="/terms" element={<Terms />} />
         <Route path="/contact" element={<Contact />} />
+        <Route path="/ranking" element={<Ranking />} />
+        <Route path="/u/:xid" element={<Keyed><User /></Keyed>} />
         <Route path="/submit" element={<Keyed><Submit /></Keyed>} />
         <Route path="/submit/done/:code" element={<Done />} />
         <Route path="/status" element={<Status />} />

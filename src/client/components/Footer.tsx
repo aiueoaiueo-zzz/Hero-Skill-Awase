@@ -23,6 +23,7 @@ export function Footer() {
         ))}
       </ul>
       <nav className="flinks">
+        <Link to="/ranking">ランキング</Link>
         <Link to="/terms">注意事項・プライバシー</Link>
         <Link to="/contact">お問い合わせ・ご要望</Link>
       </nav>

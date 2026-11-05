@@ -25,6 +25,7 @@ export function Done() {
       </div>
       <div className="links">
         <button onClick={() => nav("/status")}>審査状況を確認</button>
+        <button onClick={() => nav("/ranking")}>🏆 ランキングを見る</button>
         <button onClick={() => nav("/")}>トップへ</button>
       </div>
     </>

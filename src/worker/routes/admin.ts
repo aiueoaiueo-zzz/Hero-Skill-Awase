@@ -1,6 +1,6 @@
 import { Hono } from "hono";
 import { SETTING_KEYS } from "../../shared/constants";
-import { approveSchema, rejectSchema, settingsSchema } from "../../shared/schema";
+import { approveSchema, posterSchema, rejectSchema, settingsSchema } from "../../shared/schema";
 import type { AdminGroup, AdminPendingResponse, AdminPublished, AdminTiming } from "../../shared/types";
 import type { AppEnv, Env } from "../env";
 import { adminContactRoutes } from "./contact";
@@ -307,6 +307,18 @@ adminRoutes.post("/timings/:id/unhide", async (c) => {
 });
 
 /** 削除：タイミングと動画を消す（元に戻せない）。投稿にほかのタイミングが残っていなければ投稿ごと消す */
+/** 公開中のタイミングの投稿者（表示している投稿者）の X の ID を直す（打ち間違い・なりすましの対応） */
+adminRoutes.post("/timings/:id/poster", async (c) => {
+  const body = posterSchema.safeParse(await c.req.json().catch(() => null));
+  if (!body.success) return c.json({ error: "invalid_request", issues: body.error.issues.map((i) => i.message) }, 400);
+  const r = await c.env.DB.prepare(
+    "UPDATE submissions SET nickname = ? WHERE id = (SELECT COALESCE(credit_submission_id, submission_id) FROM timings WHERE id = ?)",
+  )
+    .bind(body.data.nickname, c.req.param("id"))
+    .run();
+  return r.meta.changes ? c.json({ ok: true }) : c.json({ error: "not_found" }, 404);
+});
+
 adminRoutes.delete("/timings/:id", async (c) => {
   const env = c.env;
   const db = env.DB;

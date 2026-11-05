@@ -142,6 +142,7 @@ export function AdminPublished() {
                         armedLabel="もう一度で削除"
                         onConfirm={() => run(t.id, "DELETE", `/api/admin/timings/${t.id}`, "削除しました")}
                       />
+                      <PosterEdit id={t.id} value={t.nickname ?? ""} onSaved={load} />
                     </>
                   }
                 />
@@ -153,5 +154,32 @@ export function AdminPublished() {
         </>
       )}
     </AdminLayout>
+  );
+}
+
+/** 投稿者の X の ID を直す（打ち間違い・なりすましの対応。空にすると投稿者なし） */
+function PosterEdit({ id, value, onSaved }: { id: string; value: string; onSaved: () => Promise<void> }) {
+  const [v, setV] = useState(value);
+  const [busy, setBusy] = useState(false);
+  useEffect(() => setV(value), [value]);
+  const save = async () => {
+    setBusy(true);
+    try {
+      await api(`/api/admin/timings/${id}/poster`, { method: "POST", body: JSON.stringify({ nickname: v }) });
+      toast(v.trim() ? "投稿者の X の ID を保存しました" : "投稿者を消しました");
+      await onSaved();
+    } catch (e) {
+      toast(e instanceof ApiError && e.status === 400 ? "X の ID は英数字と _ の 15 文字までです" : "保存できませんでした");
+    } finally {
+      setBusy(false);
+    }
+  };
+  return (
+    <span style={{ display: "inline-flex", gap: 6, alignItems: "center", width: "100%", marginTop: 6 }}>
+      <input className="inp" style={{ flex: 1, minWidth: 0 }} aria-label="投稿者の X の ID" placeholder="投稿者の X の ID（@xxxx）" value={v} onChange={(e) => setV(e.target.value)} />
+      <button className="sbtn" disabled={busy || v === value} onClick={save}>
+        {busy ? "保存中…" : "ID を保存"}
+      </button>
+    </span>
   );
 }
