@@ -158,7 +158,7 @@ publicRoutes.get("/users/:xid", async (c) => {
     }));
   const k = xid.toLowerCase();
   const u = r.users.get(k);
-  const excluded = !u && timings.length > 0 && (await computeScores(c.env)).excluded.has(k);
+  const excluded = r.excluded.has(k);
   if (!u && !timings.length) return c.json({ error: "not_found" }, 404);
   const active = r.view.total !== null;
   return c.json<UserResponse>({

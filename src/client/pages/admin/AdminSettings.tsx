@@ -61,7 +61,7 @@ export function AdminSettings() {
             <p>
               <b style={{ color: "var(--text)" }}>ランキングの対象外にする X の ID</b>
               <br />
-              1 行に 1 つ（@ はあってもなくても OK）。ここに書いた ID は、ランキングとバッジの集計から外れます。運営者の ID を入れてください。
+              1 行に 1 つ（@ はあってもなくても OK）。ここに書いた ID は、ランキングの集計から外れます（バッジは付きます）。運営者の ID を入れてください。
             </p>
             <textarea style={{ minHeight: 90 }} value={excluded} placeholder={"@your_id"} onChange={(e) => setExcluded(e.target.value)} />
             <div className="btns">
