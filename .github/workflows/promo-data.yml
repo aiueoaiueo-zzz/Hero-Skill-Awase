@@ -1,0 +1,34 @@
+# 一時的なワークフロー（紹介動画の作成用）：本番の公開データ（キャラ・公開中のタイミングの文面）をログに出すだけ。何も保存・変更しない。
+name: 紹介動画用の公開データ（一時）
+on:
+  push:
+    branches: [claude/quirky-cray-fex7l1]
+    paths: [.github/workflows/promo-data.yml]
+permissions:
+  contents: read
+jobs:
+  dump:
+    runs-on: ubuntu-latest
+    steps:
+      - name: 公開データをログに出す
+        run: |
+          set -e
+          B=https://hs-awase.cmps.workers.dev
+          curl -fsS "$B/api/bootstrap" -o b.json
+          node -e '
+            const b = require("./b.json");
+            const by = Object.fromEntries(b.heroes.map((h) => [h.id, h]));
+            const pairs = [];
+            for (const [a, ts] of Object.entries(b.registered)) for (const t of ts) pairs.push([by[a].slug, by[t].slug]);
+            require("fs").writeFileSync("pairs.txt", pairs.map((p) => p.join(" ")).join("\n") + "\n");
+            console.log("HEROES " + JSON.stringify(b.heroes.map((h) => [h.id, h.slug, h.name, h.fullName])));
+            console.log("SETTINGS " + JSON.stringify({ owner: b.settings.owner_support_code }));
+          '
+          while read -r a t; do
+            curl -fsS "$B/api/pairs/$a/$t" | node -e '
+              let s = ""; process.stdin.on("data", (d) => (s += d)).on("end", () => {
+                const p = JSON.parse(s);
+                console.log("PAIR " + JSON.stringify({ a: p.attacker.id, t: p.target.id, timings: p.timings.map((x) => ({ id: x.id, at: x.attackType, cue: x.cueType, text: x.timingText, note: x.note, nick: x.nickname, sup: x.supportCode, rev: x.reviewedAt, video: x.videoUrl })) }));
+              });'
+          done < pairs.txt
+          curl -fsS "$B/api/ranking" | sed 's/^/RANKING /'
