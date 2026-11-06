@@ -16,7 +16,7 @@ async function excludedIds(env: Env) {
   );
 }
 
-/** 全員のポイント（対象外の ID は除く） */
+/** 全員のポイント（対象外の ID も含む。バッジは全員に付け、ランキングでだけ対象外の ID を除く） */
 export async function computeScores(env: Env, now = Date.now()) {
   const db = env.DB;
   const [excluded, posts, fixes] = await Promise.all([
@@ -45,7 +45,7 @@ export async function computeScores(env: Env, now = Date.now()) {
   const add = (raw: string | null, at: string, pt: number) => {
     // 古い投稿で @ 付きのまま保存された ID も同じ人として数える
     const x = normalizeXId(raw);
-    if (!isXId(x) || excluded.has(x.toLowerCase())) return;
+    if (!isXId(x)) return;
     const k = x.toLowerCase();
     const u = users.get(k) ?? { xId: x, total: 0, month: 0, totalAt: "", monthAt: "" };
     u.total += pt;
@@ -80,14 +80,16 @@ function rank(users: UserScore[], key: "total" | "month"): RankRow[] {
 }
 
 export async function rankingSummary(env: Env, now = Date.now()) {
-  const { users } = await computeScores(env, now);
-  const all = [...users.values()];
+  const { users, excluded } = await computeScores(env, now);
+  // ランキングの対象外にした ID は、順位と人数の数からだけ外す
+  const all = [...users.values()].filter((u) => !excluded.has(u.xId.toLowerCase()));
   const total = rank(all, "total");
   const month = rank(all, "month");
   return {
     total,
     month,
     users,
+    excluded,
     view: {
       minUsers: RANKING_MIN_USERS,
       totalUsers: total.length,
