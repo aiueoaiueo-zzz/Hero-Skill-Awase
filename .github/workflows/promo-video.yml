@@ -1,0 +1,22 @@
+# 一時的なワークフロー（紹介動画の作成用）：本番の公開中の動画を何本か、文字（base64）にしてログに出すだけ。何も保存・変更しない。
+name: 紹介動画用の動画（一時）
+on:
+  push:
+    branches: [claude/quirky-cray-fex7l1]
+    paths: [.github/workflows/promo-video.yml]
+permissions:
+  contents: read
+jobs:
+  dump:
+    runs-on: ubuntu-latest
+    steps:
+      - name: 動画を取得してログに出す
+        run: |
+          set -e
+          B=https://hs-awase.cmps.workers.dev/media/public
+          for v in 01M6KF4A607SMYMJ8AR3G915ZT 01M6KF4A60QR4QM7894W24Q3PP 01M6KF4A60QT8D9P2S9G3XHCAQ 01M6KF4A60X4YG2EEF5D3GP3GN 01M6KF4A600EM5JWJQ70XMKAM8 01M6KF4A6075GVAYAJ4FMQNPBZ; do
+            curl -fsS "$B/$v.mp4" -o "$v.mp4"
+            echo "SIZE $v $(stat -c %s $v.mp4) $(sha256sum $v.mp4 | cut -c1-64)"
+            base64 -w 60000 "$v.mp4" | awk -v n="$v" '{ printf "VID %s %05d %s\n", n, NR, $0 }'
+          done
+          echo "VIDEND"
