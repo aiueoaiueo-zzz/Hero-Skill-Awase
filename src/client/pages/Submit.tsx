@@ -271,7 +271,7 @@ function Edit({ draft, setDraft, heroes }: { draft: Draft; setDraft: SetDraft; h
           id="f-nick"
           maxLength={16}
           value={draft.nick}
-          placeholder="@xxxx"
+          placeholder="例：@HS_awase_cmps"
           inputMode="url"
           autoCapitalize="none"
           autoComplete="off"
@@ -279,17 +279,17 @@ function Edit({ draft, setDraft, heroes }: { draft: Draft; setDraft: SetDraft; h
           onChange={(e) => setDraft((d) => ({ ...d, nick: e.target.value }))}
         />
         <div className="hint">
-          ※ ご自身の ID のみ（ランキングの対象になります）
+          ※ 他の人のIDを入力しないでください。
         </div>
         <label className="h" htmlFor="f-sup">
-          応援コード
+          応援コード（任意）
         </label>
         <input
           type="text"
           id="f-sup"
           maxLength={LIMITS.supportCode}
           value={draft.sup}
-          placeholder="任意（例：A1B2C3D4）未入力なら表示されません"
+          placeholder="例：C-doeh"
           autoCapitalize="characters"
           autoComplete="off"
           onChange={(e) => setDraft((d) => ({ ...d, sup: e.target.value }))}
