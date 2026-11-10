@@ -199,6 +199,7 @@ export function PointsEditor({ points, update, opts }: { points: PointDraft[]; u
                     />
                     <div className="hint">MP4・MOV・WebM／30秒以内（投稿時に自動で軽くします）</div>
                     <div className="hint warn">※ 自分で撮影した動画、または撮影者の許可を得た動画のみ</div>
+                    {p.cueType === "voice" && <div className="hint warn">※ 周りの音が極力入らないよう、注意してください。</div>}
                   </>
                 )
               ) : (

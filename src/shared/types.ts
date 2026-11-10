@@ -7,6 +7,12 @@ export type Hero = {
   fullName: string | null;
   slug: string;
   imageUrl: string | null;
+  /** HS のタイプ（攻撃型／防御型）。未入力は null */
+  hsType: "attack" | "defense" | null;
+  /** 攻撃型の HS の攻撃発生時間（秒） */
+  hsAttackTime: number | null;
+  /** HS の無敵時間（秒） */
+  hsInvincibleTime: number | null;
 };
 
 /** 一般公開用のタイミング（承認済みのみ） */

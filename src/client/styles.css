@@ -495,3 +495,16 @@ a.nick{color:#000;text-decoration:underline;text-underline-offset:2px}
 .ub-stats dd small{font-family:"Zen Kaku Gothic New",sans-serif;font-size:12px;font-weight:700;margin-left:4px}
 a.entry.ulink{display:block;text-decoration:none;color:inherit}
 .userbox .ub-code{display:flex;align-items:center;gap:8px;margin-top:12px;font-size:12.5px;color:#000}
+
+/* 管理：キャラの HS の情報 */
+.toggle .nm .hsed{display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin-top:6px}
+.hsed select{font-size:12px;padding:3px 4px;border:1px solid var(--line);background:#fff;color:#000}
+.hsed .sec{display:inline-flex;align-items:center;gap:3px;font-size:11.5px;color:var(--sub)}
+.hsed .sec.off{opacity:.45}
+.toggle .nm .hsed .sec input{width:58px;padding:3px 4px;border:1px solid var(--line);background:#fff;color:#000;font-size:12px}
+/* 合わせ不可能の表示 */
+.ngmark{position:absolute;top:2px;left:2px;right:2px;background:#d93636;color:#fff;font-size:8px;letter-spacing:-.03em;font-weight:800;padding:1px 3px;line-height:1.4;z-index:1;text-align:center;white-space:nowrap;overflow:hidden}
+.card.ng{opacity:.8}
+.ngbox{border:2px solid #d93636;background:#fff1f1;color:#a11;padding:10px 12px;margin:0 0 12px;font-size:13px;line-height:1.6}
+.ngbox b{display:block;font-size:14.5px;color:#d93636}
+.atabs button .ngdot{display:block;font-size:9px;font-weight:800;color:#d93636}

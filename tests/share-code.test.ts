@@ -82,3 +82,25 @@ describe("ランキングの共通ルール", () => {
     expect(new Date(jstMonthStart(Date.parse("2026-11-30T15:30:00Z"))).toISOString()).toBe("2026-11-30T15:00:00.000Z");
   });
 });
+
+import { hsJudge } from "../src/shared/hs";
+
+describe("HS で合わせられるかの判定", () => {
+  const atk = (t: number | null) => ({ hsType: "attack" as const, hsAttackTime: t, hsInvincibleTime: null });
+  const tgt = (t: number | null) => ({ hsType: null, hsAttackTime: null, hsInvincibleTime: t });
+  it("防御型の HS は合わせ不可能", () => {
+    expect(hsJudge({ hsType: "defense", hsAttackTime: null, hsInvincibleTime: 3 }, tgt(5))).toEqual({ ok: false, reason: "defense" });
+  });
+  it("相手の無敵時間が攻撃発生時間より短いと合わせ不可能", () => {
+    expect(hsJudge(atk(1.5), tgt(1.2))).toEqual({ ok: false, reason: "time", attackTime: 1.5, invincibleTime: 1.2 });
+  });
+  it("同じか長ければ合わせられる（null）", () => {
+    expect(hsJudge(atk(1.5), tgt(1.5))).toBe(null);
+    expect(hsJudge(atk(1.5), tgt(2))).toBe(null);
+  });
+  it("情報が足りなければ判定しない（null）", () => {
+    expect(hsJudge(atk(null), tgt(1))).toBe(null);
+    expect(hsJudge(atk(1), tgt(null))).toBe(null);
+    expect(hsJudge({ hsType: null, hsAttackTime: 1, hsInvincibleTime: null }, tgt(0.5))).toBe(null);
+  });
+});
