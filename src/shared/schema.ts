@@ -96,6 +96,15 @@ export const slugSchema = z
 export const heroAddSchema = z.object({
   items: z.array(z.object({ name: heroNameSchema, slug: slugSchema.optional() })).min(1).max(200),
 });
+/** HS の時間（秒）。0〜60、小数第 2 位まで。null で未入力 */
+const hsSeconds = z
+  .number()
+  .min(0, "0 以上で入力してください")
+  .max(60, "60 秒以下で入力してください")
+  .transform((n) => Math.round(n * 100) / 100)
+  .nullable()
+  .optional();
+
 export const heroPatchSchema = z.object({
   name: heroNameSchema.optional(),
   slug: slugSchema.optional(),
@@ -107,6 +116,10 @@ export const heroPatchSchema = z.object({
     .transform((s) => s || null)
     .nullable()
     .optional(),
+  // HS の情報（null で未入力に戻す）
+  hsType: z.enum(["attack", "defense"]).nullable().optional(),
+  hsAttackTime: hsSeconds,
+  hsInvincibleTime: hsSeconds,
 });
 export const heroMoveSchema = z.object({ dir: z.union([z.literal(-1), z.literal(1)]) });
 

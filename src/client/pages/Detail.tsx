@@ -9,6 +9,7 @@ import {
 import type { PairResponse } from "../../shared/types";
 import { Avatar } from "../components/Avatar";
 import { displayName } from "../../shared/text";
+import { fmtSec, hsJudge } from "../../shared/hs";
 import { Header } from "../components/Header";
 import { TimingCard } from "../components/TimingCard";
 import { shortLink, timingLink, timingShareText } from "../../shared/share";
@@ -61,6 +62,8 @@ export function Detail() {
   // キャラは最初の読み込みで分かっているので、タイミングを待たずに見出しと VS を出す
   const A = data?.attacker ?? heroes.find((h) => h.slug === a);
   const T = data?.target ?? heroes.find((h) => h.slug === t);
+  // 自分の HS で、相手の HS 明けに合わせられるか（合わせ不可能なときだけ理由が入る）
+  const ng = hsJudge(A, T);
   const timings = data?.timings ?? [];
   const counts = Object.fromEntries(
     ATTACK_TYPES.map(([k]) => [
@@ -106,6 +109,14 @@ export function Detail() {
           </div>
         </div>
       )}
+      {A && T && ng && (
+        <div className="ngbox">
+          <b>HS での合わせは不可能です</b>
+          {ng.reason === "defense"
+            ? `${A.name}の HS は防御型のため、HS で相手の HS 明けに合わせることはできません。`
+            : `${T.name}の HS の無敵時間（${fmtSec(ng.invincibleTime)}）が、${A.name}の HS の攻撃発生（${fmtSec(ng.attackTime)}）より短いため、HS では合わせられません。`}
+        </div>
+      )}
       {data && (
         <>
           {!timings.length ? (
@@ -133,6 +144,7 @@ export function Detail() {
                       )}
                     </span>
                     <b>{counts[k]}件</b>
+                    {k === "hs" && ng && <span className="ngdot">合わせ不可</span>}
                   </button>
                 ))}
               </div>

@@ -128,6 +128,8 @@ export function AdminHeroes() {
               <br />
               正式名称（任意）は、カードの下・キャラを選ぶ画面に表示され、検索でも当たるようになります。空にすると未設定に戻ります。
               <br />
+              HS のタイプ・攻撃発生（秒）・無敵時間（秒）を入れると、相手を選ぶ画面と詳細画面に「合わせ不可能」が表示されます（防御型の HS、または相手の無敵時間が自分の攻撃発生より短いとき）。
+              <br />
               ▲▼で並び順を入れ替えられます（トップ画面などの表示順になります）。キャラ画像は一般向けの画面には表示されません。
             </p>
           </div>
@@ -163,6 +165,7 @@ export function AdminHeroes() {
                     onCommit={(v) => run(call(`/api/admin/heroes/${h.id}`, "PATCH", { slug: v }), "保存しました")}
                   />
                 </div>
+                <HsEditor h={h} save={(patch, msg) => run(call(`/api/admin/heroes/${h.id}`, "PATCH", patch), msg)} />
               </div>
               {h.imageUrl && (
                 <ArmedButton
@@ -204,5 +207,55 @@ export function AdminHeroes() {
         </>
       )}
     </AdminLayout>
+  );
+}
+
+/** HS の情報（タイプ・攻撃発生・無敵時間）。変えたらすぐ保存 */
+function HsEditor({ h, save }: { h: AdminHero; save: (patch: Record<string, unknown>, msg: string) => Promise<boolean> }) {
+  return (
+    <div className="hsed">
+      <select
+        aria-label="HS のタイプ"
+        value={h.hsType ?? ""}
+        onChange={(e) => save({ hsType: e.target.value || null }, "HS のタイプを保存しました")}
+      >
+        <option value="">HS：未入力</option>
+        <option value="attack">攻撃型</option>
+        <option value="defense">防御型</option>
+      </select>
+      <SecInput label="攻撃発生" value={h.hsAttackTime} disabled={h.hsType !== "attack"} onCommit={(v) => save({ hsAttackTime: v }, "攻撃発生時間を保存しました")} />
+      <SecInput label="無敵" value={h.hsInvincibleTime} onCommit={(v) => save({ hsInvincibleTime: v }, "無敵時間を保存しました")} />
+    </div>
+  );
+}
+
+/** 秒の入力欄（空にすると未入力に戻す。フォーカスが外れたら保存） */
+function SecInput({ label, value, disabled, onCommit }: { label: string; value: number | null; disabled?: boolean; onCommit: (v: number | null) => Promise<boolean> }) {
+  const [v, setV] = useState(value == null ? "" : String(value));
+  useEffect(() => setV(value == null ? "" : String(value)), [value]);
+  return (
+    <label className={`sec ${disabled ? "off" : ""}`}>
+      {label}
+      <input
+        type="number"
+        inputMode="decimal"
+        step="0.01"
+        min="0"
+        max="60"
+        value={v}
+        disabled={disabled}
+        placeholder="—"
+        onChange={(e) => setV(e.target.value)}
+        onKeyDown={(e) => e.key === "Enter" && (e.target as HTMLInputElement).blur()}
+        onBlur={async () => {
+          const t = v.trim();
+          const n = t === "" ? null : Number(t);
+          if (n === value) return;
+          if (n !== null && (!Number.isFinite(n) || n < 0 || n > 60)) return setV(value == null ? "" : String(value));
+          if (!(await onCommit(n))) setV(value == null ? "" : String(value));
+        }}
+      />
+      秒
+    </label>
   );
 }
