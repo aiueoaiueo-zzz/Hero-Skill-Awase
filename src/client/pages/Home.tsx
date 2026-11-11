@@ -13,7 +13,7 @@ export function Home() {
   const { heroes } = useData();
   const nav = useNavigate();
   const [q, setQ] = useState("");
-  const f = useHeroFilter();
+  const f = useHeroFilter("attack");
   const list = f.apply(heroes.filter((h) => heroMatches(h, q)));
   useBootFx(true);
   return (
@@ -23,7 +23,7 @@ export function Home() {
       <input className="search" placeholder="キャラ名で検索" value={q} onChange={(e) => setQ(e.target.value)} />
       <HeroFilter {...f} />
       {list.length ? (
-        <HeroGrid heroes={list} to={(h) => `/h/${h.slug}`} stars={f.sort === "importance"} />
+        <HeroGrid heroes={list} to={(h) => `/h/${h.slug}`} stars={f.sort === "importance" ? "attack" : undefined} />
       ) : (
         <div className="empty">該当するキャラがいません</div>
       )}

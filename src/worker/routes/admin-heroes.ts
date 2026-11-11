@@ -61,8 +61,8 @@ adminHeroRoutes.post("/", async (c) => {
 adminHeroRoutes.patch("/:id", async (c) => {
   const body = heroPatchSchema.safeParse(await c.req.json().catch(() => null));
   if (!body.success) return c.json({ error: "invalid_request", issues: body.error.issues.map((i) => i.message) }, 400);
-  const { name, slug, fullName, ngAttacks, hsAttackTime, hsInvincibleTime, role, hsImportance } = body.data;
-  if ([name, slug, fullName, ngAttacks, hsAttackTime, hsInvincibleTime, role, hsImportance].every((v) => v === undefined)) return c.json({ error: "invalid_request" }, 400);
+  const { name, slug, fullName, ngAttacks, hsAttackTime, hsInvincibleTime, role, hsAttackImportance, hsTargetImportance } = body.data;
+  if ([name, slug, fullName, ngAttacks, hsAttackTime, hsInvincibleTime, role, hsAttackImportance, hsTargetImportance].every((v) => v === undefined)) return c.json({ error: "invalid_request" }, 400);
   // 未指定の項目はそのまま、null を指定した項目は未入力に戻す
   const set = (v: unknown) => [v !== undefined ? 1 : 0, v ?? null];
   try {
@@ -70,9 +70,10 @@ adminHeroRoutes.patch("/:id", async (c) => {
       `UPDATE heroes SET name = COALESCE(?, name), slug = COALESCE(?, slug), full_name = CASE WHEN ? THEN ? ELSE full_name END,
               ng_attacks = CASE WHEN ? THEN ? ELSE ng_attacks END, hs_attack_time = CASE WHEN ? THEN ? ELSE hs_attack_time END,
               hs_invincible_time = CASE WHEN ? THEN ? ELSE hs_invincible_time END,
-              role = CASE WHEN ? THEN ? ELSE role END, hs_importance = CASE WHEN ? THEN ? ELSE hs_importance END WHERE id = ?`,
+              role = CASE WHEN ? THEN ? ELSE role END, hs_importance = CASE WHEN ? THEN ? ELSE hs_importance END,
+              hs_attack_importance = CASE WHEN ? THEN ? ELSE hs_attack_importance END WHERE id = ?`,
     )
-      .bind(name ?? null, slug ?? null, ...set(fullName), ...set(ngAttacks && NG_ATTACK_TYPES.filter((k) => ngAttacks.includes(k)).join(",")), ...set(hsAttackTime), ...set(hsInvincibleTime), ...set(role), ...set(hsImportance), c.req.param("id"))
+      .bind(name ?? null, slug ?? null, ...set(fullName), ...set(ngAttacks && NG_ATTACK_TYPES.filter((k) => ngAttacks.includes(k)).join(",")), ...set(hsAttackTime), ...set(hsInvincibleTime), ...set(role), ...set(hsTargetImportance), ...set(hsAttackImportance), c.req.param("id"))
       .run();
     if (!r.meta.changes) return c.json({ error: "not_found" }, 404);
   } catch (e) {

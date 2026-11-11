@@ -15,8 +15,10 @@ export type Hero = {
   hsInvincibleTime: number | null;
   /** ロール。未入力は null */
   role: HeroRole | null;
-  /** HS合わせ重要度（1〜3、星が多いほど重要）。未入力は null */
-  hsImportance: 1 | 2 | 3 | null;
+  /** HS合わせ重要度（HS に合わせる側として。1〜3 で星が多いほど重要、0 は「−」）。未入力は null */
+  hsAttackImportance: 0 | 1 | 2 | 3 | null;
+  /** HS被合わせ重要度（HS に合わせられる側として。1〜3 で星が多いほど重要）。未入力は null */
+  hsTargetImportance: 1 | 2 | 3 | null;
 };
 
 /** 一般公開用のタイミング（承認済みのみ） */

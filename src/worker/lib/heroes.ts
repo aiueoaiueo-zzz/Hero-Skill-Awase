@@ -16,6 +16,7 @@ export type HeroRow = {
   hs_invincible_time?: number | null;
   role?: string | null;
   hs_importance?: number | null;
+  hs_attack_importance?: number | null;
 };
 
 /** 「hs,card」→ ["hs", "card"]（知らない値は捨てる） */
@@ -31,20 +32,21 @@ export const toHero = (env: Env, r: HeroRow): Hero => ({
   hsAttackTime: r.hs_attack_time ?? null,
   hsInvincibleTime: r.hs_invincible_time ?? null,
   role: HERO_ROLES.some(([k]) => k === r.role) ? (r.role as HeroRole) : null,
-  hsImportance: r.hs_importance === 1 || r.hs_importance === 2 || r.hs_importance === 3 ? r.hs_importance : null,
+  hsAttackImportance: [0, 1, 2, 3].includes(r.hs_attack_importance ?? -1) ? (r.hs_attack_importance as 0 | 1 | 2 | 3) : null,
+  hsTargetImportance: r.hs_importance === 1 || r.hs_importance === 2 || r.hs_importance === 3 ? r.hs_importance : null,
   // 一般向けにはキャラ画像を出さない（権利への配慮。画面ではキャラ名のカードを使う）。管理画面だけ画像を確認できる
   imageUrl: appRole(env) === "public" ? null : mediaUrl(env, r.image_key),
 });
 
 export const listHeroes = async (env: Env): Promise<Hero[]> => {
   const { results } = await env.DB.prepare(
-    "SELECT id, name, full_name, slug, image_key, sort_order, ng_attacks, hs_attack_time, hs_invincible_time, role, hs_importance FROM heroes ORDER BY sort_order, created_at",
+    "SELECT id, name, full_name, slug, image_key, sort_order, ng_attacks, hs_attack_time, hs_invincible_time, role, hs_importance, hs_attack_importance FROM heroes ORDER BY sort_order, created_at",
   ).all<HeroRow>();
   return results.map((r) => toHero(env, r));
 };
 
 export const heroBySlug = async (env: Env, slug: string): Promise<Hero | null> => {
-  const r = await env.DB.prepare("SELECT id, name, full_name, slug, image_key, sort_order, ng_attacks, hs_attack_time, hs_invincible_time, role, hs_importance FROM heroes WHERE slug = ?")
+  const r = await env.DB.prepare("SELECT id, name, full_name, slug, image_key, sort_order, ng_attacks, hs_attack_time, hs_invincible_time, role, hs_importance, hs_attack_importance FROM heroes WHERE slug = ?")
     .bind(slug)
     .first<HeroRow>();
   return r ? toHero(env, r) : null;
