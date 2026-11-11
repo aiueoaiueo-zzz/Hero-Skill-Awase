@@ -3,27 +3,41 @@ import { HERO_ROLES, type HeroRole } from "../../shared/constants";
 import type { Hero } from "../../shared/types";
 
 export type HeroSort = "order" | "importance";
+/** attack：攻撃する側の選択（HS合わせ重要度）／target：相手の選択（HS被合わせ重要度） */
+export type PickKind = "attack" | "target";
+
+/** その画面で使う重要度（並べ替え用。★3〜1、「−」は 0、未入力は -1） */
+export const importanceOf = (h: Hero, kind: PickKind) => (kind === "attack" ? h.hsAttackImportance : h.hsTargetImportance) ?? -1;
+/** カードに出す ★（「−」は対象外、未入力は空） */
+export const starsOf = (h: Hero, kind: PickKind) => {
+  const v = importanceOf(h, kind);
+  return v < 0 ? "" : v === 0 ? "−" : "★".repeat(v) + "☆".repeat(3 - v);
+};
+const SORT_LABEL: Record<PickKind, string> = { attack: "HS合わせ重要度順", target: "HS被合わせ重要度順" };
 type State = { role: HeroRole | null; sort: HeroSort };
 
-// 画面を行き来しても選んだ絞り込み・並び順を保つ（キャラ選択の 2 画面で共通）
-let memory: State = { role: null, sort: "order" };
+// 画面を行き来しても選んだ絞り込み・並び順を保つ（ロールは 2 画面で共通、並び順は重要度の意味が違うので画面ごと）
+let roleMemory: HeroRole | null = null;
+const sortMemory: Record<PickKind, HeroSort> = { attack: "order", target: "order" };
 
-/** キャラ選択の「ロールで絞り込み」と「並び順」（docs/DECISIONS.md Y） */
-export function useHeroFilter() {
-  const [state, setState] = useState<State>(memory);
+/** キャラ選択の「ロールで絞り込み」と「並び順」（docs/DECISIONS.md Y・AA） */
+export function useHeroFilter(kind: PickKind) {
+  const [state, setState] = useState<State>({ role: roleMemory, sort: sortMemory[kind] });
   const set = (p: Partial<State>) => {
-    memory = { ...state, ...p };
-    setState(memory);
+    const n = { ...state, ...p };
+    roleMemory = n.role;
+    sortMemory[kind] = n.sort;
+    setState(n);
   };
-  // 絞り込みは実装順のまま。重要度順は ★ が多い順（同じなら実装順、未入力は最後）
+  // 絞り込みは実装順のまま。重要度順は ★ が多い順（同じなら実装順。「−」、未入力の順に最後）
   const apply = (list: Hero[]) => {
     const r = state.role ? list.filter((h) => h.role === state.role) : list;
-    return state.sort === "importance" ? [...r].sort((a, b) => (b.hsImportance ?? 0) - (a.hsImportance ?? 0)) : r;
+    return state.sort === "importance" ? [...r].sort((a, b) => importanceOf(b, kind) - importanceOf(a, kind)) : r;
   };
-  return { ...state, set, apply };
+  return { ...state, kind, set, apply };
 }
 
-export function HeroFilter({ role, sort, set }: { role: HeroRole | null; sort: HeroSort; set: (p: Partial<State>) => void }) {
+export function HeroFilter({ role, sort, kind, set }: { role: HeroRole | null; sort: HeroSort; kind: PickKind; set: (p: Partial<State>) => void }) {
   return (
     <div className="hfilter">
       <div className="hfrow">
@@ -32,7 +46,7 @@ export function HeroFilter({ role, sort, set }: { role: HeroRole | null; sort: H
           実装順
         </button>
         <button className={sort === "importance" ? "on" : ""} onClick={() => set({ sort: "importance" })}>
-          HS合わせ重要度順
+          {SORT_LABEL[kind]}
         </button>
       </div>
       <div className="hfrow roles">

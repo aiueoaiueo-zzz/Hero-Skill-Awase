@@ -14,7 +14,7 @@ export function Targets() {
   const { heroes, registered: reg } = useData();
   const attacker = heroes.find((h) => h.slug === a);
   const [q, setQ] = useState("");
-  const f = useHeroFilter();
+  const f = useHeroFilter("target");
   useBootFx(true); // 登録済みの組み合わせは最初の読み込みで受け取っているので、待たずに表示できる
   if (!attacker) return <Navigate to="/" replace />;
 
@@ -34,13 +34,13 @@ export function Targets() {
       {w.length > 0 && (
         <>
           <div className="sec">登録済み</div>
-          <HeroGrid heroes={w} to={to} preload={preload} ng={ng} stars={f.sort === "importance"} />
+          <HeroGrid heroes={w} to={to} preload={preload} ng={ng} stars={f.sort === "importance" ? "target" : undefined} />
         </>
       )}
       {wo.length > 0 && (
         <>
           <div className="sec">未登録</div>
-          <HeroGrid heroes={wo} to={to} preload={preload} ng={ng} stars={f.sort === "importance"} />
+          <HeroGrid heroes={wo} to={to} preload={preload} ng={ng} stars={f.sort === "importance" ? "target" : undefined} />
         </>
       )}
       {!list.length && <div className="empty">該当するキャラがいません</div>}

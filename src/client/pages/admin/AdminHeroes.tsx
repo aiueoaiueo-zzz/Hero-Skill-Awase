@@ -142,7 +142,7 @@ export function AdminHeroes() {
               <br />
               HS のダメージ発生（秒）と無敵時間（秒）を入れると、相手の無敵時間が自分のダメージ発生より短い組み合わせも、HS が「合わせ不可」になります（ヒーロースキルが「不可」のキャラはダメージ発生を入力できません）。
               <br />
-              ロールと HS合わせ重要度（★1〜3）は、キャラを選ぶ画面の「ロールで絞り込み」と「重要度順」の並べ替えに使います。
+              ロールはキャラを選ぶ画面の「ロールで絞り込み」に使います。HS合わせ重要度（★1〜3・−）は攻撃する側（自分）を選ぶ画面の「HS合わせ重要度順」、HS被合わせ重要度（★1〜3）は相手を選ぶ画面の「HS被合わせ重要度順」の並べ替えに使います（−は★1の後、未入力は最後）。
               <br />
               キャラ名をタップすると開閉します。▲▼で並び順を入れ替えられます（トップ画面などの表示順になります）。キャラ画像は一般向けの画面には表示されません。
             </p>
@@ -227,18 +227,11 @@ function HeroCard({ h, first, last, save, move, remove, removeImage }: { h: Admi
               </option>
             ))}
           </select>
-          <select
-            aria-label="HS合わせ重要度"
-            className={h.hsImportance ? "" : "unset"}
-            value={h.hsImportance ?? ""}
-            onChange={(e) => save({ hsImportance: e.target.value ? Number(e.target.value) : null }, "HS合わせ重要度を保存しました")}
-          >
-            <option value="">重要度</option>
-            <option value="3">★★★</option>
-            <option value="2">★★☆</option>
-            <option value="1">★☆☆</option>
-          </select>
         </div>
+      </div>
+      <div className="himp">
+        <ImpRow label="HS合わせ重要度" value={h.hsAttackImportance} dash onChange={(v) => save({ hsAttackImportance: v }, "HS合わせ重要度を保存しました")} />
+        <ImpRow label="HS被合わせ重要度" value={h.hsTargetImportance} onChange={(v) => save({ hsTargetImportance: v }, "HS被合わせ重要度を保存しました")} />
       </div>
       <div className="hatk">
         <div>
@@ -271,6 +264,22 @@ function HeroCard({ h, first, last, save, move, remove, removeImage }: { h: Admi
         </div>
       </div>
     </div>
+  );
+}
+
+/** 重要度（★1〜3。dash：「−」（対象外）も選べる） */
+function ImpRow({ label, value, dash, onChange }: { label: string; value: number | null; dash?: boolean; onChange: (v: number | null) => void }) {
+  return (
+    <label className="hline">
+      <span>{label}</span>
+      <select aria-label={label} className={value == null ? "unset" : ""} value={value ?? ""} onChange={(e) => onChange(e.target.value === "" ? null : Number(e.target.value))}>
+        <option value="">未入力</option>
+        <option value="3">★★★</option>
+        <option value="2">★★☆</option>
+        <option value="1">★☆☆</option>
+        {dash && <option value="0">−</option>}
+      </select>
+    </label>
   );
 }
 
