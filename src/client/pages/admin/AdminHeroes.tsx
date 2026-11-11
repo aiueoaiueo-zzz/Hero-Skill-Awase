@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState, type ReactNode } from "react";
-import type { AdminHero } from "../../../shared/types";
+import type { AdminHero, HsInvincible } from "../../../shared/types";
+import { invincibleToText, parseInvincibleText } from "../../../shared/hs";
 import { ATTACK_LABEL, HERO_ROLES, type NgAttackType } from "../../../shared/constants";
 import { Avatar } from "../../components/Avatar";
 import { api, ApiError, useApi } from "../../lib/api";
@@ -140,7 +141,7 @@ export function AdminHeroes() {
               <br />
               攻撃方法（ヒーロースキル・通常攻撃・ヒーローアクション・スキルカード）ごとに、そのキャラで合わせられるかを「可／不可」で選びます。不可にすると、詳細画面のそのタブがグレーになって選べなくなり、投稿でも選べなくなります。
               <br />
-              HS のダメージ発生（秒）と無敵時間（秒）を入れると、相手の無敵時間が自分のダメージ発生より短い組み合わせも、HS が「合わせ不可」になります（ヒーロースキルが「不可」のキャラはダメージ発生を入力できません）。
+              HS のダメージ発生（秒）と無敵時間（秒）を入れると、相手の無敵時間が自分のダメージ発生より短い組み合わせも、HS が「合わせ不可」になります。無敵時間が場面で変わるキャラは「1回目:1.5 / 2回目以降:5.5」のように入力すると、詳細画面に場面ごとに表示し、足りない場面だけを知らせます（全部の場面で足りないときだけ「合わせ不可」）（ヒーロースキルが「不可」のキャラはダメージ発生を入力できません）。
               <br />
               ロールはキャラを選ぶ画面の「ロールで絞り込み」に使います。HS合わせ重要度（★1〜3・−。ヒーロースキルが不可なら「−」で固定）は攻撃する側（自分）を選ぶ画面の「HS合わせ重要度順」、HS被合わせ重要度（★1〜3）は相手を選ぶ画面の「HS被合わせ重要度順」の並べ替えに使います（−は★1の後、未入力は最後）。
               <br />
@@ -248,13 +249,15 @@ function HeroCard({ h, first, last, save, move, remove, removeImage }: { h: Admi
         </div>
       </div>
       <div className="hsec">被HS合わせ（受）</div>
+      <div className="hline hinv">
+        <span>無敵</span>
+        <InvInput value={h.hsInvincible} onCommit={(v) => save({ hsInvincible: v }, "無敵時間を保存しました")} />
+        <span className="u">秒</span>
+      </div>
+      <div className="hint hinvh">場面で変わるときは「1回目:1.5 / 2回目以降:5.5」、補足は「最短距離時:4.7」のように入力</div>
       <div className="hbot">
         <div>
           <ImpRow label="重要度" aria="HS被合わせ重要度" value={h.hsTargetImportance} onChange={(v) => save({ hsTargetImportance: v }, "HS被合わせ重要度を保存しました")} />
-          <div className="hline">
-            <span>無敵</span>
-            <SecInput label="無敵" value={h.hsInvincibleTime} onCommit={(v) => save({ hsInvincibleTime: v }, "無敵時間を保存しました")} />
-          </div>
         </div>
         <div className="hacts">
           {h.imageUrl && <ArmedButton className="sbtn imgdel" label="画像を削除" armedLabel="削除する" onConfirm={removeImage} />}
@@ -308,6 +311,32 @@ function AtkRow({ h, k, save }: { h: AdminHero; k: NgAttackType; save: Save }) {
         <option value="ng">不可</option>
       </select>
     </label>
+  );
+}
+
+/** 無敵時間の入力欄（「7.34」または「1回目:1.5 / 2回目以降:5.5」。空にすると未入力。フォーカスが外れたら保存） */
+function InvInput({ value, onCommit }: { value: HsInvincible[]; onCommit: (v: HsInvincible[]) => Promise<boolean> }) {
+  const text = invincibleToText(value);
+  const [v, setV] = useState(text);
+  useEffect(() => setV(text), [text]);
+  return (
+    <input
+      aria-label="無敵"
+      className="invin"
+      value={v}
+      placeholder="—"
+      onChange={(e) => setV(e.target.value)}
+      onKeyDown={(e) => e.key === "Enter" && (e.target as HTMLInputElement).blur()}
+      onBlur={async () => {
+        const list = parseInvincibleText(v);
+        if (!list) {
+          toast("無敵時間は「7.34」か「1回目:1.5 / 2回目以降:5.5」の形で、0〜60 秒で入力してください");
+          return setV(text);
+        }
+        if (invincibleToText(list) === text) return setV(text);
+        if (!(await onCommit(list))) setV(text);
+      }}
+    />
   );
 }
 

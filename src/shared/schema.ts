@@ -119,7 +119,11 @@ export const heroPatchSchema = z.object({
   // HS の情報（null で未入力に戻す）
   ngAttacks: z.array(z.enum(["hs", "normal", "action", "card"])).max(4).optional(),
   hsAttackTime: hsSeconds,
-  hsInvincibleTime: hsSeconds,
+  // HS の無敵時間（場面ごと。[] で未入力に戻す）
+  hsInvincible: z
+    .array(z.object({ label: z.string().trim().max(20), sec: z.number().min(0).max(60).transform((n) => Math.round(n * 100) / 100) }))
+    .max(6)
+    .optional(),
   role: z.enum(["attacker", "gunner", "sprinter", "tank"]).nullable().optional(),
   hsAttackImportance: z.union([z.literal(0), z.literal(1), z.literal(2), z.literal(3)]).nullable().optional(),
   hsTargetImportance: z.union([z.literal(1), z.literal(2), z.literal(3)]).nullable().optional(),

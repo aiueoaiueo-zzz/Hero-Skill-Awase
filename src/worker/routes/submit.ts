@@ -3,7 +3,7 @@ import { LIMITS, type AttackType } from "../../shared/constants";
 import { codeSchema, entryInputSchema, uploadRequestSchema, withdrawSchema } from "../../shared/schema";
 import type { EntryResponse, FixSource, StatusResponse, StatusTiming, UploadResponse } from "../../shared/types";
 import type { AppEnv } from "../env";
-import { parseNgAttacks, toHero, type HeroRow } from "../lib/heroes";
+import { parseInvincible, parseNgAttacks, toHero, type HeroRow } from "../lib/heroes";
 import { blockedAttacks } from "../../shared/hs";
 import { genCode, genSecret, nowIso, sha256Hex, ulid } from "../lib/ids";
 import { hasR2Credentials, presignPut } from "../lib/presign";
@@ -129,11 +129,11 @@ submitRoutes.post("/entries", async (c) => {
 
   // キャラ
   const heroes = await db
-    .prepare("SELECT id, ng_attacks, hs_attack_time, hs_invincible_time FROM heroes WHERE id IN (?, ?)")
+    .prepare("SELECT id, ng_attacks, hs_attack_time, hs_invincible_time, hs_invincible_detail FROM heroes WHERE id IN (?, ?)")
     .bind(input.attackerId, input.targetId)
-    .all<{ id: string; ng_attacks: string | null; hs_attack_time: number | null; hs_invincible_time: number | null }>();
+    .all<{ id: string; ng_attacks: string | null; hs_attack_time: number | null; hs_invincible_time: number | null; hs_invincible_detail: string | null }>();
   const hs = new Map(
-    heroes.results.map((r) => [r.id, { ngAttacks: parseNgAttacks(r.ng_attacks), hsAttackTime: r.hs_attack_time, hsInvincibleTime: r.hs_invincible_time }]),
+    heroes.results.map((r) => [r.id, { ngAttacks: parseNgAttacks(r.ng_attacks), hsAttackTime: r.hs_attack_time, hsInvincible: parseInvincible(r.hs_invincible_time, r.hs_invincible_detail) }]),
   );
   if (!hs.has(input.attackerId) || !hs.has(input.targetId)) return c.json({ error: "invalid_hero" }, 400);
   // 合わせ不可（存在しない）の攻撃方法は受け付けない（修正提案は攻撃方法を変えられないので対象外）
