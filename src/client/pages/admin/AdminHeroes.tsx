@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import type { AdminHero } from "../../../shared/types";
-import { ATTACK_LABEL, HERO_ROLES, NG_ATTACK_TYPES } from "../../../shared/constants";
+import { ATTACK_LABEL, HERO_ROLES, type NgAttackType } from "../../../shared/constants";
 import { Avatar } from "../../components/Avatar";
 import { api, ApiError, useApi } from "../../lib/api";
 import { useData } from "../../lib/data";
@@ -68,6 +68,15 @@ export function AdminHeroes() {
   const [error, setError] = useState<number | null>(null);
   const [bulk, setBulk] = useState("");
   const rows = useRef(new Map<string, HTMLDivElement>());
+  // 開いているキャラ（最初は全部閉じる）
+  const [opened, setOpened] = useState<Set<string>>(new Set());
+  const toggle = (id: string) =>
+    setOpened((s) => {
+      const n = new Set(s);
+      if (n.has(id)) n.delete(id);
+      else n.add(id);
+      return n;
+    });
 
   useEffect(() => {
     api<{ heroes: AdminHero[] }>("/api/admin/heroes").then(
@@ -131,69 +140,37 @@ export function AdminHeroes() {
               <br />
               攻撃方法（ヒーロースキル・通常攻撃・ヒーローアクション・スキルカード）ごとに、そのキャラで合わせられるかを「可／不可」で選びます。不可にすると、詳細画面のそのタブがグレーになって選べなくなり、投稿でも選べなくなります。
               <br />
-              HS の攻撃発生（秒）と無敵時間（秒）を入れると、相手の無敵時間が自分の攻撃発生より短い組み合わせも、HS が「合わせ不可」になります（ヒーロースキルが「不可」のキャラは攻撃発生を入力できません）。
+              HS のダメージ発生（秒）と無敵時間（秒）を入れると、相手の無敵時間が自分のダメージ発生より短い組み合わせも、HS が「合わせ不可」になります（ヒーロースキルが「不可」のキャラはダメージ発生を入力できません）。
               <br />
               ロールと HS合わせ重要度（★1〜3）は、キャラを選ぶ画面の「ロールで絞り込み」と「重要度順」の並べ替えに使います。
               <br />
-              ▲▼で並び順を入れ替えられます（トップ画面などの表示順になります）。キャラ画像は一般向けの画面には表示されません。
+              キャラ名をタップすると開閉します。▲▼で並び順を入れ替えられます（トップ画面などの表示順になります）。キャラ画像は一般向けの画面には表示されません。
             </p>
           </div>
           {heroes.map((h, i) => (
             <div
-              className="toggle"
+              className="hrow"
               key={h.id}
               ref={(el) => {
                 if (el) rows.current.set(h.id, el);
                 else rows.current.delete(h.id);
               }}
             >
-              {/* キャラ画像は権利への配慮で使わないため、追加はできない（登録済みの画像は「画像を削除」で外せる） */}
-              <div className="img">
-                <Avatar hero={h} showImage />
-              </div>
-              <div className="nm">
-                <InlineInput aria-label="名前" value={h.name} onCommit={(v) => run(call(`/api/admin/heroes/${h.id}`, "PATCH", { name: v }), "保存しました")} />
-                <InlineInput
-                  aria-label="正式名称"
-                  allowEmpty
-                  value={h.fullName ?? ""}
-                  placeholder="正式名称（任意）"
-                  style={{ fontSize: 12, padding: "0 0 2px" }}
-                  onCommit={(v) => run(call(`/api/admin/heroes/${h.id}`, "PATCH", { fullName: v }), v ? "正式名称を保存しました" : "正式名称を消しました")}
-                />
-                <div style={{ display: "flex", alignItems: "center", fontSize: 11, color: "var(--sub)" }}>
-                  /h/
-                  <InlineInput
-                    aria-label="slug"
-                    value={h.slug}
-                    style={{ fontSize: 11, color: "var(--sub)", padding: "0 0 2px" }}
-                    onCommit={(v) => run(call(`/api/admin/heroes/${h.id}`, "PATCH", { slug: v }), "保存しました")}
-                  />
-                </div>
-                <HsEditor h={h} save={(patch, msg) => run(call(`/api/admin/heroes/${h.id}`, "PATCH", patch), msg)} />
-              </div>
-              {h.imageUrl && (
-                <ArmedButton
-                  className="sbtn imgdel"
-                  label="画像を削除"
-                  armedLabel="削除する"
-                  onConfirm={() => run(call(`/api/admin/heroes/${h.id}/image`, "DELETE"), "画像を削除しました")}
+              <button className={`hhead ${opened.has(h.id) ? "on" : ""}`} aria-expanded={opened.has(h.id)} onClick={() => toggle(h.id)}>
+                <span className="tri">{opened.has(h.id) ? "▼" : "▶"}</span>
+                <span className="hn">{h.name}</span>
+              </button>
+              {opened.has(h.id) && (
+                <HeroCard
+                  h={h}
+                  first={i === 0}
+                  last={i === heroes.length - 1}
+                  save={(patch, msg) => run(call(`/api/admin/heroes/${h.id}`, "PATCH", patch), msg)}
+                  move={(dir) => move(h, dir)}
+                  remove={() => run(call(`/api/admin/heroes/${h.id}`, "DELETE"), "削除しました")}
+                  removeImage={() => run(call(`/api/admin/heroes/${h.id}/image`, "DELETE"), "画像を削除しました")}
                 />
               )}
-              <span className="ord">
-                <button className="sbtn" disabled={i === 0} aria-label="上へ" onClick={() => move(h, -1)}>
-                  ▲
-                </button>
-                <button className="sbtn" disabled={i === heroes.length - 1} aria-label="下へ" onClick={() => move(h, 1)}>
-                  ▼
-                </button>
-              </span>
-              <ArmedButton
-                className="sbtn danger"
-                label="削除"
-                armedLabel={h.timingCount ? `投稿${h.timingCount}件も削除・確定` : "確定"}
-                onConfirm={() => run(call(`/api/admin/heroes/${h.id}`, "DELETE"), "削除しました")}
-              />
             </div>
           ))}
           <div className="box" style={{ marginTop: 14 }}>
@@ -215,50 +192,109 @@ export function AdminHeroes() {
   );
 }
 
-/** 攻撃方法ごとの合わせ可／不可・HS の攻撃発生・無敵時間・ロール・HS合わせ重要度。変えたらすぐ保存 */
-function HsEditor({ h, save }: { h: AdminHero; save: (patch: Record<string, unknown>, msg: string) => Promise<boolean> }) {
+type Save = (patch: Record<string, unknown>, msg: string) => Promise<boolean>;
+
+/** キャラ 1 体の編集カード（開いたときだけ出す）。変えたらすぐ保存 */
+function HeroCard({ h, first, last, save, move, remove, removeImage }: { h: AdminHero; first: boolean; last: boolean; save: Save; move: (dir: -1 | 1) => void; remove: () => void; removeImage: () => void }) {
   return (
-    <div className="hsed">
-      {NG_ATTACK_TYPES.map((k) => (
-        <label key={k} className="hsf">
-          {ATTACK_LABEL[k]}
-          <select
-            aria-label={`${ATTACK_LABEL[k]}での合わせ`}
-            className={h.ngAttacks.includes(k) ? "ng" : ""}
-            value={h.ngAttacks.includes(k) ? "ng" : "ok"}
-            onChange={(e) =>
-              save(
-                { ngAttacks: e.target.value === "ng" ? [...h.ngAttacks, k] : h.ngAttacks.filter((x) => x !== k) },
-                `${ATTACK_LABEL[k]}を「${e.target.value === "ng" ? "不可" : "可"}」にしました`,
-              )
-            }
-          >
-            <option value="ok">可</option>
-            <option value="ng">不可</option>
+    <div className="hcard">
+      <div className="htop">
+        {/* キャラ画像は権利への配慮で使わないため、追加はできない（登録済みの画像は「画像を削除」で外せる） */}
+        <div className="hico">
+          <Avatar hero={h} showImage />
+          <div className="slug">
+            /h/
+            <InlineInput aria-label="slug" value={h.slug} onCommit={(v) => save({ slug: v }, "保存しました")} />
+          </div>
+        </div>
+        <div className="hnames">
+          <InlineInput aria-label="名前" value={h.name} style={{ fontSize: 18, fontWeight: 800 }} onCommit={(v) => save({ name: v }, "保存しました")} />
+          <InlineInput
+            aria-label="正式名称"
+            allowEmpty
+            value={h.fullName ?? ""}
+            placeholder="正式名称（任意）"
+            style={{ fontSize: 12.5 }}
+            onCommit={(v) => save({ fullName: v }, v ? "正式名称を保存しました" : "正式名称を消しました")}
+          />
+        </div>
+        <div className="hsel">
+          <select aria-label="ロール" className={h.role ? "" : "unset"} value={h.role ?? ""} onChange={(e) => save({ role: e.target.value || null }, "ロールを保存しました")}>
+            <option value="">ロール</option>
+            {HERO_ROLES.map(([k, l]) => (
+              <option key={k} value={k}>
+                {l}
+              </option>
+            ))}
           </select>
-        </label>
-      ))}
-      <SecInput label="攻撃発生" value={h.hsAttackTime} disabled={h.ngAttacks.includes("hs")} onCommit={(v) => save({ hsAttackTime: v }, "攻撃発生時間を保存しました")} />
-      <SecInput label="無敵" value={h.hsInvincibleTime} onCommit={(v) => save({ hsInvincibleTime: v }, "無敵時間を保存しました")} />
-      <select aria-label="ロール" value={h.role ?? ""} onChange={(e) => save({ role: e.target.value || null }, "ロールを保存しました")}>
-        <option value="">ロール：未入力</option>
-        {HERO_ROLES.map(([k, l]) => (
-          <option key={k} value={k}>
-            {l}
-          </option>
-        ))}
-      </select>
-      <select
-        aria-label="HS合わせ重要度"
-        value={h.hsImportance ?? ""}
-        onChange={(e) => save({ hsImportance: e.target.value ? Number(e.target.value) : null }, "HS合わせ重要度を保存しました")}
-      >
-        <option value="">重要度：未入力</option>
-        <option value="3">★★★</option>
-        <option value="2">★★☆</option>
-        <option value="1">★☆☆</option>
-      </select>
+          <select
+            aria-label="HS合わせ重要度"
+            className={h.hsImportance ? "" : "unset"}
+            value={h.hsImportance ?? ""}
+            onChange={(e) => save({ hsImportance: e.target.value ? Number(e.target.value) : null }, "HS合わせ重要度を保存しました")}
+          >
+            <option value="">重要度</option>
+            <option value="3">★★★</option>
+            <option value="2">★★☆</option>
+            <option value="1">★☆☆</option>
+          </select>
+        </div>
+      </div>
+      <div className="hatk">
+        <div>
+          <AtkRow h={h} k="hs" save={save} />
+          <div className={`hline sub ${h.ngAttacks.includes("hs") ? "off" : ""}`}>
+            <span>└ ダメージ発生</span>
+            <SecInput label="ダメージ発生" value={h.hsAttackTime} disabled={h.ngAttacks.includes("hs")} onCommit={(v) => save({ hsAttackTime: v }, "ダメージ発生の時間を保存しました")} />
+          </div>
+          <AtkRow h={h} k="normal" save={save} />
+        </div>
+        <div>
+          <AtkRow h={h} k="action" save={save} />
+          <AtkRow h={h} k="card" save={save} />
+        </div>
+      </div>
+      <div className="hbot">
+        <div className="hline">
+          <span>無敵</span>
+          <SecInput label="無敵" value={h.hsInvincibleTime} onCommit={(v) => save({ hsInvincibleTime: v }, "無敵時間を保存しました")} />
+        </div>
+        <div className="hacts">
+          {h.imageUrl && <ArmedButton className="sbtn imgdel" label="画像を削除" armedLabel="削除する" onConfirm={removeImage} />}
+          <button className="sbtn" disabled={first} aria-label="上へ" onClick={() => move(-1)}>
+            ▲
+          </button>
+          <button className="sbtn" disabled={last} aria-label="下へ" onClick={() => move(1)}>
+            ▼
+          </button>
+          <ArmedButton className="sbtn danger" label="削除" armedLabel={h.timingCount ? `投稿${h.timingCount}件も削除・確定` : "確定"} onConfirm={remove} />
+        </div>
+      </div>
     </div>
+  );
+}
+
+/** 攻撃方法 1 つの「可／不可」 */
+function AtkRow({ h, k, save }: { h: AdminHero; k: NgAttackType; save: Save }) {
+  const ng = h.ngAttacks.includes(k);
+  return (
+    <label className="hline">
+      <span>{ATTACK_LABEL[k]}</span>
+      <select
+        aria-label={`${ATTACK_LABEL[k]}での合わせ`}
+        className={ng ? "ng" : ""}
+        value={ng ? "ng" : "ok"}
+        onChange={(e) =>
+          save(
+            { ngAttacks: e.target.value === "ng" ? [...h.ngAttacks, k] : h.ngAttacks.filter((x) => x !== k) },
+            `${ATTACK_LABEL[k]}を「${e.target.value === "ng" ? "不可" : "可"}」にしました`,
+          )
+        }
+      >
+        <option value="ok">可</option>
+        <option value="ng">不可</option>
+      </select>
+    </label>
   );
 }
 
@@ -267,9 +303,9 @@ function SecInput({ label, value, disabled, onCommit }: { label: string; value: 
   const [v, setV] = useState(value == null ? "" : String(value));
   useEffect(() => setV(value == null ? "" : String(value)), [value]);
   return (
-    <label className={`hsf ${disabled ? "off" : ""}`}>
-      {label}
+    <span className="secin">
       <input
+        aria-label={label}
         type="number"
         inputMode="decimal"
         step="0.01"
@@ -289,6 +325,6 @@ function SecInput({ label, value, disabled, onCommit }: { label: string; value: 
         }}
       />
       秒
-    </label>
+    </span>
   );
 }
