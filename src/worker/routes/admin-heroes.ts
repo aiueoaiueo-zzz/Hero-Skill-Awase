@@ -60,17 +60,18 @@ adminHeroRoutes.post("/", async (c) => {
 adminHeroRoutes.patch("/:id", async (c) => {
   const body = heroPatchSchema.safeParse(await c.req.json().catch(() => null));
   if (!body.success) return c.json({ error: "invalid_request", issues: body.error.issues.map((i) => i.message) }, 400);
-  const { name, slug, fullName, hsType, hsAttackTime, hsInvincibleTime } = body.data;
-  if ([name, slug, fullName, hsType, hsAttackTime, hsInvincibleTime].every((v) => v === undefined)) return c.json({ error: "invalid_request" }, 400);
+  const { name, slug, fullName, hsType, hsAttackTime, hsInvincibleTime, role, hsImportance } = body.data;
+  if ([name, slug, fullName, hsType, hsAttackTime, hsInvincibleTime, role, hsImportance].every((v) => v === undefined)) return c.json({ error: "invalid_request" }, 400);
   // 未指定の項目はそのまま、null を指定した項目は未入力に戻す
   const set = (v: unknown) => [v !== undefined ? 1 : 0, v ?? null];
   try {
     const r = await c.env.DB.prepare(
       `UPDATE heroes SET name = COALESCE(?, name), slug = COALESCE(?, slug), full_name = CASE WHEN ? THEN ? ELSE full_name END,
               hs_type = CASE WHEN ? THEN ? ELSE hs_type END, hs_attack_time = CASE WHEN ? THEN ? ELSE hs_attack_time END,
-              hs_invincible_time = CASE WHEN ? THEN ? ELSE hs_invincible_time END WHERE id = ?`,
+              hs_invincible_time = CASE WHEN ? THEN ? ELSE hs_invincible_time END,
+              role = CASE WHEN ? THEN ? ELSE role END, hs_importance = CASE WHEN ? THEN ? ELSE hs_importance END WHERE id = ?`,
     )
-      .bind(name ?? null, slug ?? null, ...set(fullName), ...set(hsType), ...set(hsAttackTime), ...set(hsInvincibleTime), c.req.param("id"))
+      .bind(name ?? null, slug ?? null, ...set(fullName), ...set(hsType), ...set(hsAttackTime), ...set(hsInvincibleTime), ...set(role), ...set(hsImportance), c.req.param("id"))
       .run();
     if (!r.meta.changes) return c.json({ error: "not_found" }, 404);
   } catch (e) {

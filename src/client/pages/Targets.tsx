@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Navigate, useParams } from "react-router";
 import { heroMatches } from "../../shared/text";
 import { Header } from "../components/Header";
+import { HeroFilter, useHeroFilter } from "../components/HeroFilter";
 import { HeroGrid } from "../components/HeroGrid";
 import { hsJudge } from "../../shared/hs";
 import { useData } from "../lib/data";
@@ -13,11 +14,12 @@ export function Targets() {
   const { heroes, registered: reg } = useData();
   const attacker = heroes.find((h) => h.slug === a);
   const [q, setQ] = useState("");
+  const f = useHeroFilter();
   useBootFx(true); // 登録済みの組み合わせは最初の読み込みで受け取っているので、待たずに表示できる
   if (!attacker) return <Navigate to="/" replace />;
 
   const registered = new Set(reg[attacker.id] ?? []);
-  const list = heroes.filter((h) => heroMatches(h, q));
+  const list = f.apply(heroes.filter((h) => heroMatches(h, q)));
   const w = list.filter((h) => registered.has(h.id));
   const wo = list.filter((h) => !registered.has(h.id));
   const to = (h: { slug: string }) => `/h/${attacker.slug}/${h.slug}`;
@@ -35,16 +37,17 @@ export function Targets() {
         </div>
       )}
       <input className="search" placeholder="相手キャラを検索" value={q} onChange={(e) => setQ(e.target.value)} />
+      <HeroFilter {...f} />
       {w.length > 0 && (
         <>
           <div className="sec">登録済み</div>
-          <HeroGrid heroes={w} to={to} preload={preload} ng={ng} />
+          <HeroGrid heroes={w} to={to} preload={preload} ng={ng} stars={f.sort === "importance"} />
         </>
       )}
       {wo.length > 0 && (
         <>
           <div className="sec">未登録</div>
-          <HeroGrid heroes={wo} to={to} preload={preload} ng={ng} />
+          <HeroGrid heroes={wo} to={to} preload={preload} ng={ng} stars={f.sort === "importance"} />
         </>
       )}
       {!list.length && <div className="empty">該当するキャラがいません</div>}

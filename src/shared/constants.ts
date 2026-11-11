@@ -161,3 +161,13 @@ export const DEFAULT_SETTINGS: Record<SettingKey, string> = {
   terms: DEFAULT_TERMS,
   ranking_excluded: "",
 };
+
+/** キャラのロール（キャラ選択の絞り込みに使う） */
+export const HERO_ROLES = [
+  ["attacker", "アタッカー"],
+  ["gunner", "ガンナー"],
+  ["sprinter", "スプリンター"],
+  ["tank", "タンク"],
+] as const;
+export type HeroRole = (typeof HERO_ROLES)[number][0];
+export const ROLE_LABEL: Record<HeroRole, string> = Object.fromEntries(HERO_ROLES) as Record<HeroRole, string>;
