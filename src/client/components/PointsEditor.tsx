@@ -47,6 +47,8 @@ type Opts = {
   single?: boolean;
   /** 動画の受付中か（容量上限） */
   accepting?: boolean;
+  /** このキャラの組み合わせでは合わせ不可（存在しない）の攻撃方法。グレーにして選べなくする */
+  blocked?: Set<AttackType>;
 };
 
 /** 合わせるタイミングの入力ブロック（試作版 pointsEditor を移植） */
@@ -116,8 +118,15 @@ export function PointsEditor({ points, update, opts }: { points: PointDraft[]; u
             </label>
             <div className="types atk">
               {ATTACK_TYPES.map(([k, l]) => (
-                <button key={k} type="button" className={k === p.attackType ? "on" : ""} disabled={opts.locked} onClick={() => patch(p.id, { attackType: k })}>
+                <button
+                  key={k}
+                  type="button"
+                  className={`${k === p.attackType ? "on" : ""} ${opts.blocked?.has(k) ? "off" : ""}`}
+                  disabled={opts.locked || opts.blocked?.has(k)}
+                  onClick={() => patch(p.id, { attackType: k })}
+                >
                   {l}
+                  {opts.blocked?.has(k) && <small>（不可）</small>}
                 </button>
               ))}
             </div>

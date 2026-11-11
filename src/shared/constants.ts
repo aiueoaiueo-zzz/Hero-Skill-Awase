@@ -171,3 +171,7 @@ export const HERO_ROLES = [
 ] as const;
 export type HeroRole = (typeof HERO_ROLES)[number][0];
 export const ROLE_LABEL: Record<HeroRole, string> = Object.fromEntries(HERO_ROLES) as Record<HeroRole, string>;
+
+/** キャラごとに「合わせ可／不可」を決める攻撃方法（「その他」は常に可） */
+export const NG_ATTACK_TYPES = ["hs", "normal", "action", "card"] as const;
+export type NgAttackType = (typeof NG_ATTACK_TYPES)[number];

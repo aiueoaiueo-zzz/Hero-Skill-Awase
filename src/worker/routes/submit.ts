@@ -3,7 +3,8 @@ import { LIMITS, type AttackType } from "../../shared/constants";
 import { codeSchema, entryInputSchema, uploadRequestSchema, withdrawSchema } from "../../shared/schema";
 import type { EntryResponse, FixSource, StatusResponse, StatusTiming, UploadResponse } from "../../shared/types";
 import type { AppEnv } from "../env";
-import { toHero, type HeroRow } from "../lib/heroes";
+import { parseNgAttacks, toHero, type HeroRow } from "../lib/heroes";
+import { blockedAttacks } from "../../shared/hs";
 import { genCode, genSecret, nowIso, sha256Hex, ulid } from "../lib/ids";
 import { hasR2Credentials, presignPut } from "../lib/presign";
 import { mediaUrl } from "../lib/media";
@@ -127,9 +128,19 @@ submitRoutes.post("/entries", async (c) => {
   if (!ticket && !(await verifyTurnstile(c.env, c.req.raw, input.turnstileToken))) return c.json({ error: "turnstile_failed" }, 403);
 
   // キャラ
-  const heroes = await db.prepare("SELECT id FROM heroes WHERE id IN (?, ?)").bind(input.attackerId, input.targetId).all<{ id: string }>();
-  const ids = new Set(heroes.results.map((r) => r.id));
-  if (!ids.has(input.attackerId) || !ids.has(input.targetId)) return c.json({ error: "invalid_hero" }, 400);
+  const heroes = await db
+    .prepare("SELECT id, ng_attacks, hs_attack_time, hs_invincible_time FROM heroes WHERE id IN (?, ?)")
+    .bind(input.attackerId, input.targetId)
+    .all<{ id: string; ng_attacks: string | null; hs_attack_time: number | null; hs_invincible_time: number | null }>();
+  const hs = new Map(
+    heroes.results.map((r) => [r.id, { ngAttacks: parseNgAttacks(r.ng_attacks), hsAttackTime: r.hs_attack_time, hsInvincibleTime: r.hs_invincible_time }]),
+  );
+  if (!hs.has(input.attackerId) || !hs.has(input.targetId)) return c.json({ error: "invalid_hero" }, 400);
+  // 合わせ不可（存在しない）の攻撃方法は受け付けない（修正提案は攻撃方法を変えられないので対象外）
+  if (!input.replacesTimingId) {
+    const blocked = blockedAttacks(hs.get(input.attackerId), hs.get(input.targetId));
+    if (input.timings.some((t) => blocked.has(t.attackType as AttackType))) return c.json({ error: "attack_not_allowed" }, 400);
+  }
 
   // 修正提案：公開中のタイミング 1 つに対して 1 つだけ。攻撃方法・目印・キャラは変更できない
   let original: TimingRow | null = null;

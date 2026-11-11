@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import type { AdminHero } from "../../../shared/types";
-import { HERO_ROLES } from "../../../shared/constants";
+import { ATTACK_LABEL, HERO_ROLES, NG_ATTACK_TYPES } from "../../../shared/constants";
 import { Avatar } from "../../components/Avatar";
 import { api, ApiError, useApi } from "../../lib/api";
 import { useData } from "../../lib/data";
@@ -129,7 +129,9 @@ export function AdminHeroes() {
               <br />
               正式名称（任意）は、カードの下・キャラを選ぶ画面に表示され、検索でも当たるようになります。空にすると未設定に戻ります。
               <br />
-              HS のタイプ・攻撃発生（秒）・無敵時間（秒）を入れると、相手を選ぶ画面と詳細画面に「合わせ不可能」が表示されます（防御型の HS、または相手の無敵時間が自分の攻撃発生より短いとき）。
+              攻撃方法（ヒーロースキル・通常攻撃・ヒーローアクション・スキルカード）ごとに、そのキャラで合わせられるかを「可／不可」で選びます。不可にすると、詳細画面のそのタブがグレーになって選べなくなり、投稿でも選べなくなります。
+              <br />
+              HS の攻撃発生（秒）と無敵時間（秒）を入れると、相手の無敵時間が自分の攻撃発生より短い組み合わせも、HS が「合わせ不可」になります（ヒーロースキルが「不可」のキャラは攻撃発生を入力できません）。
               <br />
               ロールと HS合わせ重要度（★1〜3）は、キャラを選ぶ画面の「ロールで絞り込み」と「重要度順」の並べ替えに使います。
               <br />
@@ -213,20 +215,30 @@ export function AdminHeroes() {
   );
 }
 
-/** HS の情報（タイプ・攻撃発生・無敵時間）・ロール・HS合わせ重要度。変えたらすぐ保存 */
+/** 攻撃方法ごとの合わせ可／不可・HS の攻撃発生・無敵時間・ロール・HS合わせ重要度。変えたらすぐ保存 */
 function HsEditor({ h, save }: { h: AdminHero; save: (patch: Record<string, unknown>, msg: string) => Promise<boolean> }) {
   return (
     <div className="hsed">
-      <select
-        aria-label="HS のタイプ"
-        value={h.hsType ?? ""}
-        onChange={(e) => save({ hsType: e.target.value || null }, "HS のタイプを保存しました")}
-      >
-        <option value="">HS：未入力</option>
-        <option value="attack">攻撃型</option>
-        <option value="defense">防御型</option>
-      </select>
-      <SecInput label="攻撃発生" value={h.hsAttackTime} disabled={h.hsType !== "attack"} onCommit={(v) => save({ hsAttackTime: v }, "攻撃発生時間を保存しました")} />
+      {NG_ATTACK_TYPES.map((k) => (
+        <label key={k} className="hsf">
+          {ATTACK_LABEL[k]}
+          <select
+            aria-label={`${ATTACK_LABEL[k]}での合わせ`}
+            className={h.ngAttacks.includes(k) ? "ng" : ""}
+            value={h.ngAttacks.includes(k) ? "ng" : "ok"}
+            onChange={(e) =>
+              save(
+                { ngAttacks: e.target.value === "ng" ? [...h.ngAttacks, k] : h.ngAttacks.filter((x) => x !== k) },
+                `${ATTACK_LABEL[k]}を「${e.target.value === "ng" ? "不可" : "可"}」にしました`,
+              )
+            }
+          >
+            <option value="ok">可</option>
+            <option value="ng">不可</option>
+          </select>
+        </label>
+      ))}
+      <SecInput label="攻撃発生" value={h.hsAttackTime} disabled={h.ngAttacks.includes("hs")} onCommit={(v) => save({ hsAttackTime: v }, "攻撃発生時間を保存しました")} />
       <SecInput label="無敵" value={h.hsInvincibleTime} onCommit={(v) => save({ hsInvincibleTime: v }, "無敵時間を保存しました")} />
       <select aria-label="ロール" value={h.role ?? ""} onChange={(e) => save({ role: e.target.value || null }, "ロールを保存しました")}>
         <option value="">ロール：未入力</option>
@@ -255,7 +267,7 @@ function SecInput({ label, value, disabled, onCommit }: { label: string; value: 
   const [v, setV] = useState(value == null ? "" : String(value));
   useEffect(() => setV(value == null ? "" : String(value)), [value]);
   return (
-    <label className={`sec ${disabled ? "off" : ""}`}>
+    <label className={`hsf ${disabled ? "off" : ""}`}>
       {label}
       <input
         type="number"

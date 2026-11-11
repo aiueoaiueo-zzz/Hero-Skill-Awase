@@ -9,7 +9,7 @@ import {
 import type { PairResponse } from "../../shared/types";
 import { Avatar } from "../components/Avatar";
 import { displayName } from "../../shared/text";
-import { fmtSec, hsJudge } from "../../shared/hs";
+import { blockedAttacks, fmtSec, hsJudge } from "../../shared/hs";
 import { Header } from "../components/Header";
 import { TimingCard } from "../components/TimingCard";
 import { shortLink, timingLink, timingShareText } from "../../shared/share";
@@ -42,7 +42,7 @@ export function Detail() {
   useEffect(() => {
     if (!data || !linkedId || scrolled.current === linkedId) return;
     const t = data.timings.find((x) => x.id === linkedId);
-    if (!t) return;
+    if (!t || blockedAttacks(data.attacker, data.target).has(t.attackType)) return;
     if (tab !== t.attackType) {
       setTab(t.attackType);
       return; // タブが切り替わってから移動する
@@ -62,18 +62,21 @@ export function Detail() {
   // キャラは最初の読み込みで分かっているので、タイミングを待たずに見出しと VS を出す
   const A = data?.attacker ?? heroes.find((h) => h.slug === a);
   const T = data?.target ?? heroes.find((h) => h.slug === t);
-  // 自分の HS で、相手の HS 明けに合わせられるか（合わせ不可能なときだけ理由が入る）
+  // 自分の HS で、相手の HS 明けに時間が足りるか（足りないときだけ理由が入る）
   const ng = hsJudge(A, T);
-  const timings = data?.timings ?? [];
+  // 合わせ不可（存在しない）の攻撃方法：タブをグレーにして選べなくし、その投稿も出さない
+  const blocked = blockedAttacks(A, T);
+  const timings = (data?.timings ?? []).filter((x) => !blocked.has(x.attackType));
   const counts = Object.fromEntries(
     ATTACK_TYPES.map(([k]) => [
       k,
       timings.filter((x) => x.attackType === k).length,
     ]),
   ) as Record<AttackType, number>;
-  // 初期表示は、件数が 1 件以上ある最初のタブ
+  // 初期表示は、件数が 1 件以上ある最初のタブ（合わせ不可のタブは選ばない）
+  const open = ATTACK_TYPES.filter(([k]) => !blocked.has(k));
   const cur: AttackType =
-    tab ?? (ATTACK_TYPES.find(([k]) => counts[k] > 0) ?? ATTACK_TYPES[0])[0];
+    tab && !blocked.has(tab) ? tab : (open.find(([k]) => counts[k] > 0) ?? open[0])[0];
   const list = timings.filter((x) => x.attackType === cur);
   const select = (k: AttackType) => {
     tabMemory.set(key, k);
@@ -112,14 +115,13 @@ export function Detail() {
       {A && T && ng && (
         <div className="ngbox">
           <b>HS での合わせは不可能です</b>
-          {ng.reason === "defense"
-            ? `${A.name}の HS は防御型のため、HS で相手の HS 明けに合わせることはできません。`
-            : `${T.name}の HS の無敵時間（${fmtSec(ng.invincibleTime)}）が、${A.name}の HS の攻撃発生（${fmtSec(ng.attackTime)}）より短いため、HS では合わせられません。`}
+          {`${T.name}の HS の無敵時間（${fmtSec(ng.invincibleTime)}）が、${A.name}の HS の攻撃発生（${fmtSec(ng.attackTime)}）より短いため、HS では合わせられません。`}
         </div>
       )}
       {data && (
         <>
-          {!timings.length ? (
+          {/* 不可の攻撃方法があるときは、投稿がなくてもグレーのタブを見せる */}
+          {!timings.length && !blocked.size ? (
             <div className="empty">
               まだ情報がありません。
               <br />
@@ -131,7 +133,8 @@ export function Detail() {
                 {ATTACK_TYPES.map(([k]) => (
                   <button
                     key={k}
-                    className={`${k === cur ? "on" : ""} ${counts[k] ? "" : "zero"}`}
+                    className={`${k === cur ? "on" : ""} ${counts[k] ? "" : "zero"} ${blocked.has(k) ? "off" : ""}`}
+                    disabled={blocked.has(k)}
                     onClick={() => select(k)}
                   >
                     <span>
@@ -143,8 +146,7 @@ export function Detail() {
                         </>
                       )}
                     </span>
-                    <b>{counts[k]}件</b>
-                    {k === "hs" && ng && <span className="ngdot">合わせ不可</span>}
+                    <b>{blocked.has(k) ? "不可" : `${counts[k]}件`}</b>
                   </button>
                 ))}
               </div>

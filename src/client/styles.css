@@ -499,15 +499,17 @@ a.entry.ulink{display:block;text-decoration:none;color:inherit}
 /* 管理：キャラの HS の情報 */
 .toggle .nm .hsed{display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin-top:6px}
 .hsed select{font-size:12px;padding:3px 4px;border:1px solid var(--line);background:#fff;color:#000}
-.hsed .sec{display:inline-flex;align-items:center;gap:3px;font-size:11.5px;color:var(--sub)}
-.hsed .sec.off{opacity:.45}
-.toggle .nm .hsed .sec input{width:58px;padding:3px 4px;border:1px solid var(--line);background:#fff;color:#000;font-size:12px}
+.hsed .hsf{display:inline-flex;align-items:center;gap:3px;font-size:11.5px;color:var(--sub);white-space:nowrap}
+.hsed select.ng{background:#d93636;border-color:#d93636;color:#fff;font-weight:700}
+.hsed .hsf.off{opacity:.45}
+.toggle .nm .hsed .hsf input{width:58px;padding:3px 4px;border:1px solid var(--line);background:#fff;color:#000;font-size:12px}
 /* 合わせ不可能の表示 */
 .ngmark{position:absolute;top:2px;left:2px;right:2px;background:#d93636;color:#fff;font-size:8px;letter-spacing:-.03em;font-weight:800;padding:1px 3px;line-height:1.4;z-index:1;text-align:center;white-space:nowrap;overflow:hidden}
 .card.ng{opacity:.8}
 .ngbox{border:2px solid #d93636;background:#fff1f1;color:#a11;padding:10px 12px;margin:0 0 12px;font-size:13px;line-height:1.6}
 .ngbox b{display:block;font-size:14.5px;color:#d93636}
-.atabs button .ngdot{display:block;font-size:9px;font-weight:800;color:#d93636}
+.atabs button.off,.atabs button.off:hover,.atabs button.off:active{transform:none;opacity:1;background:#e9e9e9;border-color:#d4d4d4;color:#a8a8a8;box-shadow:none;cursor:not-allowed}
+.atabs button.off b{color:#a8a8a8}
 /* キャラ選択の並び順・ロールの絞り込み（docs/DECISIONS.md Y） */
 .hfilter{margin:-6px 0 14px;display:flex;flex-direction:column;gap:6px}
 .hfrow{display:flex;align-items:center;gap:4px;overflow-x:auto;scrollbar-width:none}
@@ -517,3 +519,5 @@ a.entry.ulink{display:block;text-decoration:none;color:inherit}
 .hfrow button.on{background:#000;border-color:#000;color:#fff;font-weight:700}
 .hfrow.roles button{flex:1 1 auto;padding:5px 3px;font-size:11px;letter-spacing:-.03em}
 .card .stars{font-size:9.5px;line-height:1;margin-top:3px;color:var(--accent);letter-spacing:-.05em}
+.types button.off{opacity:1;background:#e9e9e9;border-color:#d4d4d4;color:#a8a8a8;box-shadow:none;cursor:not-allowed;transform:none}
+.types button.off small{font-size:10px}
