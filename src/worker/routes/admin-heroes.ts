@@ -76,6 +76,10 @@ adminHeroRoutes.patch("/:id", async (c) => {
       .bind(name ?? null, slug ?? null, ...set(fullName), ...set(ngAttacks && NG_ATTACK_TYPES.filter((k) => ngAttacks.includes(k)).join(",")), ...set(hsAttackTime), ...set(hsInvincibleTime), ...set(role), ...set(hsTargetImportance), ...set(hsAttackImportance), c.req.param("id"))
       .run();
     if (!r.meta.changes) return c.json({ error: "not_found" }, 404);
+    // ヒーロースキルが不可なら、HS合わせ重要度は「−」（0）に固定（docs/DECISIONS.md AB）
+    await c.env.DB.prepare(`UPDATE heroes SET hs_attack_importance = 0 WHERE id = ? AND (',' || ng_attacks || ',') LIKE '%,hs,%'`)
+      .bind(c.req.param("id"))
+      .run();
   } catch (e) {
     const d = dupError(e);
     if (d) return c.json({ error: d }, 409);
