@@ -83,24 +83,26 @@ describe("ランキングの共通ルール", () => {
   });
 });
 
-import { hsJudge } from "../src/shared/hs";
+import { blockedAttacks, hsJudge } from "../src/shared/hs";
 
-describe("HS で合わせられるかの判定", () => {
-  const atk = (t: number | null) => ({ hsType: "attack" as const, hsAttackTime: t, hsInvincibleTime: null });
-  const tgt = (t: number | null) => ({ hsType: null, hsAttackTime: null, hsInvincibleTime: t });
-  it("防御型の HS は合わせ不可能", () => {
-    expect(hsJudge({ hsType: "defense", hsAttackTime: null, hsInvincibleTime: 3 }, tgt(5))).toEqual({ ok: false, reason: "defense" });
-  });
-  it("相手の無敵時間が攻撃発生時間より短いと合わせ不可能", () => {
+describe("合わせられるかの判定", () => {
+  const atk = (t: number | null, ng: ("hs" | "normal" | "action" | "card")[] = []) => ({ ngAttacks: ng, hsAttackTime: t, hsInvincibleTime: null });
+  const tgt = (t: number | null) => ({ ngAttacks: [], hsAttackTime: null, hsInvincibleTime: t });
+  it("相手の無敵時間が攻撃発生時間より短いと HS は合わせ不可能", () => {
     expect(hsJudge(atk(1.5), tgt(1.2))).toEqual({ ok: false, reason: "time", attackTime: 1.5, invincibleTime: 1.2 });
+    expect([...blockedAttacks(atk(1.5), tgt(1.2))]).toEqual(["hs"]);
   });
-  it("同じか長ければ合わせられる（null）", () => {
+  it("同じか長ければ合わせられる", () => {
     expect(hsJudge(atk(1.5), tgt(1.5))).toBe(null);
-    expect(hsJudge(atk(1.5), tgt(2))).toBe(null);
+    expect(blockedAttacks(atk(1.5), tgt(2)).size).toBe(0);
   });
-  it("情報が足りなければ判定しない（null）", () => {
+  it("情報が足りなければ判定しない", () => {
     expect(hsJudge(atk(null), tgt(1))).toBe(null);
     expect(hsJudge(atk(1), tgt(null))).toBe(null);
-    expect(hsJudge({ hsType: null, hsAttackTime: 1, hsInvincibleTime: null }, tgt(0.5))).toBe(null);
+  });
+  it("キャラで不可にした攻撃方法は合わせ不可（HS が不可なら時間の判定はしない）", () => {
+    expect(hsJudge(atk(1.5, ["hs"]), tgt(1))).toBe(null);
+    expect([...blockedAttacks(atk(1.5, ["hs", "card"]), tgt(1))].sort()).toEqual(["card", "hs"]);
+    expect([...blockedAttacks(atk(null, ["normal"]), null)]).toEqual(["normal"]);
   });
 });

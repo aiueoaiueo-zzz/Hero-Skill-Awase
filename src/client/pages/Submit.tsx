@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { useNavigate, useSearchParams } from "react-router";
-import { LIMITS } from "../../shared/constants";
+import { ATTACK_LABEL, ATTACK_TYPES, LIMITS } from "../../shared/constants";
+import { blockedAttacks } from "../../shared/hs";
 import type { EntryResponse, FixSource, Hero, UploadResponse } from "../../shared/types";
 import { EntryCard } from "../components/EntryCard";
 import { Header } from "../components/Header";
@@ -136,6 +137,7 @@ const ERRORS: Record<string, string> = {
   video_not_accepting: "現在、動画の受付を停止しています",
   fix_target_not_found: "修正の対象が見つかりません（すでに変更された可能性があります）",
   upload_expired: "アップロードの有効期限が切れました。もう一度お試しください",
+  attack_not_allowed: "この組み合わせでは合わせられない攻撃方法が含まれています。攻撃方法を選び直してください",
 };
 
 /** 4. 投稿フォーム */
@@ -217,9 +219,21 @@ function Edit({ draft, setDraft, heroes }: { draft: Draft; setDraft: SetDraft; h
   const T = heroes.find((h) => h.id === draft.targetId);
   const fix = draft.fix;
   const back = A && T ? `/h/${A.slug}/${T.slug}` : "/";
+  // 修正提案は攻撃方法を変えられないので、不可の判定はしない
+  const blocked = fix ? undefined : blockedAttacks(A, T);
+  // キャラを選び直して、選んでいた攻撃方法が不可になったら、選べる最初の攻撃方法に切り替える
+  const blockedKey = blocked ? [...blocked].sort().join(",") : "";
+  useEffect(() => {
+    if (!blocked?.size || !draft.points.some((p) => blocked.has(p.attackType))) return;
+    const first = ATTACK_TYPES.find(([k]) => !blocked.has(k))![0];
+    setDraft((d) => ({ ...d, points: d.points.map((p) => (blocked.has(p.attackType) ? { ...p, attackType: first } : p)) }));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [blockedKey]);
 
   const next = () => {
     if (!draft.attackerId || !draft.targetId) return toast("キャラを選んでください");
+    const ngi = draft.points.findIndex((p) => blocked?.has(p.attackType));
+    if (ngi >= 0) return toast(`タイミング${ngi + 1}：この組み合わせでは「${ATTACK_LABEL[draft.points[ngi].attackType]}」で合わせられません。攻撃方法を選び直してください`);
     const bad = draft.points.findIndex((p) => !p.timingText.trim());
     if (bad >= 0) return toast(`タイミング${bad + 1}を入力してください`);
     const long = draft.points.findIndex((p) => charLimit(chars(p.timingText), LIMITS.timingText) || charLimit(chars(p.note), LIMITS.note));
@@ -261,7 +275,7 @@ function Edit({ draft, setDraft, heroes }: { draft: Draft; setDraft: SetDraft; h
         <PointsEditor
           points={draft.points}
           update={(fn) => setDraft((d) => ({ ...d, points: fn(d.points), upload: null }))}
-          opts={{ upload: true, locked: !!fix, accepting }}
+          opts={{ upload: true, locked: !!fix, accepting, blocked }}
         />
         <label className="h" htmlFor="f-nick">
           X の ID（任意）

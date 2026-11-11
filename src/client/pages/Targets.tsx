@@ -23,19 +23,12 @@ export function Targets() {
   const w = list.filter((h) => registered.has(h.id));
   const wo = list.filter((h) => !registered.has(h.id));
   const to = (h: { slug: string }) => `/h/${attacker.slug}/${h.slug}`;
-  // 自分の HS で合わせられない相手（防御型なら全員なので、印ではなく上の枠で知らせる）
-  const defense = attacker.hsType === "defense";
-  const ng = defense ? undefined : new Set(heroes.filter((h) => hsJudge(attacker, h)).map((h) => h.id));
+  // 自分の HS の攻撃発生が、相手の HS の無敵時間に間に合わない相手（HS が不可のキャラなら出さない）
+  const ng = new Set(heroes.filter((h) => hsJudge(attacker, h)).map((h) => h.id));
   const preload = (h: { slug: string }) => `/api/pairs/${encodeURIComponent(attacker.slug)}/${encodeURIComponent(h.slug)}`;
   return (
     <>
       <Header title={`${attacker.name} で攻撃`} sub="② HSを使う側（相手）を選択" back="/" prog={PROG.step2} />
-      {defense && (
-        <div className="ngbox">
-          <b>HS での合わせは不可能です</b>
-          {attacker.name}の HS は防御型のため、HS で相手の HS 明けに合わせることはできません。
-        </div>
-      )}
       <input className="search" placeholder="相手キャラを検索" value={q} onChange={(e) => setQ(e.target.value)} />
       <HeroFilter {...f} />
       {w.length > 0 && (

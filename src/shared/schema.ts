@@ -117,7 +117,7 @@ export const heroPatchSchema = z.object({
     .nullable()
     .optional(),
   // HS の情報（null で未入力に戻す）
-  hsType: z.enum(["attack", "defense"]).nullable().optional(),
+  ngAttacks: z.array(z.enum(["hs", "normal", "action", "card"])).max(4).optional(),
   hsAttackTime: hsSeconds,
   hsInvincibleTime: hsSeconds,
   role: z.enum(["attacker", "gunner", "sprinter", "tank"]).nullable().optional(),
