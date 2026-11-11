@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useNavigate } from "react-router";
 import { heroMatches } from "../../shared/text";
 import { Header } from "../components/Header";
+import { HeroFilter, useHeroFilter } from "../components/HeroFilter";
 import { HeroGrid } from "../components/HeroGrid";
 import { RankBox } from "../components/RankBox";
 import { useData } from "../lib/data";
@@ -12,15 +13,17 @@ export function Home() {
   const { heroes } = useData();
   const nav = useNavigate();
   const [q, setQ] = useState("");
-  const list = heroes.filter((h) => heroMatches(h, q));
+  const f = useHeroFilter();
+  const list = f.apply(heroes.filter((h) => heroMatches(h, q)));
   useBootFx(true);
   return (
     <>
       <Header title={<>HS合わせ<span className="brand">ヒロアプ</span></>} sub="① 攻撃する側（自分）のキャラを選択" prog={PROG.step1} />
       <RankBox />
       <input className="search" placeholder="キャラ名で検索" value={q} onChange={(e) => setQ(e.target.value)} />
+      <HeroFilter {...f} />
       {list.length ? (
-        <HeroGrid heroes={list} to={(h) => `/h/${h.slug}`} />
+        <HeroGrid heroes={list} to={(h) => `/h/${h.slug}`} stars={f.sort === "importance"} />
       ) : (
         <div className="empty">該当するキャラがいません</div>
       )}

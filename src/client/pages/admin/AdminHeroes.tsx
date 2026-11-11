@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import type { AdminHero } from "../../../shared/types";
+import { HERO_ROLES } from "../../../shared/constants";
 import { Avatar } from "../../components/Avatar";
 import { api, ApiError, useApi } from "../../lib/api";
 import { useData } from "../../lib/data";
@@ -130,6 +131,8 @@ export function AdminHeroes() {
               <br />
               HS のタイプ・攻撃発生（秒）・無敵時間（秒）を入れると、相手を選ぶ画面と詳細画面に「合わせ不可能」が表示されます（防御型の HS、または相手の無敵時間が自分の攻撃発生より短いとき）。
               <br />
+              ロールと HS合わせ重要度（★1〜3）は、キャラを選ぶ画面の「ロールで絞り込み」と「重要度順」の並べ替えに使います。
+              <br />
               ▲▼で並び順を入れ替えられます（トップ画面などの表示順になります）。キャラ画像は一般向けの画面には表示されません。
             </p>
           </div>
@@ -210,7 +213,7 @@ export function AdminHeroes() {
   );
 }
 
-/** HS の情報（タイプ・攻撃発生・無敵時間）。変えたらすぐ保存 */
+/** HS の情報（タイプ・攻撃発生・無敵時間）・ロール・HS合わせ重要度。変えたらすぐ保存 */
 function HsEditor({ h, save }: { h: AdminHero; save: (patch: Record<string, unknown>, msg: string) => Promise<boolean> }) {
   return (
     <div className="hsed">
@@ -225,6 +228,24 @@ function HsEditor({ h, save }: { h: AdminHero; save: (patch: Record<string, unkn
       </select>
       <SecInput label="攻撃発生" value={h.hsAttackTime} disabled={h.hsType !== "attack"} onCommit={(v) => save({ hsAttackTime: v }, "攻撃発生時間を保存しました")} />
       <SecInput label="無敵" value={h.hsInvincibleTime} onCommit={(v) => save({ hsInvincibleTime: v }, "無敵時間を保存しました")} />
+      <select aria-label="ロール" value={h.role ?? ""} onChange={(e) => save({ role: e.target.value || null }, "ロールを保存しました")}>
+        <option value="">ロール：未入力</option>
+        {HERO_ROLES.map(([k, l]) => (
+          <option key={k} value={k}>
+            {l}
+          </option>
+        ))}
+      </select>
+      <select
+        aria-label="HS合わせ重要度"
+        value={h.hsImportance ?? ""}
+        onChange={(e) => save({ hsImportance: e.target.value ? Number(e.target.value) : null }, "HS合わせ重要度を保存しました")}
+      >
+        <option value="">重要度：未入力</option>
+        <option value="3">★★★</option>
+        <option value="2">★★☆</option>
+        <option value="1">★☆☆</option>
+      </select>
     </div>
   );
 }

@@ -120,6 +120,8 @@ export const heroPatchSchema = z.object({
   hsType: z.enum(["attack", "defense"]).nullable().optional(),
   hsAttackTime: hsSeconds,
   hsInvincibleTime: hsSeconds,
+  role: z.enum(["attacker", "gunner", "sprinter", "tank"]).nullable().optional(),
+  hsImportance: z.union([z.literal(1), z.literal(2), z.literal(3)]).nullable().optional(),
 });
 export const heroMoveSchema = z.object({ dir: z.union([z.literal(-1), z.literal(1)]) });
 

@@ -1,4 +1,4 @@
-import type { AttackType, ContactKind, CueType, DisplayStatus, SettingKey, TimingStatus } from "./constants";
+import type { AttackType, ContactKind, CueType, DisplayStatus, HeroRole, SettingKey, TimingStatus } from "./constants";
 
 export type Hero = {
   id: string;
@@ -13,6 +13,10 @@ export type Hero = {
   hsAttackTime: number | null;
   /** HS の無敵時間（秒） */
   hsInvincibleTime: number | null;
+  /** ロール。未入力は null */
+  role: HeroRole | null;
+  /** HS合わせ重要度（1〜3、星が多いほど重要）。未入力は null */
+  hsImportance: 1 | 2 | 3 | null;
 };
 
 /** 一般公開用のタイミング（承認済みのみ） */
