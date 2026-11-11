@@ -28,6 +28,13 @@ export function Footer() {
         <Link to="/contact">お問い合わせ・ご要望</Link>
       </nav>
       <div className="rights">©NHN PlayArt Corp. ©DWANGO Co., Ltd.</div>
+      <div className="credit">
+        データ提供：
+        <a href="https://yagitools.cloudfree.jp/compas-deck/" target="_blank" rel="noopener noreferrer">
+          やぎシミュ
+        </a>
+        （チームやぎシミュ）
+      </div>
       <div className="copy">HS合わせ投稿Webアプリ（ヒロアプ）非公式ファンツール</div>
     </footer>
   );

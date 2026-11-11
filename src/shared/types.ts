@@ -1,5 +1,8 @@
 import type { AttackType, ContactKind, CueType, DisplayStatus, HeroRole, NgAttackType, SettingKey, TimingStatus } from "./constants";
 
+/** HS の無敵時間 1 つ分（label：場面。例「1,2回目」「最短距離時」。場面で変わらなければ空） */
+export type HsInvincible = { label: string; sec: number };
+
 export type Hero = {
   id: string;
   name: string;
@@ -11,8 +14,8 @@ export type Hero = {
   ngAttacks: NgAttackType[];
   /** HS の攻撃発生時間（秒） */
   hsAttackTime: number | null;
-  /** HS の無敵時間（秒） */
-  hsInvincibleTime: number | null;
+  /** HS の無敵時間（秒）。場面で変わるときは場面ごと（label 付き）。場面で変わらなければ label は空。未入力は [] */
+  hsInvincible: HsInvincible[];
   /** ロール。未入力は null */
   role: HeroRole | null;
   /** HS合わせ重要度（HS に合わせる側として。1〜3 で星が多いほど重要、0 は「−」）。未入力は null */

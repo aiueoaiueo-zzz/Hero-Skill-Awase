@@ -23,8 +23,8 @@ export function Targets() {
   const w = list.filter((h) => registered.has(h.id));
   const wo = list.filter((h) => !registered.has(h.id));
   const to = (h: { slug: string }) => `/h/${attacker.slug}/${h.slug}`;
-  // 自分の HS の攻撃発生が、相手の HS の無敵時間に間に合わない相手（HS が不可のキャラなら出さない）
-  const ng = new Set(heroes.filter((h) => hsJudge(attacker, h)).map((h) => h.id));
+  // 自分の HS のダメージ発生が、相手の HS の無敵時間に（どの場面でも）間に合わない相手（HS が不可のキャラなら出さない）
+  const ng = new Set(heroes.filter((h) => hsJudge(attacker, h)?.all).map((h) => h.id));
   const preload = (h: { slug: string }) => `/api/pairs/${encodeURIComponent(attacker.slug)}/${encodeURIComponent(h.slug)}`;
   return (
     <>

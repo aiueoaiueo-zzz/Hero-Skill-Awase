@@ -9,7 +9,7 @@ import {
 import type { PairResponse } from "../../shared/types";
 import { Avatar } from "../components/Avatar";
 import { displayName } from "../../shared/text";
-import { blockedAttacks, fmtSec, hsJudge } from "../../shared/hs";
+import { blockedAttacks, fmtInvincible, fmtSec, hsJudge } from "../../shared/hs";
 import { Header } from "../components/Header";
 import { TimingCard } from "../components/TimingCard";
 import { shortLink, timingLink, timingShareText } from "../../shared/share";
@@ -112,10 +112,24 @@ export function Detail() {
           </div>
         </div>
       )}
+      {T && T.hsInvincible.length > 0 && (
+        <div className="invline">
+          {T.name}の HS の無敵時間：<b>{fmtInvincible(T.hsInvincible)}</b>
+        </div>
+      )}
       {A && T && ng && (
         <div className="ngbox">
-          <b>HS での合わせは不可能です</b>
-          {`${T.name}の HS の無敵時間（${fmtSec(ng.invincibleTime)}）が、${A.name}の HS の攻撃発生（${fmtSec(ng.attackTime)}）より短いため、HS では合わせられません。`}
+          {ng.all ? (
+            <>
+              <b>HS での合わせは不可能です</b>
+              {`${T.name}の HS の無敵時間（${fmtInvincible(ng.short)}）が、${A.name}の HS のダメージ発生（${fmtSec(ng.attackTime)}）より短いため、HS では合わせられません。`}
+            </>
+          ) : (
+            <>
+              <b>一部の場面では HS で合わせられません</b>
+              {`${ng.short.map((v) => `${v.label}（${fmtSec(v.sec)}）`).join("・")}は、${T.name}の HS の無敵時間が${A.name}の HS のダメージ発生（${fmtSec(ng.attackTime)}）より短いため、HS では合わせられません。`}
+            </>
+          )}
         </div>
       )}
       {data && (

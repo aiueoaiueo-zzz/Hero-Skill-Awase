@@ -83,13 +83,17 @@ describe("ランキングの共通ルール", () => {
   });
 });
 
-import { blockedAttacks, hsJudge } from "../src/shared/hs";
+import { blockedAttacks, fmtInvincible, hsJudge, invincibleToText, parseInvincibleText } from "../src/shared/hs";
 
 describe("合わせられるかの判定", () => {
-  const atk = (t: number | null, ng: ("hs" | "normal" | "action" | "card")[] = []) => ({ ngAttacks: ng, hsAttackTime: t, hsInvincibleTime: null });
-  const tgt = (t: number | null) => ({ ngAttacks: [], hsAttackTime: null, hsInvincibleTime: t });
-  it("相手の無敵時間が攻撃発生時間より短いと HS は合わせ不可能", () => {
-    expect(hsJudge(atk(1.5), tgt(1.2))).toEqual({ ok: false, reason: "time", attackTime: 1.5, invincibleTime: 1.2 });
+  const atk = (t: number | null, ng: ("hs" | "normal" | "action" | "card")[] = []) => ({ ngAttacks: ng, hsAttackTime: t, hsInvincible: [] });
+  const tgt = (...v: (number | [string, number])[]) => ({
+    ngAttacks: [],
+    hsAttackTime: null,
+    hsInvincible: v.map((x) => (typeof x === "number" ? { label: "", sec: x } : { label: x[0], sec: x[1] })),
+  });
+  it("相手の無敵時間がダメージ発生より短いと HS は合わせ不可能", () => {
+    expect(hsJudge(atk(1.5), tgt(1.2))).toEqual({ attackTime: 1.5, short: [{ label: "", sec: 1.2 }], all: true });
     expect([...blockedAttacks(atk(1.5), tgt(1.2))]).toEqual(["hs"]);
   });
   it("同じか長ければ合わせられる", () => {
@@ -98,11 +102,34 @@ describe("合わせられるかの判定", () => {
   });
   it("情報が足りなければ判定しない", () => {
     expect(hsJudge(atk(null), tgt(1))).toBe(null);
-    expect(hsJudge(atk(1), tgt(null))).toBe(null);
+    expect(hsJudge(atk(1), tgt())).toBe(null);
   });
   it("キャラで不可にした攻撃方法は合わせ不可（HS が不可なら時間の判定はしない）", () => {
     expect(hsJudge(atk(1.5, ["hs"]), tgt(1))).toBe(null);
     expect([...blockedAttacks(atk(1.5, ["hs", "card"]), tgt(1))].sort()).toEqual(["card", "hs"]);
     expect([...blockedAttacks(atk(null, ["normal"]), null)]).toEqual(["normal"]);
+  });
+  it("無敵時間が場面で変わるときは、全部の場面で足りないときだけ HS を不可にする", () => {
+    const j = hsJudge(atk(2), tgt(["1,2回目", 1.3], ["3回目", 5.5]));
+    expect(j).toEqual({ attackTime: 2, short: [{ label: "1,2回目", sec: 1.3 }], all: false });
+    expect(blockedAttacks(atk(2), tgt(["1,2回目", 1.3], ["3回目", 5.5])).size).toBe(0);
+    expect(hsJudge(atk(6), tgt(["1,2回目", 1.3], ["3回目", 5.5]))?.all).toBe(true);
+  });
+});
+
+describe("無敵時間の表示と入力", () => {
+  it("表示", () => {
+    expect(fmtInvincible([{ label: "", sec: 7.34 }])).toBe("7.34秒");
+    expect(fmtInvincible([{ label: "最短距離時", sec: 4.7 }])).toBe("4.7秒（最短距離時）");
+    expect(fmtInvincible([{ label: "1,2回目", sec: 1.3 }, { label: "3回目", sec: 5.5 }])).toBe("1,2回目 1.3秒／3回目 5.5秒");
+  });
+  it("入力の読み取り", () => {
+    expect(parseInvincibleText("")).toEqual([]);
+    expect(parseInvincibleText(" 7.34 ")).toEqual([{ label: "", sec: 7.34 }]);
+    expect(parseInvincibleText("1,2回目:1.3 / 3回目：5.5秒")).toEqual([{ label: "1,2回目", sec: 1.3 }, { label: "3回目", sec: 5.5 }]);
+    expect(parseInvincibleText("最短距離時:4.7")).toEqual([{ label: "最短距離時", sec: 4.7 }]);
+    expect(parseInvincibleText("abc")).toBe(null);
+    expect(parseInvincibleText("61")).toBe(null);
+    expect(invincibleToText([{ label: "1回目", sec: 1.5 }, { label: "2回目以降", sec: 5.5 }])).toBe("1回目:1.5 / 2回目以降:5.5");
   });
 });
