@@ -504,7 +504,10 @@ a.entry.ulink{display:block;text-decoration:none;color:inherit}
 .hhead.on{border-color:#000;border-bottom-style:dashed}
 .hcard{background:#fff;border:1px solid #000;border-top:none;padding:12px 10px}
 .hcard input{color:#000}
-.htop{display:flex;gap:12px;align-items:flex-start;padding-bottom:10px;border-bottom:1px solid var(--line)}
+.htop{display:flex;gap:12px;align-items:flex-start;padding-bottom:4px}
+.hsec{display:flex;align-items:center;gap:8px;margin:10px 0 2px;font-size:12px;font-weight:800;color:#000}
+.hsec::before{content:"";width:10px;height:1px;background:#000}
+.hsec::after{content:"";flex:1;height:1px;background:var(--line)}
 .hico{flex:none;width:64px;text-align:center}
 .hico .av{width:56px;height:56px;margin:0 auto;font-size:14px}
 .hico .slug{display:flex;align-items:center;justify-content:center;font-size:10.5px;color:var(--sub);margin-top:4px}
@@ -515,18 +518,18 @@ a.entry.ulink{display:block;text-decoration:none;color:inherit}
 .hcard select{font-size:12.5px;padding:4px 6px;border:1px solid #000;background:#fff;color:#000;border-radius:99px;min-width:88px}
 .hcard select.unset{color:var(--sub);border-color:var(--line)}
 .hcard select.ng{background:#d93636;border-color:#d93636;color:#fff;font-weight:700}
-.hatk{display:grid;grid-template-columns:1fr 1fr;gap:0 10px;padding:10px 0;border-bottom:1px solid var(--line)}
+.hatk,.hbot{display:grid;grid-template-columns:1fr 1fr;gap:0 10px;padding:2px 0}
 .hline{display:flex;align-items:center;justify-content:space-between;gap:5px;min-height:34px;font-size:11px;letter-spacing:-.02em;color:#000}
 .hline>span:first-child{white-space:nowrap}
 .hline.sub>span:first-child{color:var(--sub)}
 .hline.off{opacity:.45}
-.hatk .hline select{min-width:0;width:54px;padding:3px 4px}
+.hatk .hline select,.hbot .hline select{min-width:0;width:58px;padding:3px 4px}
+.hcard .hline select.imp{width:76px}
 .secin{display:inline-flex;align-items:center;gap:4px;font-size:12px;color:var(--sub)}
-.hatk .secin input{width:46px}
+.hatk .secin input,.hbot .secin input{width:46px}
 .secin input{width:58px;padding:4px 5px;border:1px solid #000;background:#fff;color:#000;font-size:12.5px}
-.hbot{display:flex;align-items:center;justify-content:space-between;gap:10px;padding-top:10px;flex-wrap:wrap}
-.hbot .hline{gap:10px}
-.hacts{display:flex;gap:6px;align-items:center;margin-left:auto}
+.hbot{align-items:end}
+.hacts{display:flex;gap:6px;align-items:center;justify-content:flex-end;flex-wrap:wrap;padding-bottom:2px}
 .hacts .sbtn{padding:4px 10px;min-height:32px}
 .hacts .sbtn:disabled{opacity:.3;box-shadow:none}
 @media(max-width:370px){.hatk{grid-template-columns:1fr}}
@@ -548,5 +551,3 @@ a.entry.ulink{display:block;text-decoration:none;color:inherit}
 .card .stars{font-size:9.5px;line-height:1;margin-top:3px;min-height:1em;color:var(--accent);letter-spacing:-.05em}
 .types button.off{opacity:1;background:#e9e9e9;border-color:#d4d4d4;color:#a8a8a8;box-shadow:none;cursor:not-allowed;transform:none}
 .types button.off small{font-size:10px}
-.himp{padding:6px 0;border-bottom:1px solid var(--line)}
-.himp select{width:96px}

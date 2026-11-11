@@ -229,28 +229,30 @@ function HeroCard({ h, first, last, save, move, remove, removeImage }: { h: Admi
           </select>
         </div>
       </div>
-      <div className="himp">
-        <ImpRow label="HS合わせ重要度" value={h.hsAttackImportance} dash onChange={(v) => save({ hsAttackImportance: v }, "HS合わせ重要度を保存しました")} />
-        <ImpRow label="HS被合わせ重要度" value={h.hsTargetImportance} onChange={(v) => save({ hsTargetImportance: v }, "HS被合わせ重要度を保存しました")} />
-      </div>
+      <div className="hsec">HS合わせ（攻撃）</div>
       <div className="hatk">
         <div>
+          <ImpRow label="重要度" aria="HS合わせ重要度" value={h.hsAttackImportance} dash onChange={(v) => save({ hsAttackImportance: v }, "HS合わせ重要度を保存しました")} />
           <AtkRow h={h} k="hs" save={save} />
           <div className={`hline sub ${h.ngAttacks.includes("hs") ? "off" : ""}`}>
             <span>└ ダメージ発生</span>
             <SecInput label="ダメージ発生" value={h.hsAttackTime} disabled={h.ngAttacks.includes("hs")} onCommit={(v) => save({ hsAttackTime: v }, "ダメージ発生の時間を保存しました")} />
           </div>
-          <AtkRow h={h} k="normal" save={save} />
         </div>
         <div>
+          <AtkRow h={h} k="normal" save={save} />
           <AtkRow h={h} k="action" save={save} />
           <AtkRow h={h} k="card" save={save} />
         </div>
       </div>
+      <div className="hsec">被HS合わせ（受）</div>
       <div className="hbot">
-        <div className="hline">
-          <span>無敵</span>
-          <SecInput label="無敵" value={h.hsInvincibleTime} onCommit={(v) => save({ hsInvincibleTime: v }, "無敵時間を保存しました")} />
+        <div>
+          <ImpRow label="重要度" aria="HS被合わせ重要度" value={h.hsTargetImportance} onChange={(v) => save({ hsTargetImportance: v }, "HS被合わせ重要度を保存しました")} />
+          <div className="hline">
+            <span>無敵</span>
+            <SecInput label="無敵" value={h.hsInvincibleTime} onCommit={(v) => save({ hsInvincibleTime: v }, "無敵時間を保存しました")} />
+          </div>
         </div>
         <div className="hacts">
           {h.imageUrl && <ArmedButton className="sbtn imgdel" label="画像を削除" armedLabel="削除する" onConfirm={removeImage} />}
@@ -268,11 +270,11 @@ function HeroCard({ h, first, last, save, move, remove, removeImage }: { h: Admi
 }
 
 /** 重要度（★1〜3。dash：「−」（対象外）も選べる） */
-function ImpRow({ label, value, dash, onChange }: { label: string; value: number | null; dash?: boolean; onChange: (v: number | null) => void }) {
+function ImpRow({ label, aria, value, dash, onChange }: { label: string; aria: string; value: number | null; dash?: boolean; onChange: (v: number | null) => void }) {
   return (
     <label className="hline">
       <span>{label}</span>
-      <select aria-label={label} className={value == null ? "unset" : ""} value={value ?? ""} onChange={(e) => onChange(e.target.value === "" ? null : Number(e.target.value))}>
+      <select aria-label={aria} className={`imp ${value == null ? "unset" : ""}`} value={value ?? ""} onChange={(e) => onChange(e.target.value === "" ? null : Number(e.target.value))}>
         <option value="">未入力</option>
         <option value="3">★★★</option>
         <option value="2">★★☆</option>
