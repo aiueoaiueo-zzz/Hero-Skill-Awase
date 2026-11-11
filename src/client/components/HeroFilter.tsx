@@ -7,7 +7,8 @@ export type HeroSort = "order" | "importance";
 export type PickKind = "attack" | "target";
 
 /** その画面で使う重要度（並べ替え用。★3〜1、「−」は 0、未入力は -1） */
-export const importanceOf = (h: Hero, kind: PickKind) => (kind === "attack" ? h.hsAttackImportance : h.hsTargetImportance) ?? -1;
+export const importanceOf = (h: Hero, kind: PickKind) =>
+  kind === "attack" ? (h.ngAttacks.includes("hs") ? 0 : (h.hsAttackImportance ?? -1)) : (h.hsTargetImportance ?? -1); // HS が不可なら「−」
 /** カードに出す ★（「−」は対象外、未入力は空） */
 export const starsOf = (h: Hero, kind: PickKind) => {
   const v = importanceOf(h, kind);

@@ -142,7 +142,7 @@ export function AdminHeroes() {
               <br />
               HS のダメージ発生（秒）と無敵時間（秒）を入れると、相手の無敵時間が自分のダメージ発生より短い組み合わせも、HS が「合わせ不可」になります（ヒーロースキルが「不可」のキャラはダメージ発生を入力できません）。
               <br />
-              ロールはキャラを選ぶ画面の「ロールで絞り込み」に使います。HS合わせ重要度（★1〜3・−）は攻撃する側（自分）を選ぶ画面の「HS合わせ重要度順」、HS被合わせ重要度（★1〜3）は相手を選ぶ画面の「HS被合わせ重要度順」の並べ替えに使います（−は★1の後、未入力は最後）。
+              ロールはキャラを選ぶ画面の「ロールで絞り込み」に使います。HS合わせ重要度（★1〜3・−。ヒーロースキルが不可なら「−」で固定）は攻撃する側（自分）を選ぶ画面の「HS合わせ重要度順」、HS被合わせ重要度（★1〜3）は相手を選ぶ画面の「HS被合わせ重要度順」の並べ替えに使います（−は★1の後、未入力は最後）。
               <br />
               キャラ名をタップすると開閉します。▲▼で並び順を入れ替えられます（トップ画面などの表示順になります）。キャラ画像は一般向けの画面には表示されません。
             </p>
@@ -196,6 +196,8 @@ type Save = (patch: Record<string, unknown>, msg: string) => Promise<boolean>;
 
 /** キャラ 1 体の編集カード（開いたときだけ出す）。変えたらすぐ保存 */
 function HeroCard({ h, first, last, save, move, remove, removeImage }: { h: AdminHero; first: boolean; last: boolean; save: Save; move: (dir: -1 | 1) => void; remove: () => void; removeImage: () => void }) {
+  // ヒーロースキルが不可なら、HS合わせ重要度は「−」で固定
+  const hsNg = h.ngAttacks.includes("hs");
   return (
     <div className="hcard">
       <div className="htop">
@@ -232,7 +234,7 @@ function HeroCard({ h, first, last, save, move, remove, removeImage }: { h: Admi
       <div className="hsec">HS合わせ（攻撃）</div>
       <div className="hatk">
         <div>
-          <ImpRow label="重要度" aria="HS合わせ重要度" value={h.hsAttackImportance} dash onChange={(v) => save({ hsAttackImportance: v }, "HS合わせ重要度を保存しました")} />
+          <ImpRow label="重要度" aria="HS合わせ重要度" value={hsNg ? 0 : h.hsAttackImportance} dash fixed={hsNg} onChange={(v) => save({ hsAttackImportance: v }, "HS合わせ重要度を保存しました")} />
           <AtkRow h={h} k="hs" save={save} />
           <div className={`hline sub ${h.ngAttacks.includes("hs") ? "off" : ""}`}>
             <span>└ ダメージ発生</span>
@@ -269,12 +271,12 @@ function HeroCard({ h, first, last, save, move, remove, removeImage }: { h: Admi
   );
 }
 
-/** 重要度（★1〜3。dash：「−」（対象外）も選べる） */
-function ImpRow({ label, aria, value, dash, onChange }: { label: string; aria: string; value: number | null; dash?: boolean; onChange: (v: number | null) => void }) {
+/** 重要度（★1〜3。dash：「−」（対象外）も選べる。fixed：変更できない） */
+function ImpRow({ label, aria, value, dash, fixed, onChange }: { label: string; aria: string; value: number | null; dash?: boolean; fixed?: boolean; onChange: (v: number | null) => void }) {
   return (
-    <label className="hline">
+    <label className={`hline ${fixed ? "off" : ""}`}>
       <span>{label}</span>
-      <select aria-label={aria} className={`imp ${value == null ? "unset" : ""}`} value={value ?? ""} onChange={(e) => onChange(e.target.value === "" ? null : Number(e.target.value))}>
+      <select aria-label={aria} className={`imp ${value == null ? "unset" : ""}`} value={value ?? ""} disabled={fixed} onChange={(e) => onChange(e.target.value === "" ? null : Number(e.target.value))}>
         <option value="">未入力</option>
         <option value="3">★★★</option>
         <option value="2">★★☆</option>
