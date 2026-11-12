@@ -6,6 +6,7 @@ import { Avatar } from "../../components/Avatar";
 import { api, ApiError, useApi } from "../../lib/api";
 import { useData } from "../../lib/data";
 import { useBootFx } from "../../lib/fx";
+import { sniffImageType } from "../../lib/image";
 import { toast } from "../../lib/ui";
 import { AdminLayout, adminErrorMessage } from "./AdminLayout";
 import { HeroSearch, matchHero, useHeroQuery } from "./HeroSearch";
@@ -20,8 +21,10 @@ const ERRORS: Record<string, string> = {
 const errMsg = (e: unknown) =>
   e instanceof ApiError ? (ERRORS[e.message] ?? (e.status === 400 ? "入力内容を確認してください（slug は英小文字・数字・ハイフン）" : "操作に失敗しました")) : "操作に失敗しました";
 
-/** 画像を読み込む。createImageBitmap（向きの情報も反映）→ だめなら <img> で読む */
-async function decodeImage(file: File): Promise<{ src: CanvasImageSource; w: number; h: number }> {
+/** 画像を読み込む。中身の形式で読み直し、createImageBitmap（向きの情報も反映）→ だめなら <img> で読む */
+async function decodeImage(input: File): Promise<{ src: CanvasImageSource; w: number; h: number }> {
+  const type = await sniffImageType(input).catch(() => null);
+  const file = type && type !== input.type ? new Blob([input], { type }) : input;
   try {
     const bmp = await createImageBitmap(file);
     return { src: bmp, w: bmp.width, h: bmp.height };
@@ -161,15 +164,18 @@ export function AdminHeroes() {
     if (!file) return;
     let blob: Blob;
     // どこで失敗したか分かるように、形式と大きさを添えて知らせる
-    const info = `形式：${file.type || file.name.split(".").pop() || "不明"}・${Math.max(1, Math.round(file.size / 1024))}KB`;
+    const sniffed = await sniffImageType(file).catch(() => null);
+    const info = `${file.name || "名前なし"}・形式：${file.type || "不明"}${sniffed && sniffed !== file.type ? `（中身は ${sniffed}）` : ""}・${Math.max(1, Math.round(file.size / 1024))}KB`;
     try {
       blob = await resizeImage(file);
     } catch (e) {
-      const heic = /heic|heif/i.test(file.type + file.name);
+      const heic = sniffed === "image/heic" || /heic|heif/i.test(file.type + file.name);
       return toast(
         heic
           ? `HEIC の画像はこのブラウザで読み込めませんでした（${info}）。JPEG か PNG で保存し直してください`
-          : `画像を読み込めませんでした（${info}${e instanceof Error && e.message === "encode_failed" ? "・変換に失敗" : ""}）。PNG か JPEG で保存し直してお試しください`,
+          : !sniffed
+            ? `画像ファイルではないようです（${info}）。お絵描きアプリの作品ファイルではなく、PNG か JPEG で書き出した画像を選んでください`
+            : `画像を読み込めませんでした（${info}${e instanceof Error && e.message === "encode_failed" ? "・変換に失敗" : ""}）。PNG か JPEG で保存し直してお試しください`,
       );
     }
     try {

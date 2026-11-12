@@ -7,7 +7,8 @@ export function toast(message: string) {
   el.textContent = message;
   el.classList.add("show");
   clearTimeout(toastTimer);
-  toastTimer = setTimeout(() => el.classList.remove("show"), 2000);
+  // 長い文は読み終わるまで出しておく
+  toastTimer = setTimeout(() => el.classList.remove("show"), Math.min(8000, Math.max(2000, message.length * 90)));
 }
 
 export async function copyText(text: string, done = "コピーしました", fail = "コピーできませんでした") {
