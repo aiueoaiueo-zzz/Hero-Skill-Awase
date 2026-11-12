@@ -15,36 +15,55 @@ const ERRORS: Record<string, string> = {
   duplicate_slug: "同じ slug のキャラがすでにいます",
   invalid_type: "画像の形式に対応していません",
   invalid_size: "画像が大きすぎます",
+  images_disabled: "画像の設定が止まっています（管理画面が古いままの可能性があります）",
 };
 const errMsg = (e: unknown) =>
   e instanceof ApiError ? (ERRORS[e.message] ?? (e.status === 400 ? "入力内容を確認してください（slug は英小文字・数字・ハイフン）" : "操作に失敗しました")) : "操作に失敗しました";
 
-/** 画像を正方形に切り抜いて 256×256 の WebP に縮小する（WebP を作れないブラウザでは JPEG） */
-async function resizeImage(file: File): Promise<Blob> {
+/** 画像を読み込む。createImageBitmap（向きの情報も反映）→ だめなら <img> で読む */
+async function decodeImage(file: File): Promise<{ src: CanvasImageSource; w: number; h: number }> {
+  try {
+    const bmp = await createImageBitmap(file);
+    return { src: bmp, w: bmp.width, h: bmp.height };
+  } catch {
+    // 古いブラウザ・一部の形式は <img> の方が読める
+  }
   const url = URL.createObjectURL(file);
   try {
     const img = await new Promise<HTMLImageElement>((res, rej) => {
       const i = new Image();
       i.onload = () => res(i);
-      i.onerror = rej;
+      i.onerror = () => rej(new Error("decode_failed"));
       i.src = url;
     });
-    const S = 256;
-    const c = document.createElement("canvas");
-    c.width = c.height = S;
-    const s = Math.min(img.naturalWidth, img.naturalHeight);
-    const ctx = c.getContext("2d")!;
-    ctx.imageSmoothingQuality = "high";
-    ctx.drawImage(img, (img.naturalWidth - s) / 2, (img.naturalHeight - s) / 2, s, s, 0, 0, S, S);
-    const toBlob = (type: string) => new Promise<Blob | null>((r) => c.toBlob(r, type, 0.85));
-    const webp = await toBlob("image/webp");
-    if (webp && webp.type === "image/webp") return webp;
-    const jpg = await toBlob("image/jpeg");
-    if (!jpg) throw new Error("encode_failed");
-    return jpg;
+    if (img.decode) await img.decode().catch(() => {});
+    return { src: img, w: img.naturalWidth, h: img.naturalHeight };
   } finally {
-    URL.revokeObjectURL(url);
+    // 描画が終わるまで URL は必要なので、少し待ってから解放する
+    setTimeout(() => URL.revokeObjectURL(url), 10000);
   }
+}
+
+/** 画像を正方形に切り抜いて 256×256 の WebP に縮小する（WebP を作れないブラウザでは JPEG） */
+async function resizeImage(file: File): Promise<Blob> {
+  const { src, w, h } = await decodeImage(file);
+  if (!w || !h) throw new Error("decode_failed");
+  const S = 256;
+  const c = document.createElement("canvas");
+  c.width = c.height = S;
+  const s = Math.min(w, h);
+  const ctx = c.getContext("2d");
+  if (!ctx) throw new Error("encode_failed");
+  ctx.fillStyle = "#fff"; // 透明な部分は白にする（JPEG になったときに黒くならないように）
+  ctx.fillRect(0, 0, S, S);
+  ctx.imageSmoothingQuality = "high";
+  ctx.drawImage(src, (w - s) / 2, (h - s) / 2, s, s, 0, 0, S, S);
+  const toBlob = (type: string) => new Promise<Blob | null>((r) => c.toBlob(r, type, 0.85));
+  const webp = await toBlob("image/webp");
+  if (webp && webp.type === "image/webp") return webp;
+  const jpg = await toBlob("image/jpeg");
+  if (!jpg) throw new Error("encode_failed");
+  return jpg;
 }
 
 /** 1 回目で確認の表示に変わり、2.5 秒以内にもう一度押すと実行（試作版 armed） */
@@ -141,20 +160,31 @@ export function AdminHeroes() {
   const setImage = async (h: AdminHero, file: File | undefined) => {
     if (!file) return;
     let blob: Blob;
+    // どこで失敗したか分かるように、形式と大きさを添えて知らせる
+    const info = `形式：${file.type || file.name.split(".").pop() || "不明"}・${Math.max(1, Math.round(file.size / 1024))}KB`;
     try {
       blob = await resizeImage(file);
-    } catch {
-      return toast("画像を読み込めませんでした");
+    } catch (e) {
+      const heic = /heic|heif/i.test(file.type + file.name);
+      return toast(
+        heic
+          ? `HEIC の画像はこのブラウザで読み込めませんでした（${info}）。JPEG か PNG で保存し直してください`
+          : `画像を読み込めませんでした（${info}${e instanceof Error && e.message === "encode_failed" ? "・変換に失敗" : ""}）。PNG か JPEG で保存し直してお試しください`,
+      );
     }
-    await run(
-      async () => {
-        const res = await fetch(`/api/admin/heroes/${h.id}/image`, { method: "PUT", headers: { "Content-Type": blob.type }, body: blob });
-        const data = await res.json().catch(() => ({}));
-        if (!res.ok) throw new ApiError(res.status, data.error || "error");
-        return data;
-      },
-      "画像を設定しました",
-    );
+    try {
+      const res = await fetch(`/api/admin/heroes/${h.id}/image`, { method: "PUT", headers: { "Content-Type": blob.type }, body: blob });
+      const data = (await res.json().catch(() => ({}))) as { error?: string; heroes?: AdminHero[] };
+      if (!res.ok || !data.heroes) {
+        const code = data.error || `HTTP ${res.status}`;
+        return toast(`${ERRORS[code] ?? "画像を保存できませんでした"}（${code}）`);
+      }
+      setHeroes(data.heroes);
+      await reload();
+      toast("画像を設定しました");
+    } catch {
+      toast("画像を送信できませんでした。通信状況を確認して、もう一度お試しください");
+    }
   };
   const add = async () => {
     const items = bulk
