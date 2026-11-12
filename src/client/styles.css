@@ -594,3 +594,8 @@ img.av{object-fit:cover;background:#ddd}
 .hico .imgbtn{display:block;font-size:10px;margin:3px auto 0;padding:1px 0;border:1px solid #000;background:#fff;color:#000;width:56px;cursor:pointer}
 .hico .imgdel2{color:#d93636;border-color:#d93636}
 .hico .imgdel2.armed{background:#d93636;color:#fff}
+.ngmark.part{background:#fff;color:#d93636;border:1px solid #d93636;padding:0 3px}
+/* 管理：キャラ管理の使い方（開閉） */
+.hhelp{padding:10px 12px}
+.hhelp summary{cursor:pointer;font-size:13px;font-weight:700}
+.hhelp ul{margin:8px 0 0;padding-left:1.2em;font-size:12px;line-height:1.7;color:var(--sub)}

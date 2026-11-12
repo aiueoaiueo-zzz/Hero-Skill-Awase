@@ -25,6 +25,8 @@ export function Targets() {
   const to = (h: { slug: string }) => `/h/${attacker.slug}/${h.slug}`;
   // 自分の HS のダメージ発生が、相手の HS の無敵時間に（どの場面でも）間に合わない相手（HS が不可のキャラなら出さない）
   const ng = new Set(heroes.filter((h) => hsJudge(attacker, h)?.all).map((h) => h.id));
+  // 一部の場面（例：1,2回目）だけ間に合わない相手（docs/DECISIONS.md AJ）
+  const partial = new Set(heroes.filter((h) => hsJudge(attacker, h)?.all === false).map((h) => h.id));
   const preload = (h: { slug: string }) => `/api/pairs/${encodeURIComponent(attacker.slug)}/${encodeURIComponent(h.slug)}`;
   return (
     <>
@@ -34,13 +36,13 @@ export function Targets() {
       {w.length > 0 && (
         <>
           <div className="sec">登録済み</div>
-          <HeroGrid heroes={w} to={to} preload={preload} ng={ng} stars={f.sort === "importance" ? "target" : undefined} />
+          <HeroGrid heroes={w} to={to} preload={preload} ng={ng} partial={partial} stars={f.sort === "importance" ? "target" : undefined} />
         </>
       )}
       {wo.length > 0 && (
         <>
           <div className="sec">未登録</div>
-          <HeroGrid heroes={wo} to={to} preload={preload} ng={ng} stars={f.sort === "importance" ? "target" : undefined} />
+          <HeroGrid heroes={wo} to={to} preload={preload} ng={ng} partial={partial} stars={f.sort === "importance" ? "target" : undefined} />
         </>
       )}
       {!list.length && <div className="empty">該当するキャラがいません</div>}
