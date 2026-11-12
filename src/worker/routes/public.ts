@@ -162,15 +162,18 @@ publicRoutes.get("/users/:xid", async (c) => {
   const u = r.users.get(k);
   const excluded = r.excluded.has(k);
   if (!u && !timings.length) return c.json({ error: "not_found" }, 404);
-  const active = r.view.total !== null;
+  const active = r.view.total !== null || !!r.view.event?.rows;
+  const evRank = r.view.event?.rows ? (r.event?.rows.find((x) => x.xId.toLowerCase() === k)?.rank ?? null) : null;
   return c.json<UserResponse>({
     xId: u?.xId ?? xid,
     total: u?.total ?? 0,
     month: u?.month ?? 0,
     badge: u ? badgeFor(u.total) : null,
-    rankTotal: active ? (r.total.find((x) => x.xId.toLowerCase() === k)?.rank ?? null) : null,
+    rankTotal: r.view.total ? (r.total.find((x) => x.xId.toLowerCase() === k)?.rank ?? null) : null,
     rankMonth: r.view.month ? (r.month.find((x) => x.xId.toLowerCase() === k)?.rank ?? null) : null,
     rankingActive: active,
+    event: r.event ? { name: r.event.info.name, points: u?.event ?? 0, rank: evRank } : null,
+    showMonth: r.show.month,
     excluded,
     // 複数の応援コードが見つかったときは出さない（どれが本人のものか分からないため）
     supportCode: codes.results.length === 1 ? codes.results[0].code : null,

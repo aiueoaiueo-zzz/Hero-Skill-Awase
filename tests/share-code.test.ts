@@ -176,3 +176,13 @@ describe("確認用サイトに入れる SQL の並べ替え", () => {
     expect(reorderSql(sql)).toContain("'it''s\n;ok'");
   });
 });
+
+import { eventWindow } from "../src/worker/lib/ranking";
+
+describe("イベントランキングの期間", () => {
+  it("日本時間の開始日 0 時から、終了日の翌日 0 時まで", () => {
+    const w = eventWindow("2026-11-21", "2026-12-18");
+    expect(new Date(w.start).toISOString()).toBe("2026-11-20T15:00:00.000Z");
+    expect(new Date(w.end).toISOString()).toBe("2026-12-18T15:00:00.000Z");
+  });
+});

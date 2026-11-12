@@ -81,6 +81,9 @@ export const settingsSchema = z.object({
   about: z.string().max(20000).optional(),
   terms: z.string().max(20000).optional(),
   ranking_excluded: z.string().max(3000).optional(),
+  ranking_show_total: z.enum(["0", "1"]).optional(),
+  ranking_show_month: z.enum(["0", "1"]).optional(),
+  ranking_show_event: z.enum(["0", "1"]).optional(),
 });
 
 // キャラ管理

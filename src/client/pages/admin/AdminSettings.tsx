@@ -18,6 +18,8 @@ export function AdminSettings() {
   const [about, setAbout] = useState("");
   const [terms, setTerms] = useState("");
   const [excluded, setExcluded] = useState("");
+  // ランキングの公開・非公開（変えたらすぐ保存）
+  const [shows, setShows] = useState<Partial<Settings>>({});
   const [preview, setPreview] = useState<string | null>(null);
   const [previewTerms, setPreviewTerms] = useState<string | null>(null);
   useEffect(() => {
@@ -27,6 +29,7 @@ export function AdminSettings() {
     setAbout(data.about);
     setTerms(data.terms);
     setExcluded(data.ranking_excluded);
+    setShows({ ranking_show_total: data.ranking_show_total, ranking_show_month: data.ranking_show_month, ranking_show_event: data.ranking_show_event });
   }, [data]);
   useBootFx(!!data || !!error);
 
@@ -55,6 +58,41 @@ export function AdminSettings() {
               <button className="sbtn ok" style={{ whiteSpace: "nowrap" }} onClick={() => save({ owner_support_code: own.trim() }, "保存しました")}>
                 保存
               </button>
+            </div>
+          </div>
+          <div className="box">
+            <p>
+              <b style={{ color: "var(--text)" }}>ランキングの公開・非公開</b>
+              <br />
+              イベントの期間中は、イベントランキングだけを出します（累計・今月は隠れます）。期間外は、公開にしたものを出します。ポイントの集計とバッジは、非公開でも続きます。
+            </p>
+            <div className="rkshow">
+              {(
+                [
+                  ["ranking_show_event", "イベントランキング", "イベント期間中のポイント"],
+                  ["ranking_show_total", "累計ランキング", "これまでの全ポイント"],
+                  ["ranking_show_month", "今月のランキング", "今月（日本時間）のポイント"],
+                ] as const
+              ).map(([k, label, note]) => (
+                <label key={k} className="rkrow">
+                  <span>
+                    <b>{label}</b>
+                    <small>{note}</small>
+                  </span>
+                  <select
+                    id={`rk-${k}`}
+                    className={shows[k] === "1" ? "on" : ""}
+                    value={shows[k] ?? data[k]}
+                    onChange={(e) => {
+                      setShows((s) => ({ ...s, [k]: e.target.value }));
+                      save({ [k]: e.target.value }, `${label}を${e.target.value === "1" ? "公開" : "非公開"}にしました`);
+                    }}
+                  >
+                    <option value="1">公開</option>
+                    <option value="0">非公開</option>
+                  </select>
+                </label>
+              ))}
             </div>
           </div>
           <div className="box">

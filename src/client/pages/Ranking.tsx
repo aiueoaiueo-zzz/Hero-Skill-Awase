@@ -6,7 +6,13 @@ import { NotYet, RankList } from "../components/RankBits";
 import { useApi } from "../lib/api";
 import { PROG, useBootFx } from "../lib/fx";
 
-/** ランキング（今月・累計）と、参加の注意事項・バッジの種類 */
+const WEEK = ["日", "月", "火", "水", "木", "金", "土"];
+const md = (d: string) => {
+  const t = new Date(d + "T00:00:00Z");
+  return `${t.getUTCMonth() + 1}/${t.getUTCDate()}（${WEEK[t.getUTCDay()]}）`;
+};
+
+/** ランキング（イベント期間中はイベントだけ。それ以外は公開にしたもの）と、参加の注意事項・バッジの種類（docs/DECISIONS.md AM） */
 export function Ranking() {
   const nav = useNavigate();
   const { data, error } = useApi<RankingResponse>("/api/ranking");
@@ -17,14 +23,30 @@ export function Ranking() {
       {error && <div className="empty">読み込みに失敗しました</div>}
       {data && (
         <>
-          <div className="box">
-            <p className="bt">今月のランキング</p>
-            {data.month ? <RankList rows={data.month} /> : <NotYet />}
-          </div>
-          <div className="box">
-            <p className="bt">累計ランキング</p>
-            {data.total ? <RankList rows={data.total} /> : <NotYet />}
-          </div>
+          {data.event && (
+            <div className="box">
+              <p className="bt">
+                {data.event.name} ランキング
+                <small className="rkperiod">
+                  {md(data.event.startsOn)}〜{md(data.event.endsOn)}
+                </small>
+              </p>
+              {data.event.rows ? <RankList rows={data.event.rows} /> : <NotYet />}
+            </div>
+          )}
+          {data.mode === "normal" && data.show.total && (
+            <div className="box">
+              <p className="bt">累計ランキング</p>
+              {data.total ? <RankList rows={data.total} /> : <NotYet />}
+            </div>
+          )}
+          {data.mode === "normal" && data.show.month && (
+            <div className="box">
+              <p className="bt">今月のランキング</p>
+              {data.month ? <RankList rows={data.month} /> : <NotYet />}
+            </div>
+          )}
+          {data.mode === "normal" && !data.show.total && !data.show.month && <div className="empty">ランキングは現在お休み中です</div>}
           <div className="links">
             <button onClick={() => nav("/submit")}>＋ 投稿する</button>
           </div>

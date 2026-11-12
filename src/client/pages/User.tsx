@@ -57,13 +57,24 @@ export function User() {
                   {data.rankTotal && <small>（{data.rankTotal}位）</small>}
                 </dd>
               </div>
-              <div>
-                <dt>今月</dt>
-                <dd>
-                  {fmtPoints(data.month)}pt
-                  {data.rankMonth && <small>（{data.rankMonth}位）</small>}
-                </dd>
-              </div>
+              {data.event && (
+                <div>
+                  <dt>{data.event.name}</dt>
+                  <dd>
+                    {fmtPoints(data.event.points)}pt
+                    {data.event.rank && <small>（{data.event.rank}位）</small>}
+                  </dd>
+                </div>
+              )}
+              {data.showMonth && !data.event && (
+                <div>
+                  <dt>今月</dt>
+                  <dd>
+                    {fmtPoints(data.month)}pt
+                    {data.rankMonth && <small>（{data.rankMonth}位）</small>}
+                  </dd>
+                </div>
+              )}
             </dl>
             {data.supportCode && (
               <div className="ub-code">
