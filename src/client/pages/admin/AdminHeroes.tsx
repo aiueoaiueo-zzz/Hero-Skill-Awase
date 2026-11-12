@@ -19,6 +19,34 @@ const ERRORS: Record<string, string> = {
 const errMsg = (e: unknown) =>
   e instanceof ApiError ? (ERRORS[e.message] ?? (e.status === 400 ? "入力内容を確認してください（slug は英小文字・数字・ハイフン）" : "操作に失敗しました")) : "操作に失敗しました";
 
+/** 画像を正方形に切り抜いて 256×256 の WebP に縮小する（WebP を作れないブラウザでは JPEG） */
+async function resizeImage(file: File): Promise<Blob> {
+  const url = URL.createObjectURL(file);
+  try {
+    const img = await new Promise<HTMLImageElement>((res, rej) => {
+      const i = new Image();
+      i.onload = () => res(i);
+      i.onerror = rej;
+      i.src = url;
+    });
+    const S = 256;
+    const c = document.createElement("canvas");
+    c.width = c.height = S;
+    const s = Math.min(img.naturalWidth, img.naturalHeight);
+    const ctx = c.getContext("2d")!;
+    ctx.imageSmoothingQuality = "high";
+    ctx.drawImage(img, (img.naturalWidth - s) / 2, (img.naturalHeight - s) / 2, s, s, 0, 0, S, S);
+    const toBlob = (type: string) => new Promise<Blob | null>((r) => c.toBlob(r, type, 0.85));
+    const webp = await toBlob("image/webp");
+    if (webp && webp.type === "image/webp") return webp;
+    const jpg = await toBlob("image/jpeg");
+    if (!jpg) throw new Error("encode_failed");
+    return jpg;
+  } finally {
+    URL.revokeObjectURL(url);
+  }
+}
+
 /** 1 回目で確認の表示に変わり、2.5 秒以内にもう一度押すと実行（試作版 armed） */
 export function ArmedButton({ className, label, armedLabel, onConfirm, ...rest }: { className: string; label: ReactNode; armedLabel: string; onConfirm: () => void; "aria-label"?: string }) {
   const [armed, setArmed] = useState(false);
@@ -110,6 +138,24 @@ export function AdminHeroes() {
     await run(call(`/api/admin/heroes/${h.id}/move`, "POST", { dir }));
     requestAnimationFrame(() => rows.current.get(h.id)?.scrollIntoView({ block: "center" }));
   };
+  const setImage = async (h: AdminHero, file: File | undefined) => {
+    if (!file) return;
+    let blob: Blob;
+    try {
+      blob = await resizeImage(file);
+    } catch {
+      return toast("画像を読み込めませんでした");
+    }
+    await run(
+      async () => {
+        const res = await fetch(`/api/admin/heroes/${h.id}/image`, { method: "PUT", headers: { "Content-Type": blob.type }, body: blob });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) throw new ApiError(res.status, data.error || "error");
+        return data;
+      },
+      "画像を設定しました",
+    );
+  };
   const add = async () => {
     const items = bulk
       .split("\n")
@@ -148,7 +194,7 @@ export function AdminHeroes() {
               <br />
               ロールはキャラを選ぶ画面の「ロールで絞り込み」に使います。HS合わせ適性（★1〜3・−。ヒーロースキルが不可なら「−」で固定）は攻撃する側（自分）を選ぶ画面の「HS合わせ適性順」、HS警戒度（★1〜3）は相手を選ぶ画面の「HS警戒度順」の並べ替えに使います（−は★1の後、未入力は最後）。
               <br />
-              キャラ名をタップすると開閉します。▲▼で並び順を入れ替えられます（トップ画面などの表示順になります）。キャラ画像は一般向けの画面には表示されません。
+              キャラ名をタップすると開閉します。▲▼で並び順を入れ替えられます（トップ画面などの表示順になります）。アイコンは左上の画像（または名前のカード）をタップして選びます。正方形に切り抜いて 256×256 に縮小して保存し、一般向けの画面にも表示します（未設定のキャラは名前のカード）。
             </p>
           </div>
           <HeroSearch c={cond} set={setCond} shown={heroes.filter((h) => matchHero(h, cond)).length} total={heroes.length} />
@@ -175,6 +221,7 @@ export function AdminHeroes() {
                   move={(dir) => move(h, dir)}
                   remove={() => run(call(`/api/admin/heroes/${h.id}`, "DELETE"), "削除しました")}
                   removeImage={() => run(call(`/api/admin/heroes/${h.id}/image`, "DELETE"), "画像を削除しました")}
+                  setImage={(f) => setImage(h, f)}
                 />
               )}
             </div>
@@ -201,15 +248,28 @@ export function AdminHeroes() {
 type Save = (patch: Record<string, unknown>, msg: string) => Promise<boolean>;
 
 /** キャラ 1 体の編集カード（開いたときだけ出す）。変えたらすぐ保存 */
-function HeroCard({ h, first, last, save, move, remove, removeImage }: { h: AdminHero; first: boolean; last: boolean; save: Save; move: (dir: -1 | 1) => void; remove: () => void; removeImage: () => void }) {
+function HeroCard({ h, first, last, save, move, remove, removeImage, setImage }: { h: AdminHero; first: boolean; last: boolean; save: Save; move: (dir: -1 | 1) => void; remove: () => void; removeImage: () => void; setImage: (f: File | undefined) => void }) {
   // ヒーロースキルが不可なら、HS合わせ適性は「−」で固定
   const hsNg = h.ngAttacks.includes("hs");
   return (
     <div className="hcard">
       <div className="htop">
-        {/* キャラ画像は権利への配慮で使わないため、追加はできない（登録済みの画像は「画像を削除」で外せる） */}
+        {/* アイコン：タップして画像を選ぶ（正方形に切り抜いて 256×256 に縮小。docs/DECISIONS.md AI） */}
         <div className="hico">
-          <Avatar hero={h} showImage />
+          <label className="imgpick" aria-label={`${h.name}のアイコンを設定`}>
+            <Avatar hero={h} />
+            <span className="imgbtn">{h.imageUrl ? "変更" : "画像を選ぶ"}</span>
+            <input
+              type="file"
+              accept="image/*"
+              hidden
+              onChange={(e) => {
+                setImage(e.target.files?.[0]);
+                e.target.value = "";
+              }}
+            />
+          </label>
+          {h.imageUrl && <ArmedButton className="imgbtn imgdel2" label="画像を外す" armedLabel="外す" onConfirm={removeImage} />}
           <div className="slug">
             /h/
             <InlineInput aria-label="slug" value={h.slug} onCommit={(v) => save({ slug: v }, "保存しました")} />
@@ -265,7 +325,6 @@ function HeroCard({ h, first, last, save, move, remove, removeImage }: { h: Admi
           <ImpRow label="HS警戒度" aria="HS警戒度" value={h.hsTargetImportance} onChange={(v) => save({ hsTargetImportance: v }, "HS警戒度を保存しました")} />
         </div>
         <div className="hacts">
-          {h.imageUrl && <ArmedButton className="sbtn imgdel" label="画像を削除" armedLabel="削除する" onConfirm={removeImage} />}
           <button className="sbtn" disabled={first} aria-label="上へ" onClick={() => move(-1)}>
             ▲
           </button>

@@ -2,7 +2,6 @@ import { HERO_ROLES, NG_ATTACK_TYPES, type HeroRole, type NgAttackType } from ".
 import type { Hero, HsInvincible } from "../../shared/types";
 import type { Env } from "../env";
 import { mediaUrl } from "./media";
-import { appRole } from "./role";
 
 export type HeroRow = {
   id: string;
@@ -55,8 +54,8 @@ export const toHero = (env: Env, r: HeroRow): Hero => ({
   role: HERO_ROLES.some(([k]) => k === r.role) ? (r.role as HeroRole) : null,
   hsAttackImportance: [0, 1, 2, 3].includes(r.hs_attack_importance ?? -1) ? (r.hs_attack_importance as 0 | 1 | 2 | 3) : null,
   hsTargetImportance: r.hs_importance === 1 || r.hs_importance === 2 || r.hs_importance === 3 ? r.hs_importance : null,
-  // 一般向けにはキャラ画像を出さない（権利への配慮。画面ではキャラ名のカードを使う）。管理画面だけ画像を確認できる
-  imageUrl: appRole(env) === "public" ? null : mediaUrl(env, r.image_key),
+  // キャラ画像（アイコン）。登録されていなければ null（画面ではキャラ名のカードを出す。docs/DECISIONS.md AI）
+  imageUrl: mediaUrl(env, r.image_key),
 });
 
 export const listHeroes = async (env: Env): Promise<Hero[]> => {
