@@ -175,3 +175,24 @@ export const ROLE_LABEL: Record<HeroRole, string> = Object.fromEntries(HERO_ROLE
 /** キャラごとに「合わせ可／不可」を決める攻撃方法（「その他」は常に可） */
 export const NG_ATTACK_TYPES = ["hs", "normal", "action", "card"] as const;
 export type NgAttackType = (typeof NG_ATTACK_TYPES)[number];
+
+/** キャラ選択の並び順に使う ★ の名前と説明（docs/DECISIONS.md AF）。attack：自分の選択／target：相手の選択 */
+export const HS_RATING = {
+  attack: {
+    name: "HS合わせ適性",
+    help: [
+      "HS で相手の HS 明けに合わせたときの強さです。次の 3 つを総合して ★1〜3 をつけています。",
+      "・合わせやすさ（ダメージ発生の速さ・相手との距離）\n・ダメージの大きさ\n・ダウンが取れるか",
+      "HS が確殺・超ダメージのキャラほど ★ が多くなります。「−」は HS で合わせられないキャラです。",
+      "相手の HS に合わせて、試合を有利に運びましょう。",
+    ],
+  },
+  target: {
+    name: "HS警戒度",
+    help: [
+      "HS が試合の起点になるキャラほど ★ が多くなります。",
+      "自分の強化・味方の強化をしたり、相手が攻めてくるきっかけになったりする HS です。",
+      "HS 明けを狙って合わせ、相手の流れを止めましょう。",
+    ],
+  },
+} as const;

@@ -38,7 +38,7 @@ export function matchHero(h: AdminHero, c: HeroQuery) {
     const want = c.atk[k];
     if (want && (want === "ng") !== h.ngAttacks.includes(k)) return false;
   }
-  // ヒーロースキルが不可なら HS合わせ重要度は「−」（0）扱い
+  // ヒーロースキルが不可なら HS合わせ適性は「−」（0）扱い
   if (!impMatch(h.ngAttacks.includes("hs") ? 0 : h.hsAttackImportance, c.atkImp)) return false;
   if (c.atkTime && (c.atkTime === "set") !== (h.hsAttackTime != null)) return false;
   if (!impMatch(h.hsTargetImportance, c.tgtImp)) return false;
@@ -91,7 +91,7 @@ export function HeroSearch({ c, set, shown, total }: { c: HeroQuery; set: (c: He
             <option value="none">未入力</option>
           </Cond>
           <div className="hsgroup">HS合わせ（攻撃）</div>
-          <Cond label="重要度" value={c.atkImp} onChange={(v) => p({ atkImp: v })}>
+          <Cond label="HS合わせ適性" value={c.atkImp} onChange={(v) => p({ atkImp: v })}>
             <ImpOptions dash />
           </Cond>
           {NG_ATTACK_TYPES.map((k) => (
@@ -105,7 +105,7 @@ export function HeroSearch({ c, set, shown, total }: { c: HeroQuery; set: (c: He
             <option value="none">未入力</option>
           </Cond>
           <div className="hsgroup">被HS合わせ（受）</div>
-          <Cond label="重要度" value={c.tgtImp} onChange={(v) => p({ tgtImp: v })}>
+          <Cond label="HS警戒度" value={c.tgtImp} onChange={(v) => p({ tgtImp: v })}>
             <ImpOptions />
           </Cond>
           <Cond label="無敵" value={c.inv} onChange={(v) => p({ inv: v as HeroQuery["inv"] })}>
