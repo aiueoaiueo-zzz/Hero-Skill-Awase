@@ -1,9 +1,9 @@
 import { useState } from "react";
-import { HERO_ROLES, type HeroRole } from "../../shared/constants";
+import { HERO_ROLES, HS_RATING, type HeroRole } from "../../shared/constants";
 import type { Hero } from "../../shared/types";
 
 export type HeroSort = "order" | "importance";
-/** attack：攻撃する側の選択（HS合わせ重要度）／target：相手の選択（HS被合わせ重要度） */
+/** attack：攻撃する側の選択（HS合わせ適性）／target：相手の選択（HS警戒度） */
 export type PickKind = "attack" | "target";
 
 /** その画面で使う重要度（並べ替え用。★3〜1、「−」は 0、未入力は -1） */
@@ -14,7 +14,6 @@ export const starsOf = (h: Hero, kind: PickKind) => {
   const v = importanceOf(h, kind);
   return v < 0 ? "" : v === 0 ? "−" : "★".repeat(v) + "☆".repeat(3 - v);
 };
-const SORT_LABEL: Record<PickKind, string> = { attack: "HS合わせ重要度順", target: "HS被合わせ重要度順" };
 type State = { role: HeroRole | null; sort: HeroSort };
 
 // 画面を行き来しても選んだ絞り込み・並び順を保つ（ロールは 2 画面で共通、並び順は重要度の意味が違うので画面ごと）
@@ -39,6 +38,8 @@ export function useHeroFilter(kind: PickKind) {
 }
 
 export function HeroFilter({ role, sort, kind, set }: { role: HeroRole | null; sort: HeroSort; kind: PickKind; set: (p: Partial<State>) => void }) {
+  const [info, setInfo] = useState(false);
+  const r = HS_RATING[kind];
   return (
     <div className="hfilter">
       <div className="hfrow">
@@ -47,9 +48,20 @@ export function HeroFilter({ role, sort, kind, set }: { role: HeroRole | null; s
           実装順
         </button>
         <button className={sort === "importance" ? "on" : ""} onClick={() => set({ sort: "importance" })}>
-          {SORT_LABEL[kind]}
+          {r.name}順
+        </button>
+        <button className={`info ${info ? "on" : ""}`} aria-label={`${r.name}とは`} aria-expanded={info} onClick={() => setInfo(!info)}>
+          ⓘ
         </button>
       </div>
+      {info && (
+        <div className="hinfo">
+          <b>{r.name}とは</b>
+          {r.help.map((t, i) => (
+            <p key={i}>{t}</p>
+          ))}
+        </div>
+      )}
       <div className="hfrow roles">
         <button className={!role ? "on" : ""} onClick={() => set({ role: null })}>
           全ロール

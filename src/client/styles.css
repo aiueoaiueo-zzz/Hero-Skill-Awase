@@ -571,3 +571,9 @@ a.entry.ulink{display:block;text-decoration:none;color:inherit}
 .hsconds .hsgroup{grid-column:1/-1;font-size:12px;font-weight:800;margin:8px 0 0;padding-top:6px;border-top:1px solid var(--line)}
 .hsconds .hline select{font-size:12px;padding:3px 4px;border:1px solid var(--line);background:#fff;color:#000;border-radius:99px;width:120px}
 .hsconds .hline.set select{border-color:#000;font-weight:700}
+/* キャラ選択の並び順の説明（ⓘ） */
+.hfrow button.info{width:28px;padding:4px 0;border-radius:50%;font-size:13px;line-height:1;text-align:center}
+.hinfo{background:#fff;border:1px solid #000;padding:10px 12px;font-size:12px;line-height:1.7;color:#000}
+.hinfo b{display:block;font-size:13px;margin-bottom:4px}
+.hinfo p{margin:0 0 4px;white-space:pre-line}
+.hinfo p:last-child{margin:0}

@@ -146,7 +146,7 @@ export function AdminHeroes() {
               <br />
               HS のダメージ発生（秒）と無敵時間（秒）を入れると、相手の無敵時間が自分のダメージ発生より短い組み合わせも、HS が「合わせ不可」になります。無敵時間が場面で変わるキャラは「1回目:1.5 / 2回目以降:5.5」のように入力すると、詳細画面に場面ごとに表示し、足りない場面だけを知らせます（全部の場面で足りないときだけ「合わせ不可」）（ヒーロースキルが「不可」のキャラはダメージ発生を入力できません）。
               <br />
-              ロールはキャラを選ぶ画面の「ロールで絞り込み」に使います。HS合わせ重要度（★1〜3・−。ヒーロースキルが不可なら「−」で固定）は攻撃する側（自分）を選ぶ画面の「HS合わせ重要度順」、HS被合わせ重要度（★1〜3）は相手を選ぶ画面の「HS被合わせ重要度順」の並べ替えに使います（−は★1の後、未入力は最後）。
+              ロールはキャラを選ぶ画面の「ロールで絞り込み」に使います。HS合わせ適性（★1〜3・−。ヒーロースキルが不可なら「−」で固定）は攻撃する側（自分）を選ぶ画面の「HS合わせ適性順」、HS警戒度（★1〜3）は相手を選ぶ画面の「HS警戒度順」の並べ替えに使います（−は★1の後、未入力は最後）。
               <br />
               キャラ名をタップすると開閉します。▲▼で並び順を入れ替えられます（トップ画面などの表示順になります）。キャラ画像は一般向けの画面には表示されません。
             </p>
@@ -202,7 +202,7 @@ type Save = (patch: Record<string, unknown>, msg: string) => Promise<boolean>;
 
 /** キャラ 1 体の編集カード（開いたときだけ出す）。変えたらすぐ保存 */
 function HeroCard({ h, first, last, save, move, remove, removeImage }: { h: AdminHero; first: boolean; last: boolean; save: Save; move: (dir: -1 | 1) => void; remove: () => void; removeImage: () => void }) {
-  // ヒーロースキルが不可なら、HS合わせ重要度は「−」で固定
+  // ヒーロースキルが不可なら、HS合わせ適性は「−」で固定
   const hsNg = h.ngAttacks.includes("hs");
   return (
     <div className="hcard">
@@ -240,7 +240,7 @@ function HeroCard({ h, first, last, save, move, remove, removeImage }: { h: Admi
       <div className="hsec">HS合わせ（攻撃）</div>
       <div className="hatk">
         <div>
-          <ImpRow label="重要度" aria="HS合わせ重要度" value={hsNg ? 0 : h.hsAttackImportance} dash fixed={hsNg} onChange={(v) => save({ hsAttackImportance: v }, "HS合わせ重要度を保存しました")} />
+          <ImpRow label="HS合わせ適性" aria="HS合わせ適性" value={hsNg ? 0 : h.hsAttackImportance} dash fixed={hsNg} onChange={(v) => save({ hsAttackImportance: v }, "HS合わせ適性を保存しました")} />
           <AtkRow h={h} k="hs" save={save} />
           <div className={`hline sub ${h.ngAttacks.includes("hs") ? "off" : ""}`}>
             <span>└ ダメージ発生</span>
@@ -262,7 +262,7 @@ function HeroCard({ h, first, last, save, move, remove, removeImage }: { h: Admi
       <div className="hint hinvh">場面で変わるときは「1回目:1.5 / 2回目以降:5.5」、補足は「最短距離時:4.7」のように入力</div>
       <div className="hbot">
         <div>
-          <ImpRow label="重要度" aria="HS被合わせ重要度" value={h.hsTargetImportance} onChange={(v) => save({ hsTargetImportance: v }, "HS被合わせ重要度を保存しました")} />
+          <ImpRow label="HS警戒度" aria="HS警戒度" value={h.hsTargetImportance} onChange={(v) => save({ hsTargetImportance: v }, "HS警戒度を保存しました")} />
         </div>
         <div className="hacts">
           {h.imageUrl && <ArmedButton className="sbtn imgdel" label="画像を削除" armedLabel="削除する" onConfirm={removeImage} />}
@@ -279,7 +279,7 @@ function HeroCard({ h, first, last, save, move, remove, removeImage }: { h: Admi
   );
 }
 
-/** 重要度（★1〜3。dash：「−」（対象外）も選べる。fixed：変更できない） */
+/** HS合わせ適性・HS警戒度（★1〜3。dash：「−」（対象外）も選べる。fixed：変更できない） */
 function ImpRow({ label, aria, value, dash, fixed, onChange }: { label: string; aria: string; value: number | null; dash?: boolean; fixed?: boolean; onChange: (v: number | null) => void }) {
   return (
     <label className={`hline ${fixed ? "off" : ""}`}>
