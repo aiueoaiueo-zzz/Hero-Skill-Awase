@@ -4,6 +4,7 @@ import { heroMatches } from "../../shared/text";
 import { Header } from "../components/Header";
 import { HeroFilter, useHeroFilter } from "../components/HeroFilter";
 import { HeroGrid } from "../components/HeroGrid";
+import { EventBox } from "../components/EventBox";
 import { RankBox } from "../components/RankBox";
 import { useData } from "../lib/data";
 import { PROG, useBootFx } from "../lib/fx";
@@ -19,6 +20,7 @@ export function Home() {
   return (
     <>
       <Header title={<>HS合わせ<span className="brand">ヒロアプ</span></>} sub="① 攻撃する側（自分）のキャラを選択" prog={PROG.step1} />
+      <EventBox />
       <RankBox />
       <input className="search" placeholder="キャラ名で検索" value={q} onChange={(e) => setQ(e.target.value)} />
       <HeroFilter {...f} />

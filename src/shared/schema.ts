@@ -144,3 +144,17 @@ export const contactStatusSchema = z.object({ status: z.enum(["open", "done"]) }
 
 /** 管理：投稿者の X の ID を直す（空で消す） */
 export const posterSchema = z.object({ nickname: xIdSchema });
+
+/** イベント・今週のキャラ（docs/DECISIONS.md AL）。日付は日本時間の YYYY-MM-DD */
+const dateSchema = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "日付は YYYY-MM-DD で入力してください");
+export const eventSchema = z
+  .object({
+    name: z.string().trim().min(1, "イベント名を入力してください").max(40),
+    startsOn: dateSchema,
+    endsOn: dateSchema,
+    goal: z.number().int().min(1).max(100000).nullable().optional(),
+  })
+  .refine((v) => v.endsOn >= v.startsOn, { message: "終了日は開始日以降にしてください" });
+export const featuredSchema = z
+  .object({ heroId: z.string().min(1), startsOn: dateSchema, endsOn: dateSchema })
+  .refine((v) => v.endsOn >= v.startsOn, { message: "終了日は開始日以降にしてください" });

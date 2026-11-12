@@ -12,6 +12,7 @@ import { Detail } from "./pages/Detail";
 import { Done } from "./pages/Done";
 import { Home } from "./pages/Home";
 import { AdminContacts } from "./pages/admin/AdminContacts";
+import { AdminEvents } from "./pages/admin/AdminEvents";
 import { AdminHeroes } from "./pages/admin/AdminHeroes";
 import { AdminPending } from "./pages/admin/AdminPending";
 import { AdminPublished } from "./pages/admin/AdminPublished";
@@ -62,6 +63,7 @@ function App() {
         <Route path="/admin/published" element={<AdminPublished />} />
         <Route path="/admin/contacts" element={<AdminContacts />} />
         <Route path="/admin/heroes" element={<AdminHeroes />} />
+        <Route path="/admin/events" element={<AdminEvents />} />
         <Route path="/admin/settings" element={<AdminSettings />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Route>

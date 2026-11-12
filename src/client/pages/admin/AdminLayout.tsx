@@ -4,7 +4,7 @@ import { Header } from "../../components/Header";
 import { useApi } from "../../lib/api";
 import { PROG } from "../../lib/fx";
 
-export type AdminTab = "pending" | "published" | "contacts" | "heroes" | "settings";
+export type AdminTab = "pending" | "published" | "contacts" | "heroes" | "events" | "settings";
 
 /** 管理画面の共通部分（タブ）。一般向けのヘッダーボタンとフッターは出さない */
 export function AdminLayout({ tab, pendingCount, contactCount, children }: { tab: AdminTab; pendingCount?: number; contactCount?: number; children: ReactNode }) {
@@ -17,6 +17,7 @@ export function AdminLayout({ tab, pendingCount, contactCount, children }: { tab
     ["published", "公開中", "/admin/published"],
     ["contacts", `問い合わせ${openContacts !== undefined ? ` (${openContacts})` : ""}`, "/admin/contacts"],
     ["heroes", "キャラ管理", "/admin/heroes"],
+    ["events", "イベント", "/admin/events"],
     ["settings", "設定", "/admin/settings"],
   ];
   return (

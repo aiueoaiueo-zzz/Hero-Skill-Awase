@@ -600,3 +600,39 @@ img.av{object-fit:cover;background:#ddd}
 .hhelp summary{cursor:pointer;font-size:13px;font-weight:700}
 .hhelp ul{margin:8px 0 0;padding-left:1.2em;font-size:12px;line-height:1.7;color:var(--sub)}
 .stagingbar{position:sticky;top:0;z-index:50;background:#d93636;color:#fff;font-size:11.5px;font-weight:700;text-align:center;padding:4px 8px;margin:0 -14px}
+/* イベント（docs/DECISIONS.md AL） */
+.tabs{flex-wrap:wrap}
+.tabs button{flex:1 1 auto}
+.evbox{background:#fff;border:2px solid #000;box-shadow:4px 4px 0 var(--accent);padding:12px 14px;margin:0 0 14px;display:flex;flex-direction:column;gap:10px}
+.evtop{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.evlive{background:var(--accent);color:#fff;font-size:11px;font-weight:800;padding:2px 8px}
+.evname{font-size:15px;font-weight:900;color:#000}
+.evdate{font-size:12px;color:var(--sub);margin-left:auto}
+.evnum{font-size:12px;color:var(--sub)}
+.evnum b{font-size:18px;color:#000;font-family:"Chakra Petch",sans-serif;margin:0 2px}
+.evbar{height:8px;background:#eee;margin-top:4px;overflow:hidden}
+.evbar i{display:block;height:100%;background:var(--accent)}
+.evfeat{display:flex;flex-direction:column;gap:6px;border-top:1px dashed var(--line);padding-top:10px}
+.evlabel{font-size:12px;font-weight:800;color:#000}
+.evheroes{display:flex;flex-direction:column;gap:6px}
+.evhero{display:flex;align-items:center;gap:10px;background:#fff8f2;border:1px solid var(--accent);padding:6px 10px;cursor:pointer;text-align:left;color:#000}
+.evhero .av{width:44px;height:44px;font-size:12px;flex:none}
+.evhero span{display:flex;flex-direction:column;min-width:0}
+.evhero b{font-size:14px}
+.evhero small{font-size:11px;color:var(--sub)}
+.evhint{margin:0;font-size:11.5px;color:var(--sub)}
+.card .featmark{position:absolute;right:2px;bottom:2px;background:var(--accent);color:#fff;font-size:9px;font-weight:800;padding:1px 4px;line-height:1.4;z-index:1}
+.card.feat{border-color:var(--accent)}
+/* 管理：イベント */
+.evh{font-size:15px;margin:18px 0 8px}
+.evrow{display:flex;align-items:center;gap:10px;background:#fff;border:1px solid var(--line);padding:8px 10px;margin-bottom:6px}
+.evmain{flex:1;min-width:0;display:flex;flex-direction:column}
+.evmain b{font-size:14px;color:#000}
+.evmain span{font-size:12px;color:var(--sub)}
+.evst{flex:none;font-size:11px;font-weight:800;padding:2px 6px;border:1px solid var(--line);color:var(--sub)}
+.evst.live{background:var(--accent);border-color:var(--accent);color:#fff}
+.evst.plan{border-color:#000;color:#000}
+.evform{display:flex;flex-direction:column;gap:8px}
+.evform label{display:flex;flex-direction:column;gap:4px;font-size:12px;color:var(--sub)}
+.evform .inp{margin:0}
+.evdates{display:grid;grid-template-columns:1fr 1fr;gap:8px}
