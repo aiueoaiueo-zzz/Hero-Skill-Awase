@@ -120,6 +120,8 @@ if (STAGING) {
   swap('"database_name": "hs-awase"', `"database_name": "${DB_NAME}"`);
   swap('"bucket_name": "hs-awase-media"', `"bucket_name": "${BUCKET}"`);
   setAll("SITE_STAGE", "staging");
+  // 本番からコピーしたデータの動画・画像は、本番の公開メディアから読む
+  setAll("MEDIA_FALLBACK_URL", `https://hs-awase.${sub.data.result.subdomain}.workers.dev/media`);
   if (conf.includes('"name": "hs-awase"') || conf.includes('"name": "hs-awase-admin"')) fail("確認用の名前に差し替えられませんでした。");
 }
 setAll("PUBLIC_APP_URL", appUrl); // X 共有のリンク先（管理用の Worker からも一般向けを指す）

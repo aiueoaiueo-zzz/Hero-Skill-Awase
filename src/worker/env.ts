@@ -29,6 +29,8 @@ export interface Env {
   PENDING_EXPIRE_ACTION?: string;
   /** "staging" なら確認用サイト（画面に帯を出し、検索エンジンに載せない）。本番は空（docs/DECISIONS.md AK） */
   SITE_STAGE?: string;
+  /** 確認用サイトだけ：R2 にないメディアを読みに行く本番の公開メディアの URL（例 https://hs-awase.…/media）。本番は空 */
+  MEDIA_FALLBACK_URL?: string;
 }
 
 export type AppEnv = { Bindings: Env };

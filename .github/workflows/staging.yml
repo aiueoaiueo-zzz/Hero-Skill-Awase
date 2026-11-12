@@ -1,7 +1,8 @@
 # 確認用サイト（staging）へのデプロイ（docs/DECISIONS.md AK）
 # - 自動：作業用のブランチ（claude/…）に変更が入ったとき
 # - 手動：GitHub の「Actions」→「確認用サイトにデプロイ」→「Run workflow」（ブランチを選べる）
-# 本番（hs-awase / hs-awase-admin と本番の D1・R2）には一切さわらない。
+# 本番（hs-awase / hs-awase-admin と本番の D1・R2）は読むだけで、変更しない。
+# デプロイのたびに本番の D1 を書き出して確認用の D1 に入れ直す（お問い合わせは除く）。動画・画像は本番の公開メディアから読む。
 #   確認用：hs-awase-staging / hs-awase-staging-admin、D1「hs-awase-staging」、R2「hs-awase-staging-media」
 name: 確認用サイトにデプロイ
 
@@ -52,6 +53,10 @@ jobs:
         if: steps.check.outputs.ready == 'true'
         run: npm run typecheck && npm test
 
+      - name: 本番のデータを書き出す（本番は読むだけ）
+        if: steps.check.outputs.ready == 'true'
+        run: node scripts/ci-staging-sync.mjs "$RUNNER_TEMP/prod.sql"
+
       - name: 確認用の D1・R2 の準備と設定の書き込み
         id: setup
         if: steps.check.outputs.ready == 'true'
@@ -66,7 +71,13 @@ jobs:
           STAGING_ACCESS_AUD: ${{ vars.STAGING_ACCESS_AUD || secrets.STAGING_ACCESS_AUD }}
         run: node scripts/ci-setup.mjs
 
-      - name: 確認用のデータベースのマイグレーション
+      - name: 本番のデータを確認用の D1 に入れる（お問い合わせは入れない）
+        if: steps.check.outputs.ready == 'true'
+        run: |
+          npx wrangler d1 execute DB --remote --file "$RUNNER_TEMP/prod.sql" -y
+          npx wrangler d1 execute DB --remote --command "DELETE FROM contacts" -y
+
+      - name: 確認用のデータベースのマイグレーション（このブランチで増えた分）
         if: steps.check.outputs.ready == 'true'
         run: npx wrangler d1 migrations apply DB --remote
 
@@ -84,4 +95,4 @@ jobs:
 
       - name: 後片付け
         if: always()
-        run: rm -f "$RUNNER_TEMP/secrets.json"
+        run: rm -f "$RUNNER_TEMP/secrets.json" "$RUNNER_TEMP/prod.sql" "$RUNNER_TEMP/prod-export.json"

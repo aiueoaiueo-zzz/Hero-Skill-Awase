@@ -38,7 +38,8 @@
     "ACCESS_TEAM_DOMAIN": "",
     "ACCESS_AUD": "",
     "TURNSTILE_SITE_KEY": "",
-    "SITE_STAGE": ""
+    "SITE_STAGE": "",
+    "MEDIA_FALLBACK_URL": ""
   },
   // 毎日 3:17（日本時間）に不要な動画の削除と容量の照合（一般向けの Worker だけで動かす）
   "triggers": { "crons": ["17 18 * * *"] },
@@ -71,7 +72,8 @@
         "ACCESS_TEAM_DOMAIN": "",
         "ACCESS_AUD": "",
         "TURNSTILE_SITE_KEY": "",
-        "SITE_STAGE": ""
+        "SITE_STAGE": "",
+        "MEDIA_FALLBACK_URL": ""
       },
       "triggers": { "crons": [] }
     }
