@@ -8,6 +8,7 @@ import { useData } from "../../lib/data";
 import { useBootFx } from "../../lib/fx";
 import { toast } from "../../lib/ui";
 import { AdminLayout, adminErrorMessage } from "./AdminLayout";
+import { HeroSearch, matchHero, useHeroQuery } from "./HeroSearch";
 
 const ERRORS: Record<string, string> = {
   duplicate_name: "同じ名前のキャラがすでにいます",
@@ -69,6 +70,8 @@ export function AdminHeroes() {
   const [error, setError] = useState<number | null>(null);
   const [bulk, setBulk] = useState("");
   const rows = useRef(new Map<string, HTMLDivElement>());
+  // 検索・絞り込み（▲▼の並べ替えは全体の順番のまま）
+  const [cond, setCond] = useHeroQuery();
   // 開いているキャラ（最初は全部閉じる）
   const [opened, setOpened] = useState<Set<string>>(new Set());
   const toggle = (id: string) =>
@@ -148,7 +151,9 @@ export function AdminHeroes() {
               キャラ名をタップすると開閉します。▲▼で並び順を入れ替えられます（トップ画面などの表示順になります）。キャラ画像は一般向けの画面には表示されません。
             </p>
           </div>
-          {heroes.map((h, i) => (
+          <HeroSearch c={cond} set={setCond} shown={heroes.filter((h) => matchHero(h, cond)).length} total={heroes.length} />
+          {!heroes.some((h) => matchHero(h, cond)) && <div className="empty">条件に合うキャラがいません</div>}
+          {heroes.map((h, i) => !matchHero(h, cond) ? null : (
             <div
               className="hrow"
               key={h.id}
