@@ -47,12 +47,13 @@ export function HeroFilter({ role, sort, kind, set }: { role: HeroRole | null; s
         <button className={sort === "order" ? "on" : ""} onClick={() => set({ sort: "order" })}>
           実装順
         </button>
-        <button className={sort === "importance" ? "on" : ""} onClick={() => set({ sort: "importance" })}>
-          {r.name}順
-        </button>
-        <button className={`info ${info ? "on" : ""}`} aria-label={`${r.name}とは`} aria-expanded={info} onClick={() => setInfo(!info)}>
-          ⓘ
-        </button>
+        {/* 並び順のボタンと ⓘ を 1 つの枠に入れる（ボタンの中にボタンは置けないので、枠で囲む） */}
+        <span className={`sortbox ${sort === "importance" ? "on" : ""}`}>
+          <button onClick={() => set({ sort: "importance" })}>{r.name}順</button>
+          <button className={`info ${info ? "open" : ""}`} aria-label={`${r.name}とは`} aria-expanded={info} onClick={() => setInfo(!info)}>
+            ⓘ
+          </button>
+        </span>
       </div>
       {info && (
         <div className="hinfo">

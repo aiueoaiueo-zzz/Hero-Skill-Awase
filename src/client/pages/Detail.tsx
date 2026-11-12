@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { Navigate, useLocation, useNavigate, useParams } from "react-router";
 import {
   ATTACK_LABEL,
+  ATTACK_NOTE,
   ATTACK_TAB,
   ATTACK_TYPES,
   type AttackType,
@@ -164,6 +165,7 @@ export function Detail() {
                   </button>
                 ))}
               </div>
+              {ATTACK_NOTE[cur] && <div className="atknote">{ATTACK_NOTE[cur]}</div>}
               {list.length ? (
                 list.map((x, i) => (
                   <TimingCard
