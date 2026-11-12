@@ -22,11 +22,28 @@ export function DataProvider({ children }: { children: ReactNode }) {
   }, []);
   if (error) return <div className="empty" style={{ marginTop: 40 }}>読み込みに失敗しました。時間をおいて再読み込みしてください。</div>;
   if (!data) return null;
-  return <DataContext.Provider value={{ ...data, reload }}>{children}</DataContext.Provider>;
+  return (
+    <DataContext.Provider value={{ ...data, reload }}>
+      {data.stage === "staging" && <StagingBar />}
+      {children}
+    </DataContext.Provider>
+  );
 }
 
 export function useData(): Ctx {
   const ctx = useContext(DataContext);
   if (!ctx) throw new Error("DataProvider がありません");
   return ctx;
+}
+
+/** 確認用サイトの帯（本番と間違えないように）。検索エンジンにも載せない */
+function StagingBar() {
+  useEffect(() => {
+    const m = document.createElement("meta");
+    m.name = "robots";
+    m.content = "noindex, nofollow";
+    document.head.appendChild(m);
+    document.title = `【確認用】${document.title}`;
+  }, []);
+  return <div className="stagingbar">確認用サイト（本番ではありません・データは本番のコピー）</div>;
 }

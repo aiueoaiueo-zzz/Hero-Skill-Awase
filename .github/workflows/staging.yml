@@ -1,0 +1,99 @@
+# 確認用サイト（staging）へのデプロイ（docs/DECISIONS.md AK）
+# - 自動：作業用のブランチ（claude/…）に変更が入ったとき
+# - 手動：GitHub の「Actions」→「確認用サイトにデプロイ」→「Run workflow」（ブランチを選べる）
+# 本番（hs-awase / hs-awase-admin と本番の D1・R2）は読むだけで、変更しない。
+# デプロイのたびに本番の D1 を書き出して確認用の D1 に入れ直す（お問い合わせは除く）。動画・画像は本番の公開メディアから読む。
+#   確認用：hs-awase-staging / hs-awase-staging-admin、D1「hs-awase-staging」、R2「hs-awase-staging-media」
+name: 確認用サイトにデプロイ
+
+on:
+  workflow_dispatch:
+  push:
+    branches: ["claude/**"]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: staging
+  cancel-in-progress: true
+
+jobs:
+  staging:
+    runs-on: ubuntu-latest
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+      STAGE: staging
+    steps:
+      - name: 設定の確認
+        id: check
+        run: |
+          if [ -z "$CLOUDFLARE_API_TOKEN" ] || [ -z "$CLOUDFLARE_ACCOUNT_ID" ]; then
+            echo "::warning::Secrets に CLOUDFLARE_API_TOKEN と CLOUDFLARE_ACCOUNT_ID が未登録のため、省略しました"
+            echo "ready=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "ready=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - uses: actions/checkout@v6
+        if: steps.check.outputs.ready == 'true'
+
+      - uses: actions/setup-node@v6
+        if: steps.check.outputs.ready == 'true'
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: 依存パッケージのインストール
+        if: steps.check.outputs.ready == 'true'
+        run: npm ci
+
+      - name: 型チェックと単体テスト
+        if: steps.check.outputs.ready == 'true'
+        run: npm run typecheck && npm test
+
+      - name: 本番のデータを書き出す（本番は読むだけ）
+        if: steps.check.outputs.ready == 'true'
+        run: node scripts/ci-staging-sync.mjs "$RUNNER_TEMP/prod.sql"
+
+      - name: 確認用の D1・R2 の準備と設定の書き込み
+        id: setup
+        if: steps.check.outputs.ready == 'true'
+        env:
+          R2_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+          R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+          STAGING_R2_ACCESS_KEY_ID: ${{ secrets.STAGING_R2_ACCESS_KEY_ID }}
+          STAGING_R2_SECRET_ACCESS_KEY: ${{ secrets.STAGING_R2_SECRET_ACCESS_KEY }}
+          TURNSTILE_SECRET_KEY: ${{ secrets.TURNSTILE_SECRET_KEY }}
+          TURNSTILE_SITE_KEY: ${{ vars.TURNSTILE_SITE_KEY || secrets.TURNSTILE_SITE_KEY }}
+          ACCESS_TEAM_DOMAIN: ${{ vars.ACCESS_TEAM_DOMAIN || secrets.ACCESS_TEAM_DOMAIN }}
+          STAGING_ACCESS_AUD: ${{ vars.STAGING_ACCESS_AUD || secrets.STAGING_ACCESS_AUD }}
+        run: node scripts/ci-setup.mjs
+
+      - name: 本番のデータを確認用の D1 に入れる（お問い合わせは入れない）
+        if: steps.check.outputs.ready == 'true'
+        run: |
+          node scripts/sql-reorder.mjs "$RUNNER_TEMP/prod.sql" "$RUNNER_TEMP/prod-sorted.sql"
+          npx wrangler d1 execute DB --remote --file "$RUNNER_TEMP/prod-sorted.sql" -y
+          npx wrangler d1 execute DB --remote --command "DELETE FROM contacts" -y
+
+      - name: 確認用のデータベースのマイグレーション（このブランチで増えた分）
+        if: steps.check.outputs.ready == 'true'
+        run: npx wrangler d1 migrations apply DB --remote
+
+      - name: 一般向けの Worker をデプロイ（hs-awase-staging）
+        if: steps.check.outputs.ready == 'true'
+        run: npm run build && npx wrangler deploy
+
+      - name: 一般向けの Worker に secret を登録
+        if: steps.check.outputs.ready == 'true' && steps.setup.outputs.has_secrets == 'true'
+        run: npx wrangler secret bulk "$RUNNER_TEMP/secrets.json" --env=""
+
+      - name: 管理用の Worker をデプロイ（hs-awase-staging-admin）
+        if: steps.check.outputs.ready == 'true'
+        run: CLOUDFLARE_ENV=admin npm run build && npx wrangler deploy
+
+      - name: 後片付け
+        if: always()
+        run: rm -f "$RUNNER_TEMP/secrets.json" "$RUNNER_TEMP/prod.sql" "$RUNNER_TEMP/prod-sorted.sql" "$RUNNER_TEMP/prod-export.json"

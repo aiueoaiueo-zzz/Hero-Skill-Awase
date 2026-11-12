@@ -27,7 +27,7 @@ publicRoutes.get("/bootstrap", async (c) => {
   const publicAppUrl = (c.env.PUBLIC_APP_URL || new URL(c.req.url).origin).replace(/\/+$/, "");
   const registered: Record<string, string[]> = {};
   for (const r of pairs.results) (registered[r.a] ??= []).push(r.t);
-  return c.json<Bootstrap>({ heroes, settings, turnstileSiteKey: c.env.TURNSTILE_SITE_KEY || "", publicAppUrl, registered });
+  return c.json<Bootstrap>({ heroes, settings, turnstileSiteKey: c.env.TURNSTILE_SITE_KEY || "", publicAppUrl, registered, stage: c.env.SITE_STAGE || "" });
 });
 
 publicRoutes.get("/heroes/:slug/targets", async (c) => {
