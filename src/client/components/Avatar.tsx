@@ -5,13 +5,12 @@ import type { Hero } from "../../shared/types";
 const textWidth = (s: string) => Array.from(s).reduce((w, c) => w + (/[\x20-\x7e]/.test(c) ? 0.6 : 1), 0);
 
 /**
- * キャラの表示。画像は使わず、グレーの背景に白い文字でキャラ名を全部出す（権利への配慮）。
- * 名前が長いときは 2 行に折り返し、枠に収まる大きさに文字を縮める。
- * showImage：管理画面のキャラ管理だけ、登録済みの画像を確認・削除できるように画像を出す。
+ * キャラの表示。アイコン（画像）が登録されていれば画像、なければグレーの背景に白い文字でキャラ名を全部出す。
+ * 名前が長いときは 2 行に折り返し、枠に収まる大きさに文字を縮める。（docs/DECISIONS.md AI）
  */
-export function Avatar({ hero, style, showImage }: { hero?: Hero | null; style?: CSSProperties; showImage?: boolean }) {
+export function Avatar({ hero, style }: { hero?: Hero | null; style?: CSSProperties }) {
   if (!hero) return <div className="av" style={style}>?</div>;
-  if (showImage && hero.imageUrl) return <img className="av" src={hero.imageUrl} alt="" loading="lazy" style={style} />;
+  if (hero.imageUrl) return <img className="av" src={hero.imageUrl} alt="" loading="lazy" style={style} />;
   const w = textWidth(hero.name);
   const perLine = w <= 4.2 ? Math.max(w, 2) : Math.ceil(w / 2);
   return (

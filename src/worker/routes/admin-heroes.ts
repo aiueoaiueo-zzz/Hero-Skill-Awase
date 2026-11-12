@@ -5,9 +5,12 @@ import type { AdminHero } from "../../shared/types";
 import type { AppEnv, Env } from "../env";
 import { toHero, type HeroRow } from "../lib/heroes";
 import { nowIso, ulid } from "../lib/ids";
-import { deleteIfUnused, deleteMedia } from "../lib/storage";
+import { deleteIfUnused, deleteMedia, recordObject } from "../lib/storage";
 
 // 管理：キャラ管理（仕様 4-7）。/api/admin/heroes 以下（requireAdmin は admin.ts 側で適用済み）
+const IMAGE_MAX_BYTES = 512 * 1024; // 256×256 の WebP なら通常 30KB 前後
+const IMAGE_TYPES: Record<string, string> = { "image/webp": "webp", "image/jpeg": "jpg", "image/png": "png" };
+
 export const adminHeroRoutes = new Hono<AppEnv>();
 
 
@@ -61,8 +64,8 @@ adminHeroRoutes.post("/", async (c) => {
 adminHeroRoutes.patch("/:id", async (c) => {
   const body = heroPatchSchema.safeParse(await c.req.json().catch(() => null));
   if (!body.success) return c.json({ error: "invalid_request", issues: body.error.issues.map((i) => i.message) }, 400);
-  const { name, slug, fullName, ngAttacks, hsAttackTime, hsInvincible, role, hsAttackImportance, hsTargetImportance } = body.data;
-  if ([name, slug, fullName, ngAttacks, hsAttackTime, hsInvincible, role, hsAttackImportance, hsTargetImportance].every((v) => v === undefined)) return c.json({ error: "invalid_request" }, 400);
+  const { name, slug, fullName, ngAttacks, hsAttackTime, hsAttackLabel, hsInvincible, role, hsAttackImportance, hsTargetImportance } = body.data;
+  if ([name, slug, fullName, ngAttacks, hsAttackTime, hsAttackLabel, hsInvincible, role, hsAttackImportance, hsTargetImportance].every((v) => v === undefined)) return c.json({ error: "invalid_request" }, 400);
   // 無敵時間：場面で変わらなければ hs_invincible_time だけ、場面ごとなら hs_invincible_detail に JSON（一番長い値を hs_invincible_time にも）
   const inv = hsInvincible;
   // 未指定の項目はそのまま、null を指定した項目は未入力に戻す
@@ -70,12 +73,12 @@ adminHeroRoutes.patch("/:id", async (c) => {
   try {
     const r = await c.env.DB.prepare(
       `UPDATE heroes SET name = COALESCE(?, name), slug = COALESCE(?, slug), full_name = CASE WHEN ? THEN ? ELSE full_name END,
-              ng_attacks = CASE WHEN ? THEN ? ELSE ng_attacks END, hs_attack_time = CASE WHEN ? THEN ? ELSE hs_attack_time END,
+              ng_attacks = CASE WHEN ? THEN ? ELSE ng_attacks END, hs_attack_time = CASE WHEN ? THEN ? ELSE hs_attack_time END, hs_attack_label = CASE WHEN ? THEN ? ELSE hs_attack_label END,
               hs_invincible_time = CASE WHEN ? THEN ? ELSE hs_invincible_time END, hs_invincible_detail = CASE WHEN ? THEN ? ELSE hs_invincible_detail END,
               role = CASE WHEN ? THEN ? ELSE role END, hs_importance = CASE WHEN ? THEN ? ELSE hs_importance END,
               hs_attack_importance = CASE WHEN ? THEN ? ELSE hs_attack_importance END WHERE id = ?`,
     )
-      .bind(name ?? null, slug ?? null, ...set(fullName), ...set(ngAttacks && NG_ATTACK_TYPES.filter((k) => ngAttacks.includes(k)).join(",")), ...set(hsAttackTime), ...set(inv && (inv.length ? Math.max(...inv.map((v) => v.sec)) : null)), ...set(inv && (inv.length > 1 || inv.some((v) => v.label) ? JSON.stringify(inv) : null)), ...set(role), ...set(hsTargetImportance), ...set(hsAttackImportance), c.req.param("id"))
+      .bind(name ?? null, slug ?? null, ...set(fullName), ...set(ngAttacks && NG_ATTACK_TYPES.filter((k) => ngAttacks.includes(k)).join(",")), ...set(hsAttackTime), ...set(hsAttackLabel === undefined ? undefined : hsAttackLabel || null), ...set(inv && (inv.length ? Math.max(...inv.map((v) => v.sec)) : null)), ...set(inv && (inv.length > 1 || inv.some((v) => v.label) ? JSON.stringify(inv) : null)), ...set(role), ...set(hsTargetImportance), ...set(hsAttackImportance), c.req.param("id"))
       .run();
     if (!r.meta.changes) return c.json({ error: "not_found" }, 404);
     // ヒーロースキルが不可なら、HS合わせ重要度は「−」（0）に固定（docs/DECISIONS.md AB）
@@ -139,8 +142,24 @@ adminHeroRoutes.delete("/:id", async (c) => {
 });
 
 /** 画像の設定（ブラウザで 256×256 の WebP に縮小したもの）。ファイル名に内容のハッシュを入れる */
-// キャラ画像は権利への配慮で使わない（docs/DECISIONS.md S）。新しい画像は受け付けない（登録済みの画像の削除だけ残す）
-adminHeroRoutes.put("/:id/image", (c) => c.json({ error: "images_disabled" }, 403));
+adminHeroRoutes.put("/:id/image", async (c) => {
+  const id = c.req.param("id");
+  const type = (c.req.header("content-type") || "").split(";")[0].trim();
+  const ext = IMAGE_TYPES[type];
+  if (!ext) return c.json({ error: "invalid_type" }, 400);
+  const buf = await c.req.arrayBuffer();
+  if (!buf.byteLength || buf.byteLength > IMAGE_MAX_BYTES) return c.json({ error: "invalid_size" }, 400);
+  const hero = await c.env.DB.prepare("SELECT * FROM heroes WHERE id = ?").bind(id).first<HeroRow>();
+  if (!hero) return c.json({ error: "not_found" }, 404);
+  const digest = new Uint8Array(await crypto.subtle.digest("SHA-256", buf));
+  const hash = Array.from(digest.slice(0, 8), (b) => b.toString(16).padStart(2, "0")).join("");
+  const key = `heroes/${id}-${hash}.${ext}`;
+  await c.env.MEDIA.put(key, buf, { httpMetadata: { contentType: type, cacheControl: "public, max-age=31536000, immutable" } });
+  await recordObject(c.env, key, buf.byteLength);
+  await c.env.DB.prepare("UPDATE heroes SET image_key = ? WHERE id = ?").bind(key, id).run();
+  if (hero.image_key && hero.image_key !== key) await deleteIfUnused(c.env, [hero.image_key]);
+  return c.json({ heroes: await listAdminHeroes(c.env) });
+});
 
 /** 画像を外す（R2 からも削除。頭文字の代替表示に戻る） */
 adminHeroRoutes.delete("/:id/image", async (c) => {

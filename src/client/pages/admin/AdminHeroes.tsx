@@ -19,6 +19,34 @@ const ERRORS: Record<string, string> = {
 const errMsg = (e: unknown) =>
   e instanceof ApiError ? (ERRORS[e.message] ?? (e.status === 400 ? "入力内容を確認してください（slug は英小文字・数字・ハイフン）" : "操作に失敗しました")) : "操作に失敗しました";
 
+/** 画像を正方形に切り抜いて 256×256 の WebP に縮小する（WebP を作れないブラウザでは JPEG） */
+async function resizeImage(file: File): Promise<Blob> {
+  const url = URL.createObjectURL(file);
+  try {
+    const img = await new Promise<HTMLImageElement>((res, rej) => {
+      const i = new Image();
+      i.onload = () => res(i);
+      i.onerror = rej;
+      i.src = url;
+    });
+    const S = 256;
+    const c = document.createElement("canvas");
+    c.width = c.height = S;
+    const s = Math.min(img.naturalWidth, img.naturalHeight);
+    const ctx = c.getContext("2d")!;
+    ctx.imageSmoothingQuality = "high";
+    ctx.drawImage(img, (img.naturalWidth - s) / 2, (img.naturalHeight - s) / 2, s, s, 0, 0, S, S);
+    const toBlob = (type: string) => new Promise<Blob | null>((r) => c.toBlob(r, type, 0.85));
+    const webp = await toBlob("image/webp");
+    if (webp && webp.type === "image/webp") return webp;
+    const jpg = await toBlob("image/jpeg");
+    if (!jpg) throw new Error("encode_failed");
+    return jpg;
+  } finally {
+    URL.revokeObjectURL(url);
+  }
+}
+
 /** 1 回目で確認の表示に変わり、2.5 秒以内にもう一度押すと実行（試作版 armed） */
 export function ArmedButton({ className, label, armedLabel, onConfirm, ...rest }: { className: string; label: ReactNode; armedLabel: string; onConfirm: () => void; "aria-label"?: string }) {
   const [armed, setArmed] = useState(false);
@@ -110,6 +138,24 @@ export function AdminHeroes() {
     await run(call(`/api/admin/heroes/${h.id}/move`, "POST", { dir }));
     requestAnimationFrame(() => rows.current.get(h.id)?.scrollIntoView({ block: "center" }));
   };
+  const setImage = async (h: AdminHero, file: File | undefined) => {
+    if (!file) return;
+    let blob: Blob;
+    try {
+      blob = await resizeImage(file);
+    } catch {
+      return toast("画像を読み込めませんでした");
+    }
+    await run(
+      async () => {
+        const res = await fetch(`/api/admin/heroes/${h.id}/image`, { method: "PUT", headers: { "Content-Type": blob.type }, body: blob });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) throw new ApiError(res.status, data.error || "error");
+        return data;
+      },
+      "画像を設定しました",
+    );
+  };
   const add = async () => {
     const items = bulk
       .split("\n")
@@ -144,11 +190,11 @@ export function AdminHeroes() {
               <br />
               攻撃方法（ヒーロースキル・通常攻撃・ヒーローアクション・スキルカード）ごとに、そのキャラで合わせられるかを「可／不可」で選びます。不可にすると、詳細画面のそのタブがグレーになって選べなくなり、投稿でも選べなくなります。
               <br />
-              HS のダメージ発生（秒）と無敵時間（秒）を入れると、相手の無敵時間が自分のダメージ発生より短い組み合わせも、HS が「合わせ不可」になります。無敵時間が場面で変わるキャラは「1回目:1.5 / 2回目以降:5.5」のように入力すると、詳細画面に場面ごとに表示し、足りない場面だけを知らせます（全部の場面で足りないときだけ「合わせ不可」）（ヒーロースキルが「不可」のキャラはダメージ発生を入力できません）。
+              HS のダメージ発生（秒。場面の値なら「2回目以降:3.1」）と無敵時間（秒）を入れると、相手の無敵時間が自分のダメージ発生より短い組み合わせも、HS が「合わせ不可」になります。無敵時間が場面で変わるキャラは「1回目:1.5 / 2回目以降:5.5」のように入力すると、詳細画面に場面ごとに表示し、足りない場面だけを知らせます（全部の場面で足りないときだけ「合わせ不可」）（ヒーロースキルが「不可」のキャラはダメージ発生を入力できません）。
               <br />
               ロールはキャラを選ぶ画面の「ロールで絞り込み」に使います。HS合わせ適性（★1〜3・−。ヒーロースキルが不可なら「−」で固定）は攻撃する側（自分）を選ぶ画面の「HS合わせ適性順」、HS警戒度（★1〜3）は相手を選ぶ画面の「HS警戒度順」の並べ替えに使います（−は★1の後、未入力は最後）。
               <br />
-              キャラ名をタップすると開閉します。▲▼で並び順を入れ替えられます（トップ画面などの表示順になります）。キャラ画像は一般向けの画面には表示されません。
+              キャラ名をタップすると開閉します。▲▼で並び順を入れ替えられます（トップ画面などの表示順になります）。アイコンは左上の画像（または名前のカード）をタップして選びます。正方形に切り抜いて 256×256 に縮小して保存し、一般向けの画面にも表示します（未設定のキャラは名前のカード）。
             </p>
           </div>
           <HeroSearch c={cond} set={setCond} shown={heroes.filter((h) => matchHero(h, cond)).length} total={heroes.length} />
@@ -175,6 +221,7 @@ export function AdminHeroes() {
                   move={(dir) => move(h, dir)}
                   remove={() => run(call(`/api/admin/heroes/${h.id}`, "DELETE"), "削除しました")}
                   removeImage={() => run(call(`/api/admin/heroes/${h.id}/image`, "DELETE"), "画像を削除しました")}
+                  setImage={(f) => setImage(h, f)}
                 />
               )}
             </div>
@@ -201,15 +248,28 @@ export function AdminHeroes() {
 type Save = (patch: Record<string, unknown>, msg: string) => Promise<boolean>;
 
 /** キャラ 1 体の編集カード（開いたときだけ出す）。変えたらすぐ保存 */
-function HeroCard({ h, first, last, save, move, remove, removeImage }: { h: AdminHero; first: boolean; last: boolean; save: Save; move: (dir: -1 | 1) => void; remove: () => void; removeImage: () => void }) {
+function HeroCard({ h, first, last, save, move, remove, removeImage, setImage }: { h: AdminHero; first: boolean; last: boolean; save: Save; move: (dir: -1 | 1) => void; remove: () => void; removeImage: () => void; setImage: (f: File | undefined) => void }) {
   // ヒーロースキルが不可なら、HS合わせ適性は「−」で固定
   const hsNg = h.ngAttacks.includes("hs");
   return (
     <div className="hcard">
       <div className="htop">
-        {/* キャラ画像は権利への配慮で使わないため、追加はできない（登録済みの画像は「画像を削除」で外せる） */}
+        {/* アイコン：タップして画像を選ぶ（正方形に切り抜いて 256×256 に縮小。docs/DECISIONS.md AI） */}
         <div className="hico">
-          <Avatar hero={h} showImage />
+          <label className="imgpick" aria-label={`${h.name}のアイコンを設定`}>
+            <Avatar hero={h} />
+            <span className="imgbtn">{h.imageUrl ? "変更" : "画像を選ぶ"}</span>
+            <input
+              type="file"
+              accept="image/*"
+              hidden
+              onChange={(e) => {
+                setImage(e.target.files?.[0]);
+                e.target.value = "";
+              }}
+            />
+          </label>
+          {h.imageUrl && <ArmedButton className="imgbtn imgdel2" label="画像を外す" armedLabel="外す" onConfirm={removeImage} />}
           <div className="slug">
             /h/
             <InlineInput aria-label="slug" value={h.slug} onCommit={(v) => save({ slug: v }, "保存しました")} />
@@ -242,16 +302,16 @@ function HeroCard({ h, first, last, save, move, remove, removeImage }: { h: Admi
         <div>
           <ImpRow label="HS合わせ適性" aria="HS合わせ適性" value={hsNg ? 0 : h.hsAttackImportance} dash fixed={hsNg} onChange={(v) => save({ hsAttackImportance: v }, "HS合わせ適性を保存しました")} />
           <AtkRow h={h} k="hs" save={save} />
-          <div className={`hline sub ${h.ngAttacks.includes("hs") ? "off" : ""}`}>
-            <span>└ ダメージ発生</span>
-            <SecInput label="ダメージ発生" value={h.hsAttackTime} disabled={h.ngAttacks.includes("hs")} onCommit={(v) => save({ hsAttackTime: v }, "ダメージ発生の時間を保存しました")} />
-          </div>
         </div>
         <div>
           <AtkRow h={h} k="normal" save={save} />
           <AtkRow h={h} k="action" save={save} />
           <AtkRow h={h} k="card" save={save} />
         </div>
+      </div>
+      <div className={`hline hinv hatkt ${h.ngAttacks.includes("hs") ? "off" : ""}`}>
+        <span>└ ヒーロースキルのダメージ発生</span>
+        <AtkTimeInput h={h} disabled={h.ngAttacks.includes("hs")} save={save} />
       </div>
       <div className="hsec">被HS合わせ（受）</div>
       <div className="hline hinv">
@@ -265,7 +325,6 @@ function HeroCard({ h, first, last, save, move, remove, removeImage }: { h: Admi
           <ImpRow label="HS警戒度" aria="HS警戒度" value={h.hsTargetImportance} onChange={(v) => save({ hsTargetImportance: v }, "HS警戒度を保存しました")} />
         </div>
         <div className="hacts">
-          {h.imageUrl && <ArmedButton className="sbtn imgdel" label="画像を削除" armedLabel="削除する" onConfirm={removeImage} />}
           <button className="sbtn" disabled={first} aria-label="上へ" onClick={() => move(-1)}>
             ▲
           </button>
@@ -345,33 +404,35 @@ function InvInput({ value, onCommit }: { value: HsInvincible[]; onCommit: (v: Hs
   );
 }
 
-/** 秒の入力欄（空にすると未入力に戻す。フォーカスが外れたら保存） */
-function SecInput({ label, value, disabled, onCommit }: { label: string; value: number | null; disabled?: boolean; onCommit: (v: number | null) => Promise<boolean> }) {
-  const [v, setV] = useState(value == null ? "" : String(value));
-  useEffect(() => setV(value == null ? "" : String(value)), [value]);
+/** ダメージ発生の入力欄（「3.1」または補足付きの「2回目以降:3.1」。空にすると未入力。フォーカスが外れたら保存） */
+function AtkTimeInput({ h, disabled, save }: { h: AdminHero; disabled: boolean; save: Save }) {
+  const cur: HsInvincible[] = h.hsAttackTime == null ? [] : [{ label: h.hsAttackLabel, sec: h.hsAttackTime }];
+  const text = invincibleToText(cur);
+  const [v, setV] = useState(text);
+  useEffect(() => setV(text), [text]);
   return (
     <span className="secin">
       <input
-        aria-label={label}
-        type="number"
-        inputMode="decimal"
-        step="0.01"
-        min="0"
-        max="60"
+        aria-label="ダメージ発生"
+        className="atkin"
         value={v}
         disabled={disabled}
         placeholder="—"
         onChange={(e) => setV(e.target.value)}
         onKeyDown={(e) => e.key === "Enter" && (e.target as HTMLInputElement).blur()}
         onBlur={async () => {
-          const t = v.trim();
-          const n = t === "" ? null : Number(t);
-          if (n === value) return;
-          if (n !== null && (!Number.isFinite(n) || n < 0 || n > 60)) return setV(value == null ? "" : String(value));
-          if (!(await onCommit(n))) setV(value == null ? "" : String(value));
+          const list = parseInvincibleText(v);
+          if (!list || list.length > 1) {
+            toast("ダメージ発生は「3.1」か「2回目以降:3.1」の形で、0〜60 秒を 1 つだけ入力してください");
+            return setV(text);
+          }
+          if (invincibleToText(list) === text) return setV(text);
+          const x = list[0];
+          if (!(await save({ hsAttackTime: x ? x.sec : null, hsAttackLabel: x ? x.label : "" }, "ダメージ発生を保存しました"))) setV(text);
         }}
       />
       秒
     </span>
   );
 }
+

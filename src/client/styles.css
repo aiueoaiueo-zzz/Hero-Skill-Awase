@@ -520,7 +520,7 @@ a.entry.ulink{display:block;text-decoration:none;color:inherit}
 .hcard select{font-size:12.5px;padding:4px 6px;border:1px solid #000;background:#fff;color:#000;border-radius:99px;min-width:88px}
 .hcard select.unset{color:var(--sub);border-color:var(--line)}
 .hcard select.ng{background:#d93636;border-color:#d93636;color:#fff;font-weight:700}
-.hatk,.hbot{display:grid;grid-template-columns:1fr 1fr;gap:0 10px;padding:2px 0}
+.hatk,.hbot{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:0 10px;padding:2px 0}
 .hline{display:flex;align-items:center;justify-content:space-between;gap:5px;min-height:34px;font-size:11px;letter-spacing:-.02em;color:#000}
 .hline>span:first-child{white-space:nowrap}
 .hline.sub>span:first-child{color:var(--sub)}
@@ -584,3 +584,13 @@ a.entry.ulink{display:block;text-decoration:none;color:inherit}
 .hinfo p{margin:0 0 4px;white-space:pre-line}
 .hinfo p:last-child{margin:0}
 .atknote{font-size:12px;color:var(--sub);margin:-4px 2px 10px}
+.hcard .hinv .secin{flex:1;min-width:0}
+.hcard .hinv .secin input.atkin{flex:1;min-width:0;width:auto;padding:4px 6px;font-size:12.5px}
+.hcard .hatkt>span:first-child{color:var(--sub)}
+/* 管理：アイコンの設定 */
+.hico .imgpick{display:block;cursor:pointer;position:relative}
+.hico .imgpick .imgbtn{display:block;font-size:10px;margin:3px auto 0;padding:1px 0;border:1px solid #000;background:#fff;color:#000;width:56px}
+img.av{object-fit:cover;background:#ddd}
+.hico .imgbtn{display:block;font-size:10px;margin:3px auto 0;padding:1px 0;border:1px solid #000;background:#fff;color:#000;width:56px;cursor:pointer}
+.hico .imgdel2{color:#d93636;border-color:#d93636}
+.hico .imgdel2.armed{background:#d93636;color:#fff}

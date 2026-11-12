@@ -12,8 +12,10 @@ export type Hero = {
   imageUrl: string | null;
   /** 合わせ不可の攻撃方法（ヒーロースキル・通常攻撃・ヒーローアクション・スキルカードのうち）。空なら全部可 */
   ngAttacks: NgAttackType[];
-  /** HS の攻撃発生時間（秒） */
+  /** HS のダメージ発生（秒） */
   hsAttackTime: number | null;
+  /** ダメージ発生がどの場面の値か（例「2回目以降」）。なければ空 */
+  hsAttackLabel: string;
   /** HS の無敵時間（秒）。場面で変わるときは場面ごと（label 付き）。場面で変わらなければ label は空。未入力は [] */
   hsInvincible: HsInvincible[];
   /** ロール。未入力は null */
