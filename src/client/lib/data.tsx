@@ -45,5 +45,5 @@ function StagingBar() {
     document.head.appendChild(m);
     document.title = `【確認用】${document.title}`;
   }, []);
-  return <div className="stagingbar">確認用サイト（本番ではありません・データは本番と別）</div>;
+  return <div className="stagingbar">確認用サイト（本番ではありません・データは本番のコピー）</div>;
 }
