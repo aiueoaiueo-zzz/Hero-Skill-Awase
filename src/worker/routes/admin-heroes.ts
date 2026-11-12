@@ -61,8 +61,8 @@ adminHeroRoutes.post("/", async (c) => {
 adminHeroRoutes.patch("/:id", async (c) => {
   const body = heroPatchSchema.safeParse(await c.req.json().catch(() => null));
   if (!body.success) return c.json({ error: "invalid_request", issues: body.error.issues.map((i) => i.message) }, 400);
-  const { name, slug, fullName, ngAttacks, hsAttackTime, hsInvincible, role, hsAttackImportance, hsTargetImportance } = body.data;
-  if ([name, slug, fullName, ngAttacks, hsAttackTime, hsInvincible, role, hsAttackImportance, hsTargetImportance].every((v) => v === undefined)) return c.json({ error: "invalid_request" }, 400);
+  const { name, slug, fullName, ngAttacks, hsAttackTime, hsAttackLabel, hsInvincible, role, hsAttackImportance, hsTargetImportance } = body.data;
+  if ([name, slug, fullName, ngAttacks, hsAttackTime, hsAttackLabel, hsInvincible, role, hsAttackImportance, hsTargetImportance].every((v) => v === undefined)) return c.json({ error: "invalid_request" }, 400);
   // 無敵時間：場面で変わらなければ hs_invincible_time だけ、場面ごとなら hs_invincible_detail に JSON（一番長い値を hs_invincible_time にも）
   const inv = hsInvincible;
   // 未指定の項目はそのまま、null を指定した項目は未入力に戻す
@@ -70,12 +70,12 @@ adminHeroRoutes.patch("/:id", async (c) => {
   try {
     const r = await c.env.DB.prepare(
       `UPDATE heroes SET name = COALESCE(?, name), slug = COALESCE(?, slug), full_name = CASE WHEN ? THEN ? ELSE full_name END,
-              ng_attacks = CASE WHEN ? THEN ? ELSE ng_attacks END, hs_attack_time = CASE WHEN ? THEN ? ELSE hs_attack_time END,
+              ng_attacks = CASE WHEN ? THEN ? ELSE ng_attacks END, hs_attack_time = CASE WHEN ? THEN ? ELSE hs_attack_time END, hs_attack_label = CASE WHEN ? THEN ? ELSE hs_attack_label END,
               hs_invincible_time = CASE WHEN ? THEN ? ELSE hs_invincible_time END, hs_invincible_detail = CASE WHEN ? THEN ? ELSE hs_invincible_detail END,
               role = CASE WHEN ? THEN ? ELSE role END, hs_importance = CASE WHEN ? THEN ? ELSE hs_importance END,
               hs_attack_importance = CASE WHEN ? THEN ? ELSE hs_attack_importance END WHERE id = ?`,
     )
-      .bind(name ?? null, slug ?? null, ...set(fullName), ...set(ngAttacks && NG_ATTACK_TYPES.filter((k) => ngAttacks.includes(k)).join(",")), ...set(hsAttackTime), ...set(inv && (inv.length ? Math.max(...inv.map((v) => v.sec)) : null)), ...set(inv && (inv.length > 1 || inv.some((v) => v.label) ? JSON.stringify(inv) : null)), ...set(role), ...set(hsTargetImportance), ...set(hsAttackImportance), c.req.param("id"))
+      .bind(name ?? null, slug ?? null, ...set(fullName), ...set(ngAttacks && NG_ATTACK_TYPES.filter((k) => ngAttacks.includes(k)).join(",")), ...set(hsAttackTime), ...set(hsAttackLabel === undefined ? undefined : hsAttackLabel || null), ...set(inv && (inv.length ? Math.max(...inv.map((v) => v.sec)) : null)), ...set(inv && (inv.length > 1 || inv.some((v) => v.label) ? JSON.stringify(inv) : null)), ...set(role), ...set(hsTargetImportance), ...set(hsAttackImportance), c.req.param("id"))
       .run();
     if (!r.meta.changes) return c.json({ error: "not_found" }, 404);
     // ヒーロースキルが不可なら、HS合わせ重要度は「−」（0）に固定（docs/DECISIONS.md AB）

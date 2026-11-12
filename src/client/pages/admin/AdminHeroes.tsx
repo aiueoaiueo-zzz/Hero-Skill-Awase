@@ -144,7 +144,7 @@ export function AdminHeroes() {
               <br />
               攻撃方法（ヒーロースキル・通常攻撃・ヒーローアクション・スキルカード）ごとに、そのキャラで合わせられるかを「可／不可」で選びます。不可にすると、詳細画面のそのタブがグレーになって選べなくなり、投稿でも選べなくなります。
               <br />
-              HS のダメージ発生（秒）と無敵時間（秒）を入れると、相手の無敵時間が自分のダメージ発生より短い組み合わせも、HS が「合わせ不可」になります。無敵時間が場面で変わるキャラは「1回目:1.5 / 2回目以降:5.5」のように入力すると、詳細画面に場面ごとに表示し、足りない場面だけを知らせます（全部の場面で足りないときだけ「合わせ不可」）（ヒーロースキルが「不可」のキャラはダメージ発生を入力できません）。
+              HS のダメージ発生（秒。場面の値なら「2回目以降:3.1」）と無敵時間（秒）を入れると、相手の無敵時間が自分のダメージ発生より短い組み合わせも、HS が「合わせ不可」になります。無敵時間が場面で変わるキャラは「1回目:1.5 / 2回目以降:5.5」のように入力すると、詳細画面に場面ごとに表示し、足りない場面だけを知らせます（全部の場面で足りないときだけ「合わせ不可」）（ヒーロースキルが「不可」のキャラはダメージ発生を入力できません）。
               <br />
               ロールはキャラを選ぶ画面の「ロールで絞り込み」に使います。HS合わせ適性（★1〜3・−。ヒーロースキルが不可なら「−」で固定）は攻撃する側（自分）を選ぶ画面の「HS合わせ適性順」、HS警戒度（★1〜3）は相手を選ぶ画面の「HS警戒度順」の並べ替えに使います（−は★1の後、未入力は最後）。
               <br />
@@ -242,16 +242,16 @@ function HeroCard({ h, first, last, save, move, remove, removeImage }: { h: Admi
         <div>
           <ImpRow label="HS合わせ適性" aria="HS合わせ適性" value={hsNg ? 0 : h.hsAttackImportance} dash fixed={hsNg} onChange={(v) => save({ hsAttackImportance: v }, "HS合わせ適性を保存しました")} />
           <AtkRow h={h} k="hs" save={save} />
-          <div className={`hline sub ${h.ngAttacks.includes("hs") ? "off" : ""}`}>
-            <span>└ ダメージ発生</span>
-            <SecInput label="ダメージ発生" value={h.hsAttackTime} disabled={h.ngAttacks.includes("hs")} onCommit={(v) => save({ hsAttackTime: v }, "ダメージ発生の時間を保存しました")} />
-          </div>
         </div>
         <div>
           <AtkRow h={h} k="normal" save={save} />
           <AtkRow h={h} k="action" save={save} />
           <AtkRow h={h} k="card" save={save} />
         </div>
+      </div>
+      <div className={`hline hinv hatkt ${h.ngAttacks.includes("hs") ? "off" : ""}`}>
+        <span>└ ヒーロースキルのダメージ発生</span>
+        <AtkTimeInput h={h} disabled={h.ngAttacks.includes("hs")} save={save} />
       </div>
       <div className="hsec">被HS合わせ（受）</div>
       <div className="hline hinv">
@@ -345,33 +345,35 @@ function InvInput({ value, onCommit }: { value: HsInvincible[]; onCommit: (v: Hs
   );
 }
 
-/** 秒の入力欄（空にすると未入力に戻す。フォーカスが外れたら保存） */
-function SecInput({ label, value, disabled, onCommit }: { label: string; value: number | null; disabled?: boolean; onCommit: (v: number | null) => Promise<boolean> }) {
-  const [v, setV] = useState(value == null ? "" : String(value));
-  useEffect(() => setV(value == null ? "" : String(value)), [value]);
+/** ダメージ発生の入力欄（「3.1」または補足付きの「2回目以降:3.1」。空にすると未入力。フォーカスが外れたら保存） */
+function AtkTimeInput({ h, disabled, save }: { h: AdminHero; disabled: boolean; save: Save }) {
+  const cur: HsInvincible[] = h.hsAttackTime == null ? [] : [{ label: h.hsAttackLabel, sec: h.hsAttackTime }];
+  const text = invincibleToText(cur);
+  const [v, setV] = useState(text);
+  useEffect(() => setV(text), [text]);
   return (
     <span className="secin">
       <input
-        aria-label={label}
-        type="number"
-        inputMode="decimal"
-        step="0.01"
-        min="0"
-        max="60"
+        aria-label="ダメージ発生"
+        className="atkin"
         value={v}
         disabled={disabled}
         placeholder="—"
         onChange={(e) => setV(e.target.value)}
         onKeyDown={(e) => e.key === "Enter" && (e.target as HTMLInputElement).blur()}
         onBlur={async () => {
-          const t = v.trim();
-          const n = t === "" ? null : Number(t);
-          if (n === value) return;
-          if (n !== null && (!Number.isFinite(n) || n < 0 || n > 60)) return setV(value == null ? "" : String(value));
-          if (!(await onCommit(n))) setV(value == null ? "" : String(value));
+          const list = parseInvincibleText(v);
+          if (!list || list.length > 1) {
+            toast("ダメージ発生は「3.1」か「2回目以降:3.1」の形で、0〜60 秒を 1 つだけ入力してください");
+            return setV(text);
+          }
+          if (invincibleToText(list) === text) return setV(text);
+          const x = list[0];
+          if (!(await save({ hsAttackTime: x ? x.sec : null, hsAttackLabel: x ? x.label : "" }, "ダメージ発生を保存しました"))) setV(text);
         }}
       />
       秒
     </span>
   );
 }
+
