@@ -74,7 +74,8 @@ jobs:
       - name: 本番のデータを確認用の D1 に入れる（お問い合わせは入れない）
         if: steps.check.outputs.ready == 'true'
         run: |
-          npx wrangler d1 execute DB --remote --file "$RUNNER_TEMP/prod.sql" -y
+          node scripts/sql-reorder.mjs "$RUNNER_TEMP/prod.sql" "$RUNNER_TEMP/prod-sorted.sql"
+          npx wrangler d1 execute DB --remote --file "$RUNNER_TEMP/prod-sorted.sql" -y
           npx wrangler d1 execute DB --remote --command "DELETE FROM contacts" -y
 
       - name: 確認用のデータベースのマイグレーション（このブランチで増えた分）
@@ -95,4 +96,4 @@ jobs:
 
       - name: 後片付け
         if: always()
-        run: rm -f "$RUNNER_TEMP/secrets.json" "$RUNNER_TEMP/prod.sql" "$RUNNER_TEMP/prod-export.json"
+        run: rm -f "$RUNNER_TEMP/secrets.json" "$RUNNER_TEMP/prod.sql" "$RUNNER_TEMP/prod-sorted.sql" "$RUNNER_TEMP/prod-export.json"

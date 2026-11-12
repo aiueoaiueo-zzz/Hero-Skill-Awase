@@ -147,3 +147,32 @@ describe("画像の形式を中身から調べる", () => {
     expect(await sniffImageType(blob(...str("PK")))).toBe(null);
   });
 });
+
+// @ts-expect-error JS のスクリプト（型定義なし）
+import { reorderSql, splitSql } from "../scripts/sql-reorder.mjs";
+
+describe("確認用サイトに入れる SQL の並べ替え", () => {
+  const sql = [
+    "PRAGMA defer_foreign_keys=TRUE;",
+    "CREATE TABLE a (id TEXT, b_id TEXT REFERENCES b(id));",
+    "INSERT INTO \"a\" VALUES('x;y','it''s\n;ok');",
+    "CREATE TABLE b (id TEXT);",
+    "INSERT INTO \"b\" VALUES('1');",
+    "CREATE INDEX i ON a(id);",
+  ].join("\n");
+  it("文字列の中の ; では区切らない", () => {
+    expect(splitSql(sql)).toHaveLength(6);
+  });
+  it("テーブルを全部作ってからデータ、最後に索引", () => {
+    const lines = splitSql(reorderSql(sql));
+    expect(lines.map((s: string) => s.split(" ")[0] + " " + s.split(" ")[1])).toEqual([
+      "PRAGMA defer_foreign_keys=TRUE;",
+      "CREATE TABLE",
+      "CREATE TABLE",
+      'INSERT INTO',
+      'INSERT INTO',
+      "CREATE INDEX",
+    ]);
+    expect(reorderSql(sql)).toContain("'it''s\n;ok'");
+  });
+});
