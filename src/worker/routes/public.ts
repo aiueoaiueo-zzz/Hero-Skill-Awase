@@ -1,3 +1,4 @@
+import { currentEvent } from "../lib/events";
 import { Hono } from "hono";
 import { PRIVATE_SETTING_KEYS } from "../../shared/constants";
 import { badgeFor, isXId, normalizeXId } from "../../shared/ranking";
@@ -18,16 +19,17 @@ publicRoutes.use("*", async (c, next) => {
 });
 
 publicRoutes.get("/bootstrap", async (c) => {
-  const [heroes, settings, pairs] = await Promise.all([
+  const [heroes, settings, pairs, ev] = await Promise.all([
     listHeroes(c.env),
     getSettings(c.env),
     c.env.DB.prepare("SELECT DISTINCT attacker_id AS a, target_id AS t FROM timings WHERE status = 'approved' AND hidden = 0").all<{ a: string; t: string }>(),
+    currentEvent(c.env),
   ]);
   for (const k of PRIVATE_SETTING_KEYS) delete (settings as Partial<typeof settings>)[k];
   const publicAppUrl = (c.env.PUBLIC_APP_URL || new URL(c.req.url).origin).replace(/\/+$/, "");
   const registered: Record<string, string[]> = {};
   for (const r of pairs.results) (registered[r.a] ??= []).push(r.t);
-  return c.json<Bootstrap>({ heroes, settings, turnstileSiteKey: c.env.TURNSTILE_SITE_KEY || "", publicAppUrl, registered, stage: c.env.SITE_STAGE || "" });
+  return c.json<Bootstrap>({ heroes, settings, turnstileSiteKey: c.env.TURNSTILE_SITE_KEY || "", publicAppUrl, registered, stage: c.env.SITE_STAGE || "", event: ev.event, featured: ev.featured });
 });
 
 publicRoutes.get("/heroes/:slug/targets", async (c) => {

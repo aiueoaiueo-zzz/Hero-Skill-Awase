@@ -54,7 +54,18 @@ export type Bootstrap = {
   registered: Record<string, string[]>;
   /** "staging"：確認用サイト。本番は空 */
   stage: string;
+  /** 開催中のイベント（なければ null） */
+  event: PublicEvent | null;
+  /** 今日の「今週のキャラ」（キャラの ID。いなければ空） */
+  featured: { heroId: string; startsOn: string; endsOn: string }[];
 };
+
+/** イベント（キャンペーン）。日付は日本時間の YYYY-MM-DD（両端を含む） */
+export type EventInfo = { id: string; name: string; startsOn: string; endsOn: string; goal: number | null };
+/** 一般向け：開催中のイベントと進み具合（filled：投稿がある組み合わせの数） */
+export type PublicEvent = EventInfo & { filled: number };
+/** 今週のキャラのスケジュール 1 行 */
+export type FeaturedHero = { id: string; heroId: string; startsOn: string; endsOn: string };
 
 export type RankRow = { rank: number; xId: string; points: number; badge: string | null };
 export type RankingResponse = {

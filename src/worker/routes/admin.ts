@@ -1,4 +1,5 @@
 import { Hono } from "hono";
+import { adminEventRoutes } from "./admin-events";
 import { SETTING_KEYS } from "../../shared/constants";
 import { approveSchema, posterSchema, rejectSchema, settingsSchema } from "../../shared/schema";
 import type { AdminGroup, AdminPendingResponse, AdminPublished, AdminTiming } from "../../shared/types";
@@ -220,6 +221,7 @@ adminRoutes.post("/timings/:id/reject", async (c) => {
 });
 
 adminRoutes.route("/heroes", adminHeroRoutes);
+adminRoutes.route("/events", adminEventRoutes);
 
 // ===== 公開中のタイミングの管理（非公開・公開に戻す・削除） =====
 
