@@ -133,3 +133,17 @@ describe("無敵時間の表示と入力", () => {
     expect(invincibleToText([{ label: "1回目", sec: 1.5 }, { label: "2回目以降", sec: 5.5 }])).toBe("1回目:1.5 / 2回目以降:5.5");
   });
 });
+
+import { sniffImageType } from "../src/client/lib/image";
+
+describe("画像の形式を中身から調べる", () => {
+  const blob = (...b: number[]) => new Blob([new Uint8Array([...b, ...new Array(16).fill(0)])], { type: "application/x-photo" });
+  const str = (s: string) => Array.from(s, (c) => c.charCodeAt(0));
+  it("形式の表示が違っても中身で判断する", async () => {
+    expect(await sniffImageType(blob(0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a))).toBe("image/png");
+    expect(await sniffImageType(blob(0xff, 0xd8, 0xff, 0xe0))).toBe("image/jpeg");
+    expect(await sniffImageType(blob(...str("RIFF"), 0, 0, 0, 0, ...str("WEBP")))).toBe("image/webp");
+    expect(await sniffImageType(blob(0, 0, 0, 0x18, ...str("ftypheic")))).toBe("image/heic");
+    expect(await sniffImageType(blob(...str("PK")))).toBe(null);
+  });
+});
