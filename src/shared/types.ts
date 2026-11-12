@@ -70,11 +70,15 @@ export type FeaturedHero = { id: string; heroId: string; startsOn: string; endsO
 export type RankRow = { rank: number; xId: string; points: number; badge: string | null };
 export type RankingResponse = {
   minUsers: number;
-  totalUsers: number;
-  monthUsers: number;
-  /** 人数が足りないうちは null */
+  /** "event"：イベント期間中（イベントランキングだけ）／"normal"：それ以外（公開にしたものだけ） */
+  mode: "event" | "normal";
+  /** 公開にしているか（非公開なら下の一覧は出さない） */
+  show: { total: boolean; month: boolean };
+  /** 人数が足りない・非公開・イベント期間中は null */
   total: RankRow[] | null;
   month: RankRow[] | null;
+  /** イベント期間中だけ（rows は人数が足りないうちは null） */
+  event: { name: string; startsOn: string; endsOn: string; rows: RankRow[] | null } | null;
 };
 export type UserTiming = {
   id: string;
@@ -93,6 +97,10 @@ export type UserResponse = {
   badge: string | null;
   rankTotal: number | null;
   rankMonth: number | null;
+  /** イベント期間中のポイントと順位（イベント期間外は null） */
+  event: { name: string; points: number; rank: number | null } | null;
+  /** 今月のランキングを公開しているか */
+  showMonth: boolean;
   /** ランキングがまだ始まっていない（人数が足りない） */
   rankingActive: boolean;
   excluded: boolean;

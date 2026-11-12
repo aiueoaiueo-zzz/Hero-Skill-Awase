@@ -72,7 +72,7 @@ export type ContactKind = (typeof CONTACT_KINDS)[number][0];
 export const CONTACT_KIND_LABEL = Object.fromEntries(CONTACT_KINDS) as Record<ContactKind, string>;
 export const CONTACT_LIMITS = { ref: 300, bodyMin: 5, body: 2000, replyTo: 200 } as const;
 
-export const SETTING_KEYS = ["owner_support_code", "notices", "about", "terms", "ranking_excluded"] as const;
+export const SETTING_KEYS = ["owner_support_code", "notices", "about", "terms", "ranking_excluded", "ranking_show_total", "ranking_show_month", "ranking_show_event"] as const;
 /** 一般向けには返さない設定 */
 export const PRIVATE_SETTING_KEYS: readonly SettingKey[] = ["ranking_excluded"];
 export type SettingKey = (typeof SETTING_KEYS)[number];
@@ -160,6 +160,10 @@ export const DEFAULT_SETTINGS: Record<SettingKey, string> = {
   about: DEFAULT_ABOUT,
   terms: DEFAULT_TERMS,
   ranking_excluded: "",
+  // ランキングの公開・非公開（"1"：公開／"0"：非公開。docs/DECISIONS.md AM）
+  ranking_show_total: "1",
+  ranking_show_month: "0",
+  ranking_show_event: "1",
 };
 
 /** キャラのロール（キャラ選択の絞り込みに使う） */
