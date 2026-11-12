@@ -52,6 +52,8 @@ export type Bootstrap = {
   publicAppUrl: string;
   /** 公開中のタイミングがある組み合わせ（攻撃する側のキャラ ID → 相手のキャラ ID の一覧）。相手の選択画面をすぐ出すため */
   registered: Record<string, string[]>;
+  /** "staging"：確認用サイト。本番は空 */
+  stage: string;
 };
 
 export type RankRow = { rank: number; xId: string; points: number; badge: string | null };

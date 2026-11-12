@@ -223,3 +223,24 @@ GitHub の **Actions → 「データの確認・削除」 → Run workflow** �
 - ウェブフック URL を知っている人は誰でもそのチャンネルに投稿できるので、ほかの人には教えないでください。
 - 通知の文面では、メンション（@everyone など）は飛びません。
 - 通知をやめたいときは、Discord でウェブフックを削除するか、GitHub の Secret を消してデプロイし直します。
+
+## 確認用サイト（staging）
+
+本番に出す前に、変更をスマホで確認するためのサイトです（docs/DECISIONS.md AK）。
+
+- **確認用のアプリ**：`https://hs-awase-staging.<サブドメイン>.workers.dev`
+- **確認用の管理画面**：`https://hs-awase-staging-admin.<サブドメイン>.workers.dev`
+- 画面の一番上に赤い帯「確認用サイト（本番ではありません）」が出ます。検索エンジンには載りません。
+- データ（D1「hs-awase-staging」）と動画（R2「hs-awase-staging-media」）は **本番と別** です。キャラのデータはマイグレーションで入りますが、投稿は空から始まります。Discord への通知はしません。
+- **いつ反映されるか**：作業用のブランチ（`claude/…`）に変更が入ると、GitHub Actions の「確認用サイトにデプロイ」が自動で動きます（3〜5 分）。手動で動かすときは Actions → 「確認用サイトにデプロイ」→ Run workflow（ブランチを選ぶ）。
+- **流れ**：Claude が変更をブランチに入れる → 確認用サイトで確認 → よければ PR をマージ → 本番に反映。
+
+### 最初に 1 回だけやること
+
+最初の自動デプロイで、確認用の Worker・D1・R2 は自動で作られます。そのあと次を設定すると、全部の機能が使えます。
+
+1. **確認用の管理画面に鍵をかける（必須）**：本番の手順 9 と同じように、Workers & Pages → **`hs-awase-staging-admin`** → 設定 → ドメインとルート → workers.dev の「Cloudflare Access を有効にする」。ポリシーは自分のメールアドレスだけ。表示された **AUD タグ** を GitHub の **Variables** に `STAGING_ACCESS_AUD` として登録します（`ACCESS_TEAM_DOMAIN` は本番と同じものが使われます）。
+   - 登録するまで、確認用の管理画面は開けません（安全のため）。
+2. **投稿の確認をするなら：Turnstile**：本番の手順 8 で作ったウィジェットの「ホスト名」に `hs-awase-staging.<サブドメイン>.workers.dev` を追加します（キーは本番と同じでよい）。
+3. **動画のアップロードを確認するなら：R2 の鍵**：本番の手順 7 の鍵が `hs-awase-media` だけに絞ってある場合は、`hs-awase-staging-media` 用の鍵を同じ手順で作り、GitHub の Secrets に `STAGING_R2_ACCESS_KEY_ID` / `STAGING_R2_SECRET_ACCESS_KEY` として登録します。
+4. 登録したら、Actions → 「確認用サイトにデプロイ」→ Run workflow でもう一度動かします。

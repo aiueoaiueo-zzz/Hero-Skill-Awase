@@ -27,6 +27,8 @@ export interface Env {
   ADMIN_APP_URL?: string;
   /** 14 日以上審査されない承認待ち："keep"（残す・初期値）／"delete"（取り下げて動画を削除） */
   PENDING_EXPIRE_ACTION?: string;
+  /** "staging" なら確認用サイト（画面に帯を出し、検索エンジンに載せない）。本番は空（docs/DECISIONS.md AK） */
+  SITE_STAGE?: string;
 }
 
 export type AppEnv = { Bindings: Env };

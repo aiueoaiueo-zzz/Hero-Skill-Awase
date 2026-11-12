@@ -25,6 +25,8 @@ app.use("*", async (c, next) => {
   // fetch() や ASSETS から受け取ったレスポンスはヘッダーを書き換えられないので、作り直してから付ける
   const res = new Response(c.res.body, c.res);
   for (const [k, v] of Object.entries(SECURITY_HEADERS)) if (!res.headers.has(k)) res.headers.set(k, v);
+  // 確認用サイトは検索エンジンに載せない
+  if (c.env.SITE_STAGE === "staging") res.headers.set("X-Robots-Tag", "noindex, nofollow");
   c.res = res;
 });
 

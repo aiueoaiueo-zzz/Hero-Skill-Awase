@@ -6,14 +6,23 @@
 //   5. GitHub の Variables の値を wrangler.jsonc に書き込む（Turnstile のサイトキー、Access）
 //   6. Worker の secret 用の JSON を作る（あとで wrangler secret bulk で登録）
 // 使い方：node scripts/ci-setup.mjs   （環境変数 CLOUDFLARE_API_TOKEN, CLOUDFLARE_ACCOUNT_ID が必要）
+// STAGE=staging のときは確認用サイト（docs/DECISIONS.md AK）：Worker・D1・R2 をすべて「-staging」付きの別のものにする。
+//   本番の Worker・データには一切さわらない。Discord への通知はしない。管理画面の Access は STAGING_ACCESS_AUD を使う
 import { appendFileSync, readFileSync, writeFileSync } from "node:fs";
 
-const DB_NAME = "hs-awase";
-const BUCKET = "hs-awase-media";
-const WORKER = "hs-awase";
-const ADMIN_WORKER = "hs-awase-admin";
-
 const env = process.env;
+const STAGING = env.STAGE === "staging";
+const DB_NAME = STAGING ? "hs-awase-staging" : "hs-awase";
+const BUCKET = STAGING ? "hs-awase-staging-media" : "hs-awase-media";
+const WORKER = STAGING ? "hs-awase-staging" : "hs-awase";
+const ADMIN_WORKER = STAGING ? "hs-awase-staging-admin" : "hs-awase-admin";
+// 確認用サイトの管理画面は、本番とは別の Access アプリで守る（未設定なら確認用の管理画面は開けない＝安全側）
+if (STAGING) env.ACCESS_AUD = env.STAGING_ACCESS_AUD || "";
+// 確認用の R2 の鍵（本番の鍵がバケットを hs-awase-media だけに絞っているときは、確認用の鍵を別に登録する）
+if (STAGING && env.STAGING_R2_ACCESS_KEY_ID && env.STAGING_R2_SECRET_ACCESS_KEY) {
+  env.R2_ACCESS_KEY_ID = env.STAGING_R2_ACCESS_KEY_ID;
+  env.R2_SECRET_ACCESS_KEY = env.STAGING_R2_SECRET_ACCESS_KEY;
+}
 const token = env.CLOUDFLARE_API_TOKEN;
 const account = env.CLOUDFLARE_ACCOUNT_ID;
 
@@ -100,6 +109,19 @@ const setAll = (key, value) => {
   conf = conf.replace(new RegExp(`("${key}"\\s*:\\s*)"[^"]*"`, "g"), `$1${JSON.stringify(value)}`);
 };
 setAll("database_id", dbId);
+if (STAGING) {
+  // Worker の名前・D1・R2 を確認用のものに差し替える（本番の Worker に上書きデプロイしないように）
+  const swap = (from, to) => {
+    if (!conf.includes(from)) fail(`wrangler.jsonc に ${from} が見つかりません。`);
+    conf = conf.split(from).join(to);
+  };
+  swap('"name": "hs-awase-admin"', `"name": "${ADMIN_WORKER}"`);
+  swap('"name": "hs-awase"', `"name": "${WORKER}"`);
+  swap('"database_name": "hs-awase"', `"database_name": "${DB_NAME}"`);
+  swap('"bucket_name": "hs-awase-media"', `"bucket_name": "${BUCKET}"`);
+  setAll("SITE_STAGE", "staging");
+  if (conf.includes('"name": "hs-awase"') || conf.includes('"name": "hs-awase-admin"')) fail("確認用の名前に差し替えられませんでした。");
+}
 setAll("PUBLIC_APP_URL", appUrl); // X 共有のリンク先（管理用の Worker からも一般向けを指す）
 setAll("ADMIN_APP_URL", adminUrl); // Discord 通知のリンク先
 if (env.TURNSTILE_SITE_KEY) setAll("TURNSTILE_SITE_KEY", env.TURNSTILE_SITE_KEY);
@@ -118,7 +140,7 @@ if (env.R2_ACCESS_KEY_ID && env.R2_SECRET_ACCESS_KEY) {
   });
 }
 if (env.TURNSTILE_SECRET_KEY) secrets.TURNSTILE_SECRET_KEY = env.TURNSTILE_SECRET_KEY;
-if (env.DISCORD_WEBHOOK_URL) secrets.DISCORD_WEBHOOK_URL = env.DISCORD_WEBHOOK_URL.trim();
+if (env.DISCORD_WEBHOOK_URL && !STAGING) secrets.DISCORD_WEBHOOK_URL = env.DISCORD_WEBHOOK_URL.trim();
 writeFileSync(env.RUNNER_TEMP ? `${env.RUNNER_TEMP}/secrets.json` : "secrets.json", JSON.stringify(secrets));
 output("has_secrets", Object.keys(secrets).length ? "true" : "false");
 output("app_url", appUrl);
@@ -130,7 +152,7 @@ if (!env.R2_ACCESS_KEY_ID || !env.R2_SECRET_ACCESS_KEY) missing.push("Secrets：
 if (!env.TURNSTILE_SITE_KEY || !env.TURNSTILE_SECRET_KEY) missing.push("TURNSTILE_SITE_KEY（Variables か Secrets）／ TURNSTILE_SECRET_KEY（Secrets）（投稿に必要）");
 if (!env.ACCESS_TEAM_DOMAIN || !env.ACCESS_AUD) missing.push("ACCESS_TEAM_DOMAIN / ACCESS_AUD（Variables か Secrets）（管理画面に必要）");
 
-summary(`## デプロイ先
+summary(`## ${STAGING ? "確認用サイト（staging）の" : ""}デプロイ先
 
 | | URL |
 |---|---|
