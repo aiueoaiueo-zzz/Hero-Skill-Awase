@@ -196,3 +196,8 @@ export const HS_RATING = {
     ],
   },
 } as const;
+
+/** 攻撃方法ごとの補足（詳細画面のタブの下・投稿フォームに出す。docs/DECISIONS.md AG） */
+export const ATTACK_NOTE: Partial<Record<AttackType, string>> = {
+  normal: "※ 通常攻撃の最終弾です。",
+};

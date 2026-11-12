@@ -1,5 +1,5 @@
 import { useRef } from "react";
-import { ATTACK_TYPES, CUE_TYPES, LIMITS, PLACEHOLDER, type AttackType, type CueType } from "../../shared/constants";
+import { ATTACK_NOTE, ATTACK_TYPES, CUE_TYPES, LIMITS, PLACEHOLDER, type AttackType, type CueType } from "../../shared/constants";
 import { compressVideo, CompressError, enqueue } from "../lib/compress";
 import { fmtSize, toast } from "../lib/ui";
 import { inspectVideo } from "../lib/video";
@@ -130,6 +130,7 @@ export function PointsEditor({ points, update, opts }: { points: PointDraft[]; u
                 </button>
               ))}
             </div>
+            {ATTACK_NOTE[p.attackType] && <div className="hint">{ATTACK_NOTE[p.attackType]}</div>}
             <label className="h">
               合わせる目印<em>必須</em>
             </label>
