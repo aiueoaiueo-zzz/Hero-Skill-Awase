@@ -16,6 +16,8 @@ export type Hero = {
   hsAttackTime: number | null;
   /** ダメージ発生がどの場面の値か（例「2回目以降」）。なければ空 */
   hsAttackLabel: string;
+  /** HS のダメージ継続時間（秒。極大ダメージまたは転倒が入る攻撃のみ）。-1 は「−」、未入力は null */
+  hsDamageDuration: number | null;
   /** HS の無敵時間（秒）。場面で変わるときは場面ごと（label 付き）。場面で変わらなければ label は空。未入力は [] */
   hsInvincible: HsInvincible[];
   /** ロール。未入力は null */
