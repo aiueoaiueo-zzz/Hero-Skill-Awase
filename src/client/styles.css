@@ -645,3 +645,4 @@ img.av{object-fit:cover;background:#ddd}
 .rkrow select{flex:none;font-size:13px;padding:4px 8px;border:1px solid var(--line);background:#fff;color:var(--sub);border-radius:99px}
 .rkrow select.on{border-color:#000;color:#000;font-weight:700}
 .rkperiod{display:block;font-size:11.5px;color:var(--sub);font-weight:400;margin-top:2px}
+.hcard .hdurh{margin-top:-2px}

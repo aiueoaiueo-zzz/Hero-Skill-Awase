@@ -346,6 +346,11 @@ function HeroCard({ h, first, last, save, move, remove, removeImage, setImage }:
         <span>└ ヒーロースキルのダメージ発生</span>
         <AtkTimeInput h={h} disabled={h.ngAttacks.includes("hs")} save={save} />
       </div>
+      <div className={`hline hinv hatkt ${h.ngAttacks.includes("hs") ? "off" : ""}`}>
+        <span>└ ヒーロースキルのダメージ継続時間</span>
+        <DurInput value={h.hsDamageDuration} disabled={h.ngAttacks.includes("hs")} onCommit={(v) => save({ hsDamageDuration: v }, "ダメージ継続時間を保存しました")} />
+      </div>
+      <div className="hint hinvh hdurh">※極大ダメージまたは転倒が入る攻撃のみ。該当しないときは「-」</div>
       <div className="hsec">被HS合わせ（受）</div>
       <div className="hline hinv">
         <span>無敵</span>
@@ -434,6 +439,43 @@ function InvInput({ value, onCommit }: { value: HsInvincible[]; onCommit: (v: Hs
         if (!(await onCommit(list))) setV(text);
       }}
     />
+  );
+}
+
+/** ダメージ継続時間の入力欄（「2.5」・「-」・空。空にすると未入力。フォーカスが外れたら保存） */
+function DurInput({ value, disabled, onCommit }: { value: number | null; disabled: boolean; onCommit: (v: number | null) => Promise<boolean> }) {
+  const text = value == null ? "" : value === -1 ? "-" : String(value);
+  const [v, setV] = useState(text);
+  useEffect(() => setV(text), [text]);
+  return (
+    <span className="secin">
+      <input
+        aria-label="ダメージ継続時間"
+        className="atkin"
+        value={v}
+        disabled={disabled}
+        placeholder="—"
+        onChange={(e) => setV(e.target.value)}
+        onKeyDown={(e) => e.key === "Enter" && (e.target as HTMLInputElement).blur()}
+        onBlur={async () => {
+          const t = v.trim().replace(/秒$/, "");
+          let n: number | null;
+          if (t === "") n = null;
+          else if (/^[-－ー−]$/.test(t)) n = -1;
+          else {
+            n = Number(t);
+            if (!Number.isFinite(n) || n < 0 || n > 60) {
+              toast("ダメージ継続時間は 0〜60 秒の数字か「-」で入力してください");
+              return setV(text);
+            }
+            n = Math.round(n * 100) / 100;
+          }
+          if (n === value) return setV(text);
+          if (!(await onCommit(n))) setV(text);
+        }}
+      />
+      秒
+    </span>
   );
 }
 

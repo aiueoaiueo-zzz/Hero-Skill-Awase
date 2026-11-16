@@ -10,6 +10,7 @@ export type HeroQuery = {
   atk: Record<NgAttackType, "" | "ok" | "ng">;
   atkImp: string; // 3〜0／none
   atkTime: "" | "set" | "none";
+  dmgDur: "" | "set" | "dash" | "none";
   tgtImp: string; // 3〜1／none
   inv: "" | "set" | "none" | "multi";
 };
@@ -20,6 +21,7 @@ export const emptyQuery = (): HeroQuery => ({
   atk: { hs: "", normal: "", action: "", card: "" },
   atkImp: "",
   atkTime: "",
+  dmgDur: "",
   tgtImp: "",
   inv: "",
 });
@@ -41,6 +43,9 @@ export function matchHero(h: AdminHero, c: HeroQuery) {
   // ヒーロースキルが不可なら HS合わせ適性は「−」（0）扱い
   if (!impMatch(h.ngAttacks.includes("hs") ? 0 : h.hsAttackImportance, c.atkImp)) return false;
   if (c.atkTime && (c.atkTime === "set") !== (h.hsAttackTime != null)) return false;
+  if (c.dmgDur === "set" && !(h.hsDamageDuration != null && h.hsDamageDuration >= 0)) return false;
+  if (c.dmgDur === "dash" && h.hsDamageDuration !== -1) return false;
+  if (c.dmgDur === "none" && h.hsDamageDuration != null) return false;
   if (!impMatch(h.hsTargetImportance, c.tgtImp)) return false;
   if (c.inv === "set" && !h.hsInvincible.length) return false;
   if (c.inv === "none" && h.hsInvincible.length) return false;
@@ -102,6 +107,11 @@ export function HeroSearch({ c, set, shown, total }: { c: HeroQuery; set: (c: He
           ))}
           <Cond label="ダメージ発生" value={c.atkTime} onChange={(v) => p({ atkTime: v as HeroQuery["atkTime"] })}>
             <option value="set">入力済み</option>
+            <option value="none">未入力</option>
+          </Cond>
+          <Cond label="ダメージ継続時間" value={c.dmgDur} onChange={(v) => p({ dmgDur: v as HeroQuery["dmgDur"] })}>
+            <option value="set">秒を入力済み</option>
+            <option value="dash">−</option>
             <option value="none">未入力</option>
           </Cond>
           <div className="hsgroup">被HS合わせ（受）</div>
