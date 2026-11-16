@@ -10,6 +10,7 @@ import { useData } from "../../lib/data";
 import { openShare } from "../../lib/share";
 import { useBootFx } from "../../lib/fx";
 import { fmtDate, fmtSize, toast } from "../../lib/ui";
+import { ArmedButton } from "./AdminHeroes";
 import { AdminLayout, adminErrorMessage } from "./AdminLayout";
 
 const ERRORS: Record<string, string> = {
@@ -116,6 +117,27 @@ export function AdminPending() {
       setBusy(null);
     }
   };
+  // すべて承認（表示中の承認待ちを上から順に 1 件ずつ承認。docs/DECISIONS.md AO）
+  const [bulk, setBulk] = useState<{ done: number; total: number } | null>(null);
+  const approveAll = async () => {
+    if (!data || bulk) return;
+    const list = data.groups.flatMap((g) => g.timings.map((t) => ({ t, g })));
+    let ok = 0, ng = 0;
+    setBulk({ done: 0, total: list.length });
+    for (const { t, g } of list) {
+      try {
+        const r = await api<{ merged: boolean; shareCode: string | null }>(`/api/admin/timings/${t.id}/approve`, { method: "POST", body: "{}" });
+        setApproved((a) => [{ key: t.id, group: g, timing: t, linkId: r.merged && g.original ? g.original.id : t.id, updated: r.merged, shareCode: r.shareCode }, ...a]);
+        ok++;
+      } catch {
+        ng++;
+      }
+      setBulk({ done: ok + ng, total: list.length });
+    }
+    await load();
+    setBulk(null);
+    toast(ng ? `${ok} 件を承認しました（${ng} 件は承認できませんでした。個別に確認してください）` : `${ok} 件すべて承認しました`);
+  };
   const reject = async (t: AdminTiming, reason: string) => {
     setBusy({ id: t.id, action: "reject" });
     try {
@@ -168,6 +190,20 @@ export function AdminPending() {
               ))}
             </div>
           )}
+          {count ? (
+            <div className="box allok">
+              <p>
+                承認待ちの <b>{count} 件</b>をまとめて承認します{data.groups.some((g) => g.isFix) ? "（修正提案も含みます。承認すると公開中のタイミングが置き換わります）" : ""}。
+              </p>
+              {bulk ? (
+                <button className="sbtn ok busy" disabled>
+                  承認中… {bulk.done} / {bulk.total}
+                </button>
+              ) : (
+                <ArmedButton className="sbtn ok" label={`すべて承認（${count} 件）`} armedLabel={`もう一度押すと ${count} 件を承認`} onConfirm={approveAll} />
+              )}
+            </div>
+          ) : null}
           {data.groups.length ? (
             data.groups.map((g) => (
               <div key={g.code}>
@@ -178,13 +214,13 @@ export function AdminPending() {
                   const b = busy?.id === t.id ? busy.action : null;
                   const actions = (
                     <>
-                      <button className={`sbtn danger ${b === "reject" ? "busy" : ""}`} disabled={!!busy} onClick={() => setRejecting(t)}>
+                      <button className={`sbtn danger ${b === "reject" ? "busy" : ""}`} disabled={!!busy || !!bulk} onClick={() => setRejecting(t)}>
                         <Busy on={b === "reject"} label="却下" busyLabel="却下中…" />
                       </button>
-                      <button className={`sbtn ${b === "edit" ? "busy" : ""}`} disabled={!!busy} onClick={() => setEditing({ t, g })}>
+                      <button className={`sbtn ${b === "edit" ? "busy" : ""}`} disabled={!!busy || !!bulk} onClick={() => setEditing({ t, g })}>
                         <Busy on={b === "edit"} label="編集して承認" busyLabel="承認中…" />
                       </button>
-                      <button className={`sbtn ok ${b === "approve" ? "busy" : ""}`} disabled={!!busy} onClick={() => approve(t, g)}>
+                      <button className={`sbtn ok ${b === "approve" ? "busy" : ""}`} disabled={!!busy || !!bulk} onClick={() => approve(t, g)}>
                         <Busy on={b === "approve"} label="承認" busyLabel="承認中…" />
                       </button>
                     </>
