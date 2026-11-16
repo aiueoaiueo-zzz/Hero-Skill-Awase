@@ -4,6 +4,7 @@ import { formatCue } from "../../shared/text";
 import type { Hero } from "../../shared/types";
 import { Avatar } from "./Avatar";
 import { Who } from "./TimingCard";
+import { PostVideo } from "./PostVideo";
 
 export type EntryPoint = {
   attackType: AttackType;
@@ -61,7 +62,7 @@ export function EntryCard(p: Props) {
           <span className="chip">目印：{CUE_LABEL[pt.cueType] || "その他"}</span>
           <div className="tim">{formatCue(pt.cueType, pt.timingText)}</div>
           {pt.note && <div className="note">{pt.note}</div>}
-          {pt.videoUrl && <video src={pt.videoUrl} controls playsInline preload="metadata" />}
+          {pt.videoUrl && <PostVideo src={pt.videoUrl} />}
         </div>
       ))}
       <Who nickname={p.nickname ?? null} supportCode={p.supportCode ?? null} />

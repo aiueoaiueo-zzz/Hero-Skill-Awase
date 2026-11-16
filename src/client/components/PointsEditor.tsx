@@ -3,6 +3,7 @@ import { ATTACK_NOTE, ATTACK_TYPES, CUE_TYPES, LIMITS, PLACEHOLDER, type AttackT
 import { compressVideo, CompressError, enqueue } from "../lib/compress";
 import { fmtSize, toast } from "../lib/ui";
 import { inspectVideo } from "../lib/video";
+import { PostVideo } from "./PostVideo";
 
 export type PointDraft = {
   /** ブロックの識別子（変換が終わったとき、正しいブロックに結果を入れるため） */
@@ -165,9 +166,9 @@ export function PointsEditor({ points, update, opts }: { points: PointDraft[]; u
             </label>
             {/* 変換後のファイルでプレビュー（投稿される見た目のまま） */}
             {p.fileUrl ? (
-              <video className="vprev" src={p.fileUrl} controls playsInline preload="metadata" />
+              <PostVideo className="vprev" src={p.fileUrl} />
             ) : p.existing ? (
-              <video className="vprev" src={p.existing.url} controls playsInline preload="metadata" />
+              <PostVideo className="vprev" src={p.existing.url} />
             ) : null}
             {busy && (
               <div style={{ marginTop: has ? 8 : 0 }}>

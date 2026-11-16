@@ -5,6 +5,7 @@ import { CUE_LABEL, type CueType } from "../../shared/constants";
 import { formatCue } from "../../shared/text";
 import { fmtDate } from "../lib/ui";
 import { SupportCodeButton } from "./SupportCode";
+import { PostVideo } from "./PostVideo";
 
 export type TimingCardData = {
   cueType: CueType;
@@ -56,7 +57,7 @@ export function TimingCard({ t, num, actions, id, flash }: { t: TimingCardData; 
         {formatCue(t.cueType, t.timingText)}
       </div>
       {t.note && <div className="note">{t.note}</div>}
-      {t.videoUrl && <video src={t.videoUrl} controls playsInline preload="metadata" />}
+      {t.videoUrl && <PostVideo src={t.videoUrl} />}
       <Who nickname={t.nickname} supportCode={t.supportCode} badge={t.badge} />
       <div className="foot">
         <span>{t.reviewedAt ? `${fmtDate(t.reviewedAt)} 承認` : ""}</span>
