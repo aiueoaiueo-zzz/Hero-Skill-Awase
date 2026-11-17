@@ -663,3 +663,6 @@ img.av{object-fit:cover;background:#ddd}
 .card .stars.bsec{margin-top:4px}.card .stars.bsec+.stars{margin-top:2px}
 /* カードの名前は略称を 1 行で（docs/DECISIONS.md AR） */
 .card .nm{display:block;white-space:nowrap;overflow:hidden;min-height:1.25em;-webkit-line-clamp:unset;letter-spacing:-.02em}
+.card .cbadge{position:relative}
+.card .cbadge.dash>.stars{visibility:hidden}
+.card .cbadge .dashmark{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:var(--accent);font-weight:800;font-size:12px}
