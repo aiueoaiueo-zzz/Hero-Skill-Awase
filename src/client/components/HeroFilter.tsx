@@ -102,7 +102,7 @@ export function HeroFilter({ sort, dir, kind, role, set, pick }: { role: HeroRol
         <button className={sort === "time" ? "on" : ""} onClick={() => pick("time")}>
           {label("time")}
         </button>
-        {/* 並び順のボタンと ⓘ を 1 つの枠に入れて右端に置く（ボタンの中にボタンは置けないので、枠で囲む） */}
+        {/* 並び順のボタンと ⓘ を 1 つの枠に入れて、並び順の最後に置く（ボタンの中にボタンは置けないので、枠で囲む） */}
         <span className={`sortbox ${sort === "importance" ? "on" : ""}`}>
           <button onClick={() => pick("importance")}>{label("importance")}</button>
           <button className={`info ${info ? "open" : ""}`} aria-label={`${r.name}とは`} aria-expanded={info} onClick={() => setInfo(!info)}>
