@@ -25,7 +25,7 @@ export function Home() {
       <input className="search" placeholder="キャラ名で検索" value={q} onChange={(e) => setQ(e.target.value)} />
       <HeroFilter {...f} />
       {list.length ? (
-        <HeroGrid heroes={list} to={(h) => `/h/${h.slug}`} badge={f.badge} />
+        <HeroGrid heroes={list} to={(h) => `/h/${h.slug}`} kind={f.kind} />
       ) : (
         <div className="empty">該当するキャラがいません</div>
       )}
