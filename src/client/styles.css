@@ -660,3 +660,4 @@ img.av{object-fit:cover;background:#ddd}
 .card .stars{font-size:12.5px;line-height:1.1}.card .stars small{font-size:8.5px;margin-left:.5px}
 .card .stars.long{font-size:10.5px}.card .stars.long small{font-size:7.5px}
 .card .stars.bsec{margin-top:2px}
+.card .stars.bsec{margin-top:4px}.card .stars.bsec+.stars{margin-top:2px}

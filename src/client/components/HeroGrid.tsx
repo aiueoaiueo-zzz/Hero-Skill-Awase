@@ -37,12 +37,12 @@ export function HeroGrid({ heroes, to, preload, ng, partial, kind }: { heroes: H
   );
 }
 
-/** ★ と秒数（どの並び順でも出す）。秒数は数字を大きく、「秒」を小さく出す（docs/DECISIONS.md AQ） */
+/** 秒数（上）と ★（下）。どの並び順でも出す。秒数は数字を大きく、「秒」を小さく出す（docs/DECISIONS.md AQ） */
 function Badge({ stars, text }: { stars: string; text: string }) {
   return (
     <>
-      <div className="stars">{stars}</div>
       <div className={`stars bsec ${text.length > 6 ? "long" : ""}`}>{text.split(/(秒)/).map((t, i) => (t === "秒" ? <small key={i}>秒</small> : t))}</div>
+      <div className="stars">{stars}</div>
     </>
   );
 }
