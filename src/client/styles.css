@@ -541,7 +541,9 @@ a.entry.ulink{display:block;text-decoration:none;color:inherit}
 .card.ng{opacity:.8}
 .ngbox{border:2px solid #d93636;background:#fff1f1;color:#a11;padding:10px 12px;margin:0 0 12px;font-size:13px;line-height:1.6}
 .ngbox b{display:block;font-size:14.5px;color:#d93636}
-.invline{font-size:12px;color:var(--sub);margin:-4px 2px 12px;line-height:1.5;text-align:right}
+.invline{font-size:12px;color:var(--sub);margin:-4px 2px 12px;line-height:1.5;display:flex;flex-wrap:wrap;column-gap:12px;row-gap:2px}
+.invline .atk{text-align:left}
+.invline .inv{margin-left:auto;text-align:right}
 .invline b{color:#000;font-weight:700}
 .atabs button.off,.atabs button.off:hover,.atabs button.off:active{transform:none;opacity:1;background:#e9e9e9;border-color:#d4d4d4;color:#a8a8a8;box-shadow:none;cursor:not-allowed}
 .atabs button.off b{color:#a8a8a8}
@@ -648,3 +650,5 @@ img.av{object-fit:cover;background:#ddd}
 .rkperiod{display:block;font-size:11.5px;color:var(--sub);font-weight:400;margin-top:2px}
 .hcard .hdurh{margin-top:-2px}
 .allok{display:flex;flex-direction:column;gap:8px}.allok p{margin:0}.allok .sbtn{align-self:flex-start;padding:8px 16px;font-weight:700}
+.hfrow button .dir,.hfrow .sortbox .dir{font-style:normal;font-size:10px;margin-left:4px;font-weight:700}
+.hfrow.sorts{flex-wrap:wrap;overflow:visible;row-gap:4px}
