@@ -691,3 +691,13 @@ img.av{object-fit:cover;background:#ddd}
 .card .ngmark small{font-size:.76em}
 /* 合わせ不可の帯はアイコンの上の端に重ねる（幅はアイコンより少し広く、カードの端から 3px 内側。docs/DECISIONS.md AU） */
 .card .ngmark{position:absolute;top:2px;left:2px;right:2px;margin:0}
+/* キャラのアイコンの壁（読み込み中・申請完了の画面の後ろ。docs/DECISIONS.md AX） */
+#root{position:relative;z-index:1}
+.herowall{position:fixed;inset:0;z-index:0;overflow:hidden;pointer-events:none;opacity:.13}
+.herowall .hw-in{position:absolute;left:50%;top:50%;width:125vmax;transform:translate(-50%,-50%) rotate(-8deg)}
+.herowall .hw-grid{display:grid;grid-template-columns:repeat(10,1fr);gap:1vmax;padding-bottom:1vmax;animation:hwflow 60s linear infinite}
+.herowall img{width:100%;aspect-ratio:1;object-fit:cover;display:block;border:2px solid #000}
+@keyframes hwflow{from{transform:translateY(0)}to{transform:translateY(-100%)}}
+@media (prefers-reduced-motion:reduce){.herowall .hw-grid{animation:none}}
+.booting{position:relative;z-index:1;min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;font-weight:700;color:#000}
+.booting img{border:2px solid #000}

@@ -1,5 +1,7 @@
 import { useNavigate, useParams } from "react-router";
 import { Header } from "../components/Header";
+import { HeroWall } from "../components/HeroWall";
+import { useData } from "../lib/data";
 import { PROG, useBootFx } from "../lib/fx";
 import { copyText } from "../lib/ui";
 
@@ -7,9 +9,11 @@ import { copyText } from "../lib/ui";
 export function Done() {
   const { code = "" } = useParams();
   const nav = useNavigate();
+  const { heroes } = useData();
   useBootFx(true);
   return (
     <>
+      <HeroWall urls={heroes.map((h) => h.imageUrl ?? "")} />
       <Header title="申請しました" back="/" prog={PROG.step3} />
       <div className="box" style={{ textAlign: "center" }}>
         <p>受付番号</p>
