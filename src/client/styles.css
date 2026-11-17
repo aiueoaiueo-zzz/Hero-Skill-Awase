@@ -538,7 +538,8 @@ a.entry.ulink{display:block;text-decoration:none;color:inherit}
 @media(max-width:370px){.hatk{grid-template-columns:1fr}}
 /* 合わせ不可能の表示 */
 .ngmark{position:absolute;top:2px;left:2px;right:2px;background:#d93636;color:#fff;font-size:8px;letter-spacing:-.03em;font-weight:800;padding:1px 3px;line-height:1.4;z-index:1;text-align:center;white-space:nowrap;overflow:hidden}
-.card.ng{opacity:.8}
+/* 合わせ不可のカードも薄くしない（帯だけで知らせる。docs/DECISIONS.md AU） */
+.card.ng{opacity:1}
 .ngbox{border:2px solid #d93636;background:#fff1f1;color:#a11;padding:10px 12px;margin:0 0 12px;font-size:13px;line-height:1.6}
 .ngbox b{display:block;font-size:14.5px;color:#d93636}
 .invline{font-size:12px;color:var(--sub);margin:-4px 2px 12px;line-height:1.5;display:flex;flex-wrap:wrap;column-gap:12px;row-gap:2px}
