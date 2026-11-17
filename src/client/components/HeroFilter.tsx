@@ -82,11 +82,15 @@ export function HeroFilter({ sort, dir, kind, role, set, pick }: { role: HeroRol
   const [info, setInfo] = useState(false);
   const r = HS_RATING[kind];
   const S = SORTS(kind);
-  // 選んでいる並び順には向き（▲古い順 など）を出す。もう一度押すと逆になる
+  // 選んでいる並び順には向き（▲／▼）だけを出す（読み上げ用に「古い順」などを付ける）。もう一度押すと逆になる
   const label = (k: HeroSort) => (
     <>
       {S[k].name}
-      {sort === k && <em className="dir">{dir === "asc" ? "▲" : "▼"}{S[k][dir]}</em>}
+      {sort === k && (
+        <em className="dir" aria-label={S[k][dir]}>
+          {dir === "asc" ? "▲" : "▼"}
+        </em>
+      )}
     </>
   );
   return (

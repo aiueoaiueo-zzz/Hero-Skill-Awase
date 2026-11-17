@@ -118,12 +118,12 @@ export function Detail() {
         <div className="invline">
           {A && A.hsAttackTime != null && !A.ngAttacks.includes("hs") && (
             <span className="atk">
-              {A.name}の HS のダメージ発生：<b>{A.hsAttackLabel ? `${A.hsAttackLabel} ` : ""}{fmtSec(A.hsAttackTime)}</b>
+              ダメージ発生：<b>{A.hsAttackLabel ? `${A.hsAttackLabel} ` : ""}{fmtSec(A.hsAttackTime)}</b>
             </span>
           )}
           {T && T.hsInvincible.length > 0 && (
             <span className="inv">
-              {T.name}の HS の無敵時間：<b>{fmtInvincible(T.hsInvincible)}</b>
+              無敵時間：<b>{fmtInvincible(T.hsInvincible)}</b>
             </span>
           )}
         </div>
