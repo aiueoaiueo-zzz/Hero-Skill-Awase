@@ -689,4 +689,4 @@ img.av{object-fit:cover;background:#ddd}
 .card .ngmark{font-size:min(9px,calc((100cqw + 3px) / 6.8))}
 .card .ngmark small{font-size:.76em}
 /* 合わせ不可の帯はアイコンの上の端に重ねる（幅はアイコンより少し広く、カードの端から 3px 内側。docs/DECISIONS.md AU） */
-.card .ngmark{position:absolute;top:6px;left:2px;right:2px;margin:0}
+.card .ngmark{position:absolute;top:2px;left:2px;right:2px;margin:0}

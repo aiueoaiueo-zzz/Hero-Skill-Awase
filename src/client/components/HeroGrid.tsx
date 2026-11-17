@@ -36,7 +36,7 @@ export function HeroGrid({ heroes, to, preload, ng, partial, kind }: { heroes: H
           {kind && <Badge stars={starsOf(h, kind)} text={secLabel(h, kind)} />}
           {feat.has(h.id) && <span className="featmark">今週</span>}
           {/* 重要タグ（右上・丸め。docs/DECISIONS.md AT・AU） */}
-          {kind && keyOf(h, kind) && <span className="keymark">重要！</span>}
+          {kind && keyOf(h, kind) && <span className="keymark">重要</span>}
         </button>
       ))}
     </div>
