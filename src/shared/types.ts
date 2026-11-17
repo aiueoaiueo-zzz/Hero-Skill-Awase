@@ -22,9 +22,8 @@ export type Hero = {
   hsDamageDuration: number | null;
   /** HS の無敵時間（秒）。場面で変わるときは場面ごと（label 付き）。場面で変わらなければ label は空。未入力は [] */
   hsInvincible: HsInvincible[];
-  /** 重要タグ（同じ ★ の中で上に並べる。docs/DECISIONS.md AT）。attack：HS合わせ適性（HS が不可なら false）／target：HS警戒度 */
+  /** HS合わせ適性の重要タグ（同じ ★ の中で上に並べる。HS が不可なら false。docs/DECISIONS.md AT） */
   hsAttackKey: boolean;
-  hsTargetKey: boolean;
   /** ロール。未入力は null */
   role: HeroRole | null;
   /** HS合わせ適性（旧：HS合わせ重要度。HS に合わせる側として。1〜3 で星が多いほど重要、0 は「−」）。未入力は null */

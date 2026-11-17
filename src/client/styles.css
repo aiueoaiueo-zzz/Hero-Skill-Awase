@@ -538,7 +538,8 @@ a.entry.ulink{display:block;text-decoration:none;color:inherit}
 @media(max-width:370px){.hatk{grid-template-columns:1fr}}
 /* 合わせ不可能の表示 */
 .ngmark{position:absolute;top:2px;left:2px;right:2px;background:#d93636;color:#fff;font-size:8px;letter-spacing:-.03em;font-weight:800;padding:1px 3px;line-height:1.4;z-index:1;text-align:center;white-space:nowrap;overflow:hidden}
-.card.ng{opacity:.8}
+/* 合わせ不可のカードも薄くしない（帯だけで知らせる。docs/DECISIONS.md AU） */
+.card.ng{opacity:1}
 .ngbox{border:2px solid #d93636;background:#fff1f1;color:#a11;padding:10px 12px;margin:0 0 12px;font-size:13px;line-height:1.6}
 .ngbox b{display:block;font-size:14.5px;color:#d93636}
 .invline{font-size:12px;color:var(--sub);margin:-4px 2px 12px;line-height:1.5;display:flex;flex-wrap:wrap;column-gap:12px;row-gap:2px}
@@ -667,3 +668,26 @@ img.av{object-fit:cover;background:#ddd}
 .card .cbadge.dash>.stars{visibility:hidden}
 .card .cbadge .dashmark{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:var(--accent);font-weight:800;font-size:12px}
 .hcard select.imp.key{border-color:var(--accent);color:var(--accent-t);font-weight:700}
+/* 重要タグ（カードの右上） */
+.card .keymark{position:absolute;top:2px;right:2px;background:#000;color:#fff;font-size:8.5px;font-weight:800;padding:1px 4px;line-height:1.4;z-index:2;letter-spacing:.02em}
+/* 合わせ不可の帯はアイコンの下（docs/DECISIONS.md AU） */
+.card .ngmark{position:relative;left:0;right:0;top:0;display:block;margin:-13px 0 0;padding:1px 0;height:13px;line-height:11px;box-sizing:border-box;font-size:7.5px;letter-spacing:-.06em;overflow:visible}
+/* 重要タグ：丸め */
+.card .keymark{border-radius:999px;padding:1px 6px;top:3px;right:3px;font-size:8.5px}
+/* 重要タグ：目立つ黄色 */
+.card .keymark{background:#ffd60a;color:#000;border:1px solid #000;box-shadow:1px 1px 0 #000}
+/* 帯と重要の印は、カードの水色のドット（::after）より必ず上に重ねる */
+.card>.ngmark,.card>.keymark{z-index:3;transform:translateZ(0)}
+/* キャラ選択のカード：名前を太く、縦を少し短く（docs/DECISIONS.md AV） */
+.card{padding:6px 4px 6px}
+.card .nm{font-weight:900;margin-top:4px}
+.card .stars.bsec{margin-top:2px}.card .stars.bsec+.stars{margin-top:1px}
+/* 合わせ不可の帯：アイコンより少し広く、カードよりは狭く。文字は少し大きく、「で」だけ小さく（docs/DECISIONS.md AU） */
+.card .ngmark{margin:-14px -2px 0;height:14px;line-height:12px;font-size:8.5px;letter-spacing:-.07em}
+.card .ngmark small{font-size:6.5px;letter-spacing:0;margin:0 .5px}
+/* 帯の文字は帯の幅に合わせて大きさを決める（画面が狭いスマホでも「不可」が切れない）。カードの幅を基準にする */
+.card{container-type:inline-size}
+.card .ngmark{font-size:min(9px,calc((100cqw + 3px) / 6.8))}
+.card .ngmark small{font-size:.76em}
+/* 合わせ不可の帯はアイコンの上の端に重ねる（幅はアイコンより少し広く、カードの端から 3px 内側。docs/DECISIONS.md AU） */
+.card .ngmark{position:absolute;top:2px;left:2px;right:2px;margin:0}

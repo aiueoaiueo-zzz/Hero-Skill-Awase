@@ -363,7 +363,6 @@ function HeroCard({ h, first, last, save, move, remove, removeImage, setImage }:
       <div className="hbot">
         <div>
           <ImpRow label="HS警戒度" aria="HS警戒度" value={h.hsTargetImportance} onChange={(v) => save({ hsTargetImportance: v }, "HS警戒度を保存しました")} />
-          <KeyRow aria="HS警戒度の重要タグ" value={h.hsTargetKey} onChange={(v) => save({ hsTargetKey: v }, v ? "HS警戒度に重要タグを付けました" : "HS警戒度の重要タグを外しました")} />
         </div>
         <div className="hacts">
           <button className="sbtn" disabled={first} aria-label="上へ" onClick={() => move(-1)}>

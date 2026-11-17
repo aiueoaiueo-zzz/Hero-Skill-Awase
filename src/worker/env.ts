@@ -31,6 +31,11 @@ export interface Env {
   SITE_STAGE?: string;
   /** 確認用サイトだけ：R2 にないメディアを読みに行く本番の公開メディアの URL（例 https://hs-awase.…/media）。本番は空 */
   MEDIA_FALLBACK_URL?: string;
+  /**
+   * 確認用サイトだけ：本番の R2 バケット（読むだけ。コードからは get しかしない）。本番には付けない。
+   * 同じアカウントの workers.dev へ Worker から fetch すると Cloudflare に止められる（エラー 1042）ため、URL ではなくバケットから直接読む（docs/DECISIONS.md AW）
+   */
+  MEDIA_FALLBACK?: R2Bucket;
 }
 
 export type AppEnv = { Bindings: Env };
