@@ -27,7 +27,7 @@ export const secOf = (h: Hero, kind: PickKind): number | null =>
       : h.hsAttackTime
     : (h.hsInvincible[0]?.sec ?? null);
 /** カードに出す秒数（無敵時間が場面ごとにあるときは「1.3秒/5.5秒」） */
-const secLabel = (h: Hero, kind: PickKind) => {
+export const secLabel = (h: Hero, kind: PickKind) => {
   if (kind === "target") return h.hsInvincible.map((v) => fmtSec(v.sec)).join("/");
   const v = secOf(h, kind);
   return v == null ? "" : fmtSec(v);
@@ -72,9 +72,7 @@ export function useHeroFilter(kind: PickKind) {
       return (x - y) * sign;
     });
   };
-  /** カードに出す補足（★ または秒数） */
-  const badge = state.sort === "importance" ? (h: Hero) => starsOf(h, kind) : state.sort === "time" ? (h: Hero) => secLabel(h, kind) : undefined;
-  return { ...state, kind, set, pick, apply, badge };
+  return { ...state, kind, set, pick, apply };
 }
 
 export function HeroFilter({ sort, dir, kind, role, set, pick }: { role: HeroRole | null; sort: HeroSort; dir: SortDir; kind: PickKind; set: (p: Partial<State>) => void; pick: (s: HeroSort) => void }) {

@@ -36,13 +36,13 @@ export function Targets() {
       {w.length > 0 && (
         <>
           <div className="sec">登録済み</div>
-          <HeroGrid heroes={w} to={to} preload={preload} ng={ng} partial={partial} badge={f.badge} />
+          <HeroGrid heroes={w} to={to} preload={preload} ng={ng} partial={partial} kind={f.kind} />
         </>
       )}
       {wo.length > 0 && (
         <>
           <div className="sec">未登録</div>
-          <HeroGrid heroes={wo} to={to} preload={preload} ng={ng} partial={partial} badge={f.badge} />
+          <HeroGrid heroes={wo} to={to} preload={preload} ng={ng} partial={partial} kind={f.kind} />
         </>
       )}
       {!list.length && <div className="empty">該当するキャラがいません</div>}
