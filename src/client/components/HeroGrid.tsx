@@ -41,11 +41,14 @@ export function HeroGrid({ heroes, to, preload, ng, partial, kind }: { heroes: H
 
 /** 秒数（上）と ★（下）。どの並び順でも出す。秒数は数字を大きく、「秒」を小さく出す（docs/DECISIONS.md AQ） */
 function Badge({ stars, text }: { stars: string; text: string }) {
+  // ヒーロースキルが不可などで秒数が無く ★ が「−」のときは、「−」を 2 行ぶんの高さの真ん中に出す（高さはほかのカードとそろえる）
+  const dash = !text && stars === "−";
   return (
-    <>
+    <div className={`cbadge ${dash ? "dash" : ""}`}>
       <div className={`stars bsec ${text.length > 6 ? "long" : ""}`}>{text.split(/(秒)/).map((t, i) => (t === "秒" ? <small key={i}>秒</small> : t))}</div>
       <div className="stars">{stars}</div>
-    </>
+      {dash && <div className="dashmark">−</div>}
+    </div>
   );
 }
 
