@@ -18,20 +18,19 @@ export const starsOf = (h: Hero, kind: PickKind) => {
 };
 /**
  * その画面で使う秒数（docs/DECISIONS.md AQ）。
- * attack：HS のダメージ発生（HS が不可なら無し）／target：HS の無敵時間（場面ごとにあるときは一番短いもの）。無ければ null
+ * attack：HS のダメージ発生（HS が不可なら無し）／target：HS の無敵時間（場面ごとにあるときは最初の値）。無ければ null
  */
 export const secOf = (h: Hero, kind: PickKind): number | null =>
   kind === "attack"
     ? h.ngAttacks.includes("hs")
       ? null
       : h.hsAttackTime
-    : h.hsInvincible.length
-      ? Math.min(...h.hsInvincible.map((v) => v.sec))
-      : null;
-/** カードに出す秒数（場面ごとにあるときは「1.3秒〜」） */
+    : (h.hsInvincible[0]?.sec ?? null);
+/** カードに出す秒数（無敵時間が場面ごとにあるときは「1.3秒/5.5秒」） */
 const secLabel = (h: Hero, kind: PickKind) => {
+  if (kind === "target") return h.hsInvincible.map((v) => fmtSec(v.sec)).join("/");
   const v = secOf(h, kind);
-  return v == null ? "" : `${fmtSec(v)}${kind === "target" && h.hsInvincible.length > 1 ? "〜" : ""}`;
+  return v == null ? "" : fmtSec(v);
 };
 
 /** 並び順ごとの名前・最初の向き・向きの言い方 */
@@ -100,16 +99,16 @@ export function HeroFilter({ sort, dir, kind, role, set, pick }: { role: HeroRol
         <button className={sort === "order" ? "on" : ""} onClick={() => pick("order")}>
           {label("order")}
         </button>
-        {/* 並び順のボタンと ⓘ を 1 つの枠に入れる（ボタンの中にボタンは置けないので、枠で囲む） */}
+        <button className={sort === "time" ? "on" : ""} onClick={() => pick("time")}>
+          {label("time")}
+        </button>
+        {/* 並び順のボタンと ⓘ を 1 つの枠に入れて右端に置く（ボタンの中にボタンは置けないので、枠で囲む） */}
         <span className={`sortbox ${sort === "importance" ? "on" : ""}`}>
           <button onClick={() => pick("importance")}>{label("importance")}</button>
           <button className={`info ${info ? "open" : ""}`} aria-label={`${r.name}とは`} aria-expanded={info} onClick={() => setInfo(!info)}>
             ⓘ
           </button>
         </span>
-        <button className={sort === "time" ? "on" : ""} onClick={() => pick("time")}>
-          {label("time")}
-        </button>
       </div>
       {info && (
         <div className="hinfo">
