@@ -7,8 +7,8 @@ import { useEffect } from "react";
 export function HeroWall({ urls }: { urls: string[] }) {
   const list = urls.filter(Boolean);
   if (list.length < 6) return null;
-  // 10 列 × 10 段を 2 回並べて、つなぎ目なく流す
-  const tiles = Array.from({ length: 100 }, (_, i) => list[(i * 37) % list.length]);
+  // 22 列 × 16 段を 2 回並べて、つなぎ目なく流す
+  const tiles = Array.from({ length: 352 }, (_, i) => list[(i * 37) % list.length]);
   return (
     <div className="herowall" aria-hidden="true">
       <div className="hw-in">
