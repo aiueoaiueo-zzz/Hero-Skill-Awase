@@ -681,3 +681,10 @@ img.av{object-fit:cover;background:#ddd}
 .card{padding:6px 4px 6px}
 .card .nm{font-weight:900;margin-top:4px}
 .card .stars.bsec{margin-top:2px}.card .stars.bsec+.stars{margin-top:1px}
+/* 合わせ不可の帯：アイコンより少し広く、カードよりは狭く。文字は少し大きく、「で」だけ小さく（docs/DECISIONS.md AU） */
+.card .ngmark{margin:-14px -2px 0;height:14px;line-height:12px;font-size:8.5px;letter-spacing:-.07em}
+.card .ngmark small{font-size:6.5px;letter-spacing:0;margin:0 .5px}
+/* 帯の文字は帯の幅に合わせて大きさを決める（画面が狭いスマホでも「不可」が切れない）。カードの幅を基準にする */
+.card{container-type:inline-size}
+.card .ngmark{font-size:min(9px,calc((100cqw + 3px) / 6.8))}
+.card .ngmark small{font-size:.76em}

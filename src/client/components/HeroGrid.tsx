@@ -27,7 +27,9 @@ export function HeroGrid({ heroes, to, preload, ng, partial, kind }: { heroes: H
         >
           <Avatar hero={h} />
           {/* 合わせ不可の帯はアイコンの下の端に重ねる（カードの高さは変えない。docs/DECISIONS.md AU） */}
-          {ng?.has(h.id) ? <span className="ngmark">HS合わせ不可</span> : partial?.has(h.id) ? <span className="ngmark part">HS一部不可</span> : null}
+          {ng?.has(h.id) ? <span className="ngmark">
+              HS<small>で</small>合わせ不可
+            </span> : partial?.has(h.id) ? <span className="ngmark part">HS一部不可</span> : null}
           <div className="nm" title={displayName(h)} style={nameStyle(h.name)}>
             {h.name}
           </div>
@@ -55,10 +57,10 @@ function Badge({ stars, text }: { stars: string; text: string }) {
 }
 
 /**
- * カードの名前は略称（短い名前）を 1 行で出す。収まらない長さのときだけ文字を小さくして全部見せる（docs/DECISIONS.md AR）。
- * 1 行に入るのは全角でおよそ 5 文字（半角は 0.6 文字ぶんで数える）
+ * カードの名前は略称（短い名前）を 1 行で出す。カードの幅に収まらない長さのときだけ文字を小さくして全部見せる（docs/DECISIONS.md AR）。
+ * 文字の大きさはカードの幅（100cqw）÷ 文字数（半角は 0.6 文字ぶん）で、最大 10px。狭い画面のスマホでも切れない
  */
 function nameStyle(name: string) {
   const w = [...name].reduce((n, c) => n + (c.charCodeAt(0) < 0x80 ? 0.6 : 1), 0);
-  return w > 5.2 ? { fontSize: `${Math.max(7, (10 * 5) / w).toFixed(1)}px` } : undefined;
+  return { fontSize: `min(10px, calc(100cqw / ${Math.max(w, 4).toFixed(1)}))` };
 }
