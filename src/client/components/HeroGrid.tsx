@@ -26,7 +26,7 @@ export function HeroGrid({ heroes, to, preload, ng, partial, badge }: { heroes: 
         >
           <Avatar hero={h} />
           <div className="nm">{displayName(h)}</div>
-          {badge && <div className="stars">{badge(h)}</div>}
+          {badge && <div className={`stars ${badge(h).length > 6 ? "long" : ""}`}>{badge(h)}</div>}
           {ng?.has(h.id) && <span className="ngmark">HS合わせ不可</span>}
           {feat.has(h.id) && <span className="featmark">今週</span>}
           {!ng?.has(h.id) && partial?.has(h.id) && <span className="ngmark part">HS一部不可</span>}

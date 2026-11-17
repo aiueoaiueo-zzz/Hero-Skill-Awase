@@ -39,7 +39,7 @@ const SORTS = (kind: PickKind): Record<HeroSort, { name: string; first: SortDir;
   importance: { name: `${HS_RATING[kind].name}順`, first: "desc", asc: "低い順", desc: "高い順" },
   time:
     kind === "attack"
-      ? { name: "ダメージ発生順", first: "asc", asc: "早い順", desc: "遅い順" }
+      ? { name: "HSダメージ発生順", first: "asc", asc: "早い順", desc: "遅い順" }
       : { name: "無敵時間順", first: "asc", asc: "短い順", desc: "長い順" },
 });
 

@@ -654,3 +654,6 @@ img.av{object-fit:cover;background:#ddd}
 .hfrow.sorts{flex-wrap:wrap;overflow:visible;row-gap:4px}
 
 .hfrow.sorts>span:first-child{width:auto;margin-right:2px}.hfrow.sorts button{padding:4px 6px;letter-spacing:-.02em}.hfrow.sorts .sortbox button.info{padding:0 6px}
+/* 並び順の値（★・秒数）：色はそのまま、太く大きくして読みやすく（docs/DECISIONS.md AQ） */
+.card .stars{font-size:11px;font-weight:800;letter-spacing:-.02em;white-space:nowrap;margin-top:4px}
+.card .stars.long{font-size:9.5px;letter-spacing:-.04em}
