@@ -667,3 +667,6 @@ img.av{object-fit:cover;background:#ddd}
 .card .cbadge.dash>.stars{visibility:hidden}
 .card .cbadge .dashmark{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:var(--accent);font-weight:800;font-size:12px}
 .hcard select.imp.key{border-color:var(--accent);color:var(--accent-t);font-weight:700}
+/* 重要タグ（カードの右上） */
+.card .keymark{position:absolute;top:2px;right:2px;background:#000;color:#fff;font-size:8.5px;font-weight:800;padding:1px 4px;line-height:1.4;z-index:2;letter-spacing:.02em}
+.card .ngmark~.keymark{top:16px}

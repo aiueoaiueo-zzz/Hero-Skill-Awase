@@ -1,5 +1,5 @@
 import { useNavigate } from "react-router";
-import { secLabel, starsOf, type PickKind } from "./HeroFilter";
+import { keyOf, secLabel, starsOf, type PickKind } from "./HeroFilter";
 import { useData } from "../lib/data";
 import { displayName } from "../../shared/text";
 import type { Hero } from "../../shared/types";
@@ -33,6 +33,8 @@ export function HeroGrid({ heroes, to, preload, ng, partial, kind }: { heroes: H
           {ng?.has(h.id) && <span className="ngmark">HS合わせ不可</span>}
           {feat.has(h.id) && <span className="featmark">今週</span>}
           {!ng?.has(h.id) && partial?.has(h.id) && <span className="ngmark part">HS一部不可</span>}
+          {/* 重要タグ（右上。合わせ不可の帯があるときはその下。docs/DECISIONS.md AT） */}
+          {kind && keyOf(h, kind) && <span className="keymark">重要</span>}
         </button>
       ))}
     </div>
