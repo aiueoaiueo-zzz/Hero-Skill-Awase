@@ -26,15 +26,15 @@ export function HeroGrid({ heroes, to, preload, ng, partial, kind }: { heroes: H
           }}
         >
           <Avatar hero={h} />
+          {/* 合わせ不可の帯はアイコンのすぐ下（相手の選択画面では、帯の無いカードも同じ高さの空きを取って名前の位置をそろえる。docs/DECISIONS.md AU） */}
+          {ng && (ng.has(h.id) ? <span className="ngmark">HS合わせ不可</span> : partial?.has(h.id) ? <span className="ngmark part">HS一部不可</span> : <span className="ngmark none" />)}
           <div className="nm" title={displayName(h)} style={nameStyle(h.name)}>
             {h.name}
           </div>
           {kind && <Badge stars={starsOf(h, kind)} text={secLabel(h, kind)} />}
-          {ng?.has(h.id) && <span className="ngmark">HS合わせ不可</span>}
           {feat.has(h.id) && <span className="featmark">今週</span>}
-          {!ng?.has(h.id) && partial?.has(h.id) && <span className="ngmark part">HS一部不可</span>}
-          {/* 重要タグ（右上。合わせ不可の帯があるときはその下。docs/DECISIONS.md AT） */}
-          {kind && keyOf(h, kind) && <span className="keymark">重要</span>}
+          {/* 重要タグ（右上・丸め。docs/DECISIONS.md AT・AU） */}
+          {kind && keyOf(h, kind) && <span className="keymark">重要！</span>}
         </button>
       ))}
     </div>
