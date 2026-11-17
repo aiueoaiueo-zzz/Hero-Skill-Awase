@@ -120,6 +120,13 @@ if (STAGING) {
   swap('"database_name": "hs-awase"', `"database_name": "${DB_NAME}"`);
   swap('"bucket_name": "hs-awase-media"', `"bucket_name": "${BUCKET}"`);
   setAll("SITE_STAGE", "staging");
+  // 本番の R2 バケットを「MEDIA_FALLBACK」として読めるようにする（コードは get しかしない。docs/DECISIONS.md AW）。
+  // Worker から同じアカウントの workers.dev へ fetch すると止められる（エラー 1042）ので、URL ではなくバケットから読む
+  {
+    const own = `{ "binding": "MEDIA", "bucket_name": "${BUCKET}" }`;
+    if (!conf.includes(own)) fail("wrangler.jsonc の r2_buckets が見つかりません。");
+    conf = conf.split(own).join(`${own}, { "binding": "MEDIA_FALLBACK", "bucket_name": "hs-awase-media" }`);
+  }
   // 本番からコピーしたデータの動画・画像は、本番の公開メディアから読む
   setAll("MEDIA_FALLBACK_URL", `https://hs-awase.${sub.data.result.subdomain}.workers.dev/media`);
   if (conf.includes('"name": "hs-awase"') || conf.includes('"name": "hs-awase-admin"')) fail("確認用の名前に差し替えられませんでした。");
