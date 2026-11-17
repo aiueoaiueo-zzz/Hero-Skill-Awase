@@ -661,3 +661,5 @@ img.av{object-fit:cover;background:#ddd}
 .card .stars.long{font-size:10.5px}.card .stars.long small{font-size:7.5px}
 .card .stars.bsec{margin-top:2px}
 .card .stars.bsec{margin-top:4px}.card .stars.bsec+.stars{margin-top:2px}
+/* カードの名前は略称を 1 行で（docs/DECISIONS.md AR） */
+.card .nm{display:block;white-space:nowrap;overflow:hidden;min-height:1.25em;-webkit-line-clamp:unset;letter-spacing:-.02em}
