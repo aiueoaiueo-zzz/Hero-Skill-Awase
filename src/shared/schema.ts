@@ -126,6 +126,11 @@ export const heroPatchSchema = z.object({
   hsAttackLabel: z.string().trim().max(20).optional(),
   // ダメージ継続時間（秒）。-1 は「−」、null で未入力
   hsDamageDuration: z.union([z.literal(-1), hsSeconds.unwrap().unwrap()]).nullable().optional(),
+  // HS のダメージ発生（パターンごと。[] で未入力に戻す。最初のパターンを判定・並び替えに使う。docs/DECISIONS.md AS）
+  hsAttack: z
+    .array(z.object({ label: z.string().trim().max(20), sec: z.number().min(0).max(60).transform((n) => Math.round(n * 100) / 100) }))
+    .max(6)
+    .optional(),
   // HS の無敵時間（場面ごと。[] で未入力に戻す）
   hsInvincible: z
     .array(z.object({ label: z.string().trim().max(20), sec: z.number().min(0).max(60).transform((n) => Math.round(n * 100) / 100) }))
@@ -134,6 +139,9 @@ export const heroPatchSchema = z.object({
   role: z.enum(["attacker", "gunner", "sprinter", "tank"]).nullable().optional(),
   hsAttackImportance: z.union([z.literal(0), z.literal(1), z.literal(2), z.literal(3)]).nullable().optional(),
   hsTargetImportance: z.union([z.literal(1), z.literal(2), z.literal(3)]).nullable().optional(),
+  // 重要タグ（docs/DECISIONS.md AT）
+  hsAttackKey: z.boolean().optional(),
+  hsTargetKey: z.boolean().optional(),
 });
 export const heroMoveSchema = z.object({ dir: z.union([z.literal(-1), z.literal(1)]) });
 

@@ -334,6 +334,7 @@ function HeroCard({ h, first, last, save, move, remove, removeImage, setImage }:
       <div className="hatk">
         <div>
           <ImpRow label="HS合わせ適性" aria="HS合わせ適性" value={hsNg ? 0 : h.hsAttackImportance} dash fixed={hsNg} onChange={(v) => save({ hsAttackImportance: v }, "HS合わせ適性を保存しました")} />
+          <KeyRow aria="HS合わせ適性の重要タグ" value={h.hsAttackKey} fixed={hsNg} onChange={(v) => save({ hsAttackKey: v }, v ? "HS合わせ適性に重要タグを付けました" : "HS合わせ適性の重要タグを外しました")} />
           <AtkRow h={h} k="hs" save={save} />
         </div>
         <div>
@@ -346,6 +347,7 @@ function HeroCard({ h, first, last, save, move, remove, removeImage, setImage }:
         <span>└ ヒーロースキルのダメージ発生</span>
         <AtkTimeInput h={h} disabled={h.ngAttacks.includes("hs")} save={save} />
       </div>
+      <div className="hint hinvh hdurh">複数あるときは「1回目:1.2 / 2回目以降:3.1」のように入力</div>
       <div className={`hline hinv hatkt ${h.ngAttacks.includes("hs") ? "off" : ""}`}>
         <span>└ ヒーロースキルのダメージ継続時間</span>
         <DurInput value={h.hsDamageDuration} disabled={h.ngAttacks.includes("hs")} onCommit={(v) => save({ hsDamageDuration: v }, "ダメージ継続時間を保存しました")} />
@@ -361,6 +363,7 @@ function HeroCard({ h, first, last, save, move, remove, removeImage, setImage }:
       <div className="hbot">
         <div>
           <ImpRow label="HS警戒度" aria="HS警戒度" value={h.hsTargetImportance} onChange={(v) => save({ hsTargetImportance: v }, "HS警戒度を保存しました")} />
+          <KeyRow aria="HS警戒度の重要タグ" value={h.hsTargetKey} onChange={(v) => save({ hsTargetKey: v }, v ? "HS警戒度に重要タグを付けました" : "HS警戒度の重要タグを外しました")} />
         </div>
         <div className="hacts">
           <button className="sbtn" disabled={first} aria-label="上へ" onClick={() => move(-1)}>
@@ -387,6 +390,19 @@ function ImpRow({ label, aria, value, dash, fixed, onChange }: { label: string; 
         <option value="2">★★☆</option>
         <option value="1">★☆☆</option>
         {dash && <option value="0">−</option>}
+      </select>
+    </label>
+  );
+}
+
+/** 重要タグ（同じ ★ の中で上に並べる。docs/DECISIONS.md AT） */
+function KeyRow({ aria, value, fixed, onChange }: { aria: string; value: boolean; fixed?: boolean; onChange: (v: boolean) => void }) {
+  return (
+    <label className={`hline ${fixed ? "off" : ""}`}>
+      <span>└ 重要タグ</span>
+      <select aria-label={aria} className={`imp ${value ? "key" : ""}`} value={value ? "1" : ""} disabled={fixed} onChange={(e) => onChange(e.target.value === "1")}>
+        <option value="">なし</option>
+        <option value="1">重要</option>
       </select>
     </label>
   );
@@ -479,10 +495,9 @@ function DurInput({ value, disabled, onCommit }: { value: number | null; disable
   );
 }
 
-/** ダメージ発生の入力欄（「3.1」または補足付きの「2回目以降:3.1」。空にすると未入力。フォーカスが外れたら保存） */
+/** ダメージ発生の入力欄（「3.1」、補足付きの「2回目以降:3.1」、複数のパターンは「1回目:1.2 / 2回目以降:3.1」。空にすると未入力。フォーカスが外れたら保存。docs/DECISIONS.md AS） */
 function AtkTimeInput({ h, disabled, save }: { h: AdminHero; disabled: boolean; save: Save }) {
-  const cur: HsInvincible[] = h.hsAttackTime == null ? [] : [{ label: h.hsAttackLabel, sec: h.hsAttackTime }];
-  const text = invincibleToText(cur);
+  const text = invincibleToText(h.hsAttack);
   const [v, setV] = useState(text);
   useEffect(() => setV(text), [text]);
   return (
@@ -497,13 +512,12 @@ function AtkTimeInput({ h, disabled, save }: { h: AdminHero; disabled: boolean; 
         onKeyDown={(e) => e.key === "Enter" && (e.target as HTMLInputElement).blur()}
         onBlur={async () => {
           const list = parseInvincibleText(v);
-          if (!list || list.length > 1) {
-            toast("ダメージ発生は「3.1」か「2回目以降:3.1」の形で、0〜60 秒を 1 つだけ入力してください");
+          if (!list) {
+            toast("ダメージ発生は「3.1」「2回目以降:3.1」、複数なら「1回目:1.2 / 2回目以降:3.1」の形で、0〜60 秒を 6 つまで入力してください");
             return setV(text);
           }
           if (invincibleToText(list) === text) return setV(text);
-          const x = list[0];
-          if (!(await save({ hsAttackTime: x ? x.sec : null, hsAttackLabel: x ? x.label : "" }, "ダメージ発生を保存しました"))) setV(text);
+          if (!(await save({ hsAttack: list }, "ダメージ発生を保存しました"))) setV(text);
         }}
       />
       秒

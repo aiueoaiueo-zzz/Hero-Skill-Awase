@@ -666,3 +666,4 @@ img.av{object-fit:cover;background:#ddd}
 .card .cbadge{position:relative}
 .card .cbadge.dash>.stars{visibility:hidden}
 .card .cbadge .dashmark{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:var(--accent);font-weight:800;font-size:12px}
+.hcard select.imp.key{border-color:var(--accent);color:var(--accent-t);font-weight:700}

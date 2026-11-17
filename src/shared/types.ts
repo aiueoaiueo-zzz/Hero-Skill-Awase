@@ -16,10 +16,15 @@ export type Hero = {
   hsAttackTime: number | null;
   /** ダメージ発生がどの場面の値か（例「2回目以降」）。なければ空 */
   hsAttackLabel: string;
+  /** HS のダメージ発生の全パターン（例：1回目 1.2秒／2回目以降 3.1秒）。hsAttackTime・hsAttackLabel は最初のパターン。未入力は [] */
+  hsAttack: HsInvincible[];
   /** HS のダメージ継続時間（秒。極大ダメージまたは転倒が入る攻撃のみ）。-1 は「−」、未入力は null */
   hsDamageDuration: number | null;
   /** HS の無敵時間（秒）。場面で変わるときは場面ごと（label 付き）。場面で変わらなければ label は空。未入力は [] */
   hsInvincible: HsInvincible[];
+  /** 重要タグ（同じ ★ の中で上に並べる。docs/DECISIONS.md AT）。attack：HS合わせ適性（HS が不可なら false）／target：HS警戒度 */
+  hsAttackKey: boolean;
+  hsTargetKey: boolean;
   /** ロール。未入力は null */
   role: HeroRole | null;
   /** HS合わせ適性（旧：HS合わせ重要度。HS に合わせる側として。1〜3 で星が多いほど重要、0 は「−」）。未入力は null */

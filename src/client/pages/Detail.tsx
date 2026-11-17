@@ -118,7 +118,7 @@ export function Detail() {
         <div className="invline">
           {A && A.hsAttackTime != null && !A.ngAttacks.includes("hs") && (
             <span className="atk">
-              ダメージ発生：<b>{A.hsAttackLabel ? `${A.hsAttackLabel} ` : ""}{fmtSec(A.hsAttackTime)}</b>
+              ダメージ発生：<b>{fmtInvincible(A.hsAttack)}</b>
             </span>
           )}
           {T && T.hsInvincible.length > 0 && (

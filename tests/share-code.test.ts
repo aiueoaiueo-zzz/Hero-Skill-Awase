@@ -186,3 +186,24 @@ describe("イベントランキングの期間", () => {
     expect(new Date(w.end).toISOString()).toBe("2026-12-18T15:00:00.000Z");
   });
 });
+
+import { parseAttack } from "../src/worker/lib/heroes";
+
+describe("ダメージ発生の複数パターン（docs/DECISIONS.md AS）", () => {
+  it("JSON があれば全パターン、なければ 1 つの値と補足", () => {
+    expect(parseAttack(1.2, "1回目", JSON.stringify([{ label: "1回目", sec: 1.2 }, { label: "2回目以降", sec: 3.1 }]))).toEqual([
+      { label: "1回目", sec: 1.2 },
+      { label: "2回目以降", sec: 3.1 },
+    ]);
+    expect(parseAttack(3.1, "2回目以降", null)).toEqual([{ label: "2回目以降", sec: 3.1 }]);
+    expect(parseAttack(2, null, null)).toEqual([{ label: "", sec: 2 }]);
+    expect(parseAttack(null, null, null)).toEqual([]);
+    expect(parseAttack(2, null, "壊れた値")).toEqual([{ label: "", sec: 2 }]);
+  });
+  it("入力欄は無敵時間と同じ書き方で読める", () => {
+    expect(parseInvincibleText("1.2 / 3.1")).toEqual([
+      { label: "", sec: 1.2 },
+      { label: "", sec: 3.1 },
+    ]);
+  });
+});

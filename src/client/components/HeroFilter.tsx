@@ -11,6 +11,8 @@ export type PickKind = "attack" | "target";
 /** その画面で使う重要度（並べ替え用。★3〜1、「−」は 0、未入力は -1） */
 export const importanceOf = (h: Hero, kind: PickKind) =>
   kind === "attack" ? (h.ngAttacks.includes("hs") ? 0 : (h.hsAttackImportance ?? -1)) : (h.hsTargetImportance ?? -1); // HS が不可なら「−」
+/** 重要タグ（attack は HS が可のキャラだけ） */
+export const keyOf = (h: Hero, kind: PickKind) => (kind === "attack" ? h.hsAttackKey && !h.ngAttacks.includes("hs") : h.hsTargetKey);
 /** カードに出す ★（「−」は対象外、未入力は空） */
 export const starsOf = (h: Hero, kind: PickKind) => {
   const v = importanceOf(h, kind);
@@ -18,7 +20,7 @@ export const starsOf = (h: Hero, kind: PickKind) => {
 };
 /**
  * その画面で使う秒数（docs/DECISIONS.md AQ）。
- * attack：HS のダメージ発生（HS が不可なら無し）／target：HS の無敵時間（場面ごとにあるときは最初の値）。無ければ null
+ * attack：HS のダメージ発生（パターンが複数あるときは最初の値。HS が不可なら無し）／target：HS の無敵時間（場面ごとにあるときは最初の値）。無ければ null
  */
 export const secOf = (h: Hero, kind: PickKind): number | null =>
   kind === "attack"
@@ -26,9 +28,10 @@ export const secOf = (h: Hero, kind: PickKind): number | null =>
       ? null
       : h.hsAttackTime
     : (h.hsInvincible[0]?.sec ?? null);
-/** カードに出す秒数（無敵時間が場面ごとにあるときは「1.3秒/5.5秒」） */
+/** カードに出す秒数（ダメージ発生・無敵時間が複数あるときは「1.3秒/5.5秒」） */
 export const secLabel = (h: Hero, kind: PickKind) => {
   if (kind === "target") return h.hsInvincible.map((v) => fmtSec(v.sec)).join("/");
+  if (!h.ngAttacks.includes("hs") && h.hsAttack.length > 1) return h.hsAttack.map((v) => fmtSec(v.sec)).join("/");
   const v = secOf(h, kind);
   return v == null ? "" : fmtSec(v);
 };
@@ -65,7 +68,8 @@ export function useHeroFilter(kind: PickKind) {
     const r = state.role ? list.filter((h) => h.role === state.role) : list;
     const sign = state.dir === "asc" ? 1 : -1;
     if (state.sort === "order") return sign === 1 ? r : [...r].reverse();
-    const val = (h: Hero) => (state.sort === "importance" ? (importanceOf(h, kind) < 0 ? null : importanceOf(h, kind)) : secOf(h, kind));
+    // ★ の並びでは、同じ ★ の中で重要タグの付いたキャラを上にする（docs/DECISIONS.md AT）
+    const val = (h: Hero) => (state.sort === "importance" ? (importanceOf(h, kind) < 0 ? null : importanceOf(h, kind) + (keyOf(h, kind) ? 0.5 : 0)) : secOf(h, kind));
     return [...r].sort((a, b) => {
       const x = val(a), y = val(b);
       if (x == null || y == null) return x == null ? (y == null ? 0 : 1) : -1;
