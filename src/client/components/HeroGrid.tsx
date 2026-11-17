@@ -26,12 +26,21 @@ export function HeroGrid({ heroes, to, preload, ng, partial, badge }: { heroes: 
         >
           <Avatar hero={h} />
           <div className="nm">{displayName(h)}</div>
-          {badge && <div className={`stars ${badge(h).length > 6 ? "long" : ""}`}>{badge(h)}</div>}
+          {badge && <Badge text={badge(h)} />}
           {ng?.has(h.id) && <span className="ngmark">HS合わせ不可</span>}
           {feat.has(h.id) && <span className="featmark">今週</span>}
           {!ng?.has(h.id) && partial?.has(h.id) && <span className="ngmark part">HS一部不可</span>}
         </button>
       ))}
+    </div>
+  );
+}
+
+/** 並び順の値。秒数は数字を大きく、「秒」を小さく出す（docs/DECISIONS.md AQ） */
+function Badge({ text }: { text: string }) {
+  return (
+    <div className={`stars ${text.length > 6 ? "long" : ""}`}>
+      {text.split(/(秒)/).map((t, i) => (t === "秒" ? <small key={i}>秒</small> : t))}
     </div>
   );
 }
