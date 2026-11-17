@@ -26,8 +26,8 @@ export function HeroGrid({ heroes, to, preload, ng, partial, kind }: { heroes: H
           }}
         >
           <Avatar hero={h} />
-          {/* 合わせ不可の帯はアイコンのすぐ下（相手の選択画面では、帯の無いカードも同じ高さの空きを取って名前の位置をそろえる。docs/DECISIONS.md AU） */}
-          {ng && (ng.has(h.id) ? <span className="ngmark">HS合わせ不可</span> : partial?.has(h.id) ? <span className="ngmark part">HS一部不可</span> : <span className="ngmark none" />)}
+          {/* 合わせ不可の帯はアイコンの下の端に重ねる（カードの高さは変えない。docs/DECISIONS.md AU） */}
+          {ng?.has(h.id) ? <span className="ngmark">HS合わせ不可</span> : partial?.has(h.id) ? <span className="ngmark part">HS一部不可</span> : null}
           <div className="nm" title={displayName(h)} style={nameStyle(h.name)}>
             {h.name}
           </div>

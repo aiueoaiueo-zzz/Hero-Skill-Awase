@@ -670,7 +670,8 @@ img.av{object-fit:cover;background:#ddd}
 /* 重要タグ（カードの右上） */
 .card .keymark{position:absolute;top:2px;right:2px;background:#000;color:#fff;font-size:8.5px;font-weight:800;padding:1px 4px;line-height:1.4;z-index:2;letter-spacing:.02em}
 /* 合わせ不可の帯はアイコンの下（docs/DECISIONS.md AU） */
-.card .ngmark{position:static;display:block;margin:4px -2px 0;padding:1px 0;min-height:1.4em;box-sizing:border-box}
-.card .ngmark.none{background:none;border:none}
+.card .ngmark{position:relative;display:block;margin:-13px -2px 0;padding:1px 0;height:13px;line-height:11px;box-sizing:border-box}
 /* 重要タグ：丸め */
 .card .keymark{border-radius:999px;padding:1px 6px;top:3px;right:3px;font-size:8.5px}
+/* 重要タグ：目立つ黄色 */
+.card .keymark{background:#ffd60a;color:#000;border:1px solid #000;box-shadow:1px 1px 0 #000}
