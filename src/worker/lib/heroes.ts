@@ -13,6 +13,7 @@ export type HeroRow = {
   ng_attacks?: string | null;
   hs_attack_time?: number | null;
   hs_attack_label?: string | null;
+  hs_attack_detail?: string | null;
   hs_damage_duration?: number | null;
   hs_invincible_time?: number | null;
   hs_invincible_detail?: string | null;
@@ -43,14 +44,23 @@ export const parseInvincible = (time: number | null | undefined, detail: string 
   return time == null ? [] : [{ label: "", sec: time }];
 };
 
+/** ダメージ発生：複数のパターン（JSON）があればそれ、なければ 1 つの値と補足（docs/DECISIONS.md AS） */
+export const parseAttack = (time: number | null | undefined, label: string | null | undefined, detail: string | null | undefined): HsInvincible[] => {
+  const list = detail ? parseInvincible(null, detail) : [];
+  return list.length ? list : time == null ? [] : [{ label: label ?? "", sec: time }];
+};
+const attackOf = (r: HeroRow) => {
+  const hsAttack = parseAttack(r.hs_attack_time, r.hs_attack_label, r.hs_attack_detail);
+  return { hsAttack, hsAttackTime: hsAttack[0]?.sec ?? null, hsAttackLabel: hsAttack[0]?.label ?? "" };
+};
+
 export const toHero = (env: Env, r: HeroRow): Hero => ({
   id: r.id,
   name: r.name,
   fullName: r.full_name || null,
   slug: r.slug,
   ngAttacks: parseNgAttacks(r.ng_attacks),
-  hsAttackTime: r.hs_attack_time ?? null,
-  hsAttackLabel: r.hs_attack_label ?? "",
+  ...attackOf(r),
   hsDamageDuration: r.hs_damage_duration ?? null,
   hsInvincible: parseInvincible(r.hs_invincible_time, r.hs_invincible_detail),
   role: HERO_ROLES.some(([k]) => k === r.role) ? (r.role as HeroRole) : null,
@@ -62,13 +72,13 @@ export const toHero = (env: Env, r: HeroRow): Hero => ({
 
 export const listHeroes = async (env: Env): Promise<Hero[]> => {
   const { results } = await env.DB.prepare(
-    "SELECT id, name, full_name, slug, image_key, sort_order, ng_attacks, hs_attack_time, hs_attack_label, hs_damage_duration, hs_invincible_time, hs_invincible_detail, role, hs_importance, hs_attack_importance FROM heroes ORDER BY sort_order, created_at",
+    "SELECT id, name, full_name, slug, image_key, sort_order, ng_attacks, hs_attack_time, hs_attack_label, hs_attack_detail, hs_damage_duration, hs_invincible_time, hs_invincible_detail, role, hs_importance, hs_attack_importance FROM heroes ORDER BY sort_order, created_at",
   ).all<HeroRow>();
   return results.map((r) => toHero(env, r));
 };
 
 export const heroBySlug = async (env: Env, slug: string): Promise<Hero | null> => {
-  const r = await env.DB.prepare("SELECT id, name, full_name, slug, image_key, sort_order, ng_attacks, hs_attack_time, hs_attack_label, hs_damage_duration, hs_invincible_time, hs_invincible_detail, role, hs_importance, hs_attack_importance FROM heroes WHERE slug = ?")
+  const r = await env.DB.prepare("SELECT id, name, full_name, slug, image_key, sort_order, ng_attacks, hs_attack_time, hs_attack_label, hs_attack_detail, hs_damage_duration, hs_invincible_time, hs_invincible_detail, role, hs_importance, hs_attack_importance FROM heroes WHERE slug = ?")
     .bind(slug)
     .first<HeroRow>();
   return r ? toHero(env, r) : null;
