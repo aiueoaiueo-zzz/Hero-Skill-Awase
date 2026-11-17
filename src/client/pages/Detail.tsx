@@ -113,9 +113,19 @@ export function Detail() {
           </div>
         </div>
       )}
-      {T && T.hsInvincible.length > 0 && (
+      {/* 左：自分の HS のダメージ発生（HS が可で入力済みのとき）／右：相手の HS の無敵時間（docs/DECISIONS.md AQ） */}
+      {((A && A.hsAttackTime != null && !A.ngAttacks.includes("hs")) || (T && T.hsInvincible.length > 0)) && (
         <div className="invline">
-          {T.name}の HS の無敵時間：<b>{fmtInvincible(T.hsInvincible)}</b>
+          {A && A.hsAttackTime != null && !A.ngAttacks.includes("hs") && (
+            <span className="atk">
+              ダメージ発生：<b>{A.hsAttackLabel ? `${A.hsAttackLabel} ` : ""}{fmtSec(A.hsAttackTime)}</b>
+            </span>
+          )}
+          {T && T.hsInvincible.length > 0 && (
+            <span className="inv">
+              無敵時間：<b>{fmtInvincible(T.hsInvincible)}</b>
+            </span>
+          )}
         </div>
       )}
       {A && T && ng && (
