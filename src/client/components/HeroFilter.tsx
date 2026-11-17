@@ -11,6 +11,8 @@ export type PickKind = "attack" | "target";
 /** その画面で使う重要度（並べ替え用。★3〜1、「−」は 0、未入力は -1） */
 export const importanceOf = (h: Hero, kind: PickKind) =>
   kind === "attack" ? (h.ngAttacks.includes("hs") ? 0 : (h.hsAttackImportance ?? -1)) : (h.hsTargetImportance ?? -1); // HS が不可なら「−」
+/** 重要タグ（attack は HS が可のキャラだけ） */
+export const keyOf = (h: Hero, kind: PickKind) => (kind === "attack" ? h.hsAttackKey && !h.ngAttacks.includes("hs") : h.hsTargetKey);
 /** カードに出す ★（「−」は対象外、未入力は空） */
 export const starsOf = (h: Hero, kind: PickKind) => {
   const v = importanceOf(h, kind);
@@ -66,7 +68,8 @@ export function useHeroFilter(kind: PickKind) {
     const r = state.role ? list.filter((h) => h.role === state.role) : list;
     const sign = state.dir === "asc" ? 1 : -1;
     if (state.sort === "order") return sign === 1 ? r : [...r].reverse();
-    const val = (h: Hero) => (state.sort === "importance" ? (importanceOf(h, kind) < 0 ? null : importanceOf(h, kind)) : secOf(h, kind));
+    // ★ の並びでは、同じ ★ の中で重要タグの付いたキャラを上にする（docs/DECISIONS.md AT）
+    const val = (h: Hero) => (state.sort === "importance" ? (importanceOf(h, kind) < 0 ? null : importanceOf(h, kind) + (keyOf(h, kind) ? 0.5 : 0)) : secOf(h, kind));
     return [...r].sort((a, b) => {
       const x = val(a), y = val(b);
       if (x == null || y == null) return x == null ? (y == null ? 0 : 1) : -1;

@@ -334,6 +334,7 @@ function HeroCard({ h, first, last, save, move, remove, removeImage, setImage }:
       <div className="hatk">
         <div>
           <ImpRow label="HS合わせ適性" aria="HS合わせ適性" value={hsNg ? 0 : h.hsAttackImportance} dash fixed={hsNg} onChange={(v) => save({ hsAttackImportance: v }, "HS合わせ適性を保存しました")} />
+          <KeyRow aria="HS合わせ適性の重要タグ" value={h.hsAttackKey} fixed={hsNg} onChange={(v) => save({ hsAttackKey: v }, v ? "HS合わせ適性に重要タグを付けました" : "HS合わせ適性の重要タグを外しました")} />
           <AtkRow h={h} k="hs" save={save} />
         </div>
         <div>
@@ -362,6 +363,7 @@ function HeroCard({ h, first, last, save, move, remove, removeImage, setImage }:
       <div className="hbot">
         <div>
           <ImpRow label="HS警戒度" aria="HS警戒度" value={h.hsTargetImportance} onChange={(v) => save({ hsTargetImportance: v }, "HS警戒度を保存しました")} />
+          <KeyRow aria="HS警戒度の重要タグ" value={h.hsTargetKey} onChange={(v) => save({ hsTargetKey: v }, v ? "HS警戒度に重要タグを付けました" : "HS警戒度の重要タグを外しました")} />
         </div>
         <div className="hacts">
           <button className="sbtn" disabled={first} aria-label="上へ" onClick={() => move(-1)}>
@@ -388,6 +390,19 @@ function ImpRow({ label, aria, value, dash, fixed, onChange }: { label: string; 
         <option value="2">★★☆</option>
         <option value="1">★☆☆</option>
         {dash && <option value="0">−</option>}
+      </select>
+    </label>
+  );
+}
+
+/** 重要タグ（同じ ★ の中で上に並べる。docs/DECISIONS.md AT） */
+function KeyRow({ aria, value, fixed, onChange }: { aria: string; value: boolean; fixed?: boolean; onChange: (v: boolean) => void }) {
+  return (
+    <label className={`hline ${fixed ? "off" : ""}`}>
+      <span>└ 重要タグ</span>
+      <select aria-label={aria} className={`imp ${value ? "key" : ""}`} value={value ? "1" : ""} disabled={fixed} onChange={(e) => onChange(e.target.value === "1")}>
+        <option value="">なし</option>
+        <option value="1">重要</option>
       </select>
     </label>
   );

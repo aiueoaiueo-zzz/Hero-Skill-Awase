@@ -139,6 +139,9 @@ export const heroPatchSchema = z.object({
   role: z.enum(["attacker", "gunner", "sprinter", "tank"]).nullable().optional(),
   hsAttackImportance: z.union([z.literal(0), z.literal(1), z.literal(2), z.literal(3)]).nullable().optional(),
   hsTargetImportance: z.union([z.literal(1), z.literal(2), z.literal(3)]).nullable().optional(),
+  // 重要タグ（docs/DECISIONS.md AT）
+  hsAttackKey: z.boolean().optional(),
+  hsTargetKey: z.boolean().optional(),
 });
 export const heroMoveSchema = z.object({ dir: z.union([z.literal(-1), z.literal(1)]) });
 
