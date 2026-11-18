@@ -68,7 +68,7 @@ export type Bootstrap = {
 
 /** イベント（キャンペーン）。日付は日本時間の YYYY-MM-DD（両端を含む） */
 export type EventInfo = { id: string; name: string; startsOn: string; endsOn: string; goal: number | null };
-/** 一般向け：開催中のイベントと進み具合（filled：投稿がある組み合わせの数） */
+/** 一般向け：開催中のイベントと進み具合（filled：イベント期間中に承認されたタイミングの数。docs/DECISIONS.md AZ） */
 export type PublicEvent = EventInfo & { filled: number };
 /** 今週のキャラのスケジュール 1 行 */
 export type FeaturedHero = { id: string; heroId: string; startsOn: string; endsOn: string };

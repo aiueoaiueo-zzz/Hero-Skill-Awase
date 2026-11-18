@@ -20,14 +20,22 @@ export async function listEvents(env: Env): Promise<{ events: EventInfo[]; featu
 
 /** 一般向け：今日開催中のイベント（複数あれば開始が新しいもの）と、今日の今週のキャラ */
 export async function currentEvent(env: Env, today = todayJst()): Promise<{ event: PublicEvent | null; featured: Omit<FeaturedHero, "id">[] }> {
-  const [e, f, filled] = await env.DB.batch([
+  const [e, f] = await env.DB.batch([
     env.DB.prepare("SELECT id, name, starts_on, ends_on, goal FROM events WHERE starts_on <= ?1 AND ends_on >= ?1 ORDER BY starts_on DESC LIMIT 1").bind(today),
     env.DB.prepare("SELECT id, hero_id, starts_on, ends_on FROM featured_heroes WHERE starts_on <= ?1 AND ends_on >= ?1 ORDER BY starts_on").bind(today),
-    env.DB.prepare("SELECT COUNT(*) AS n FROM (SELECT DISTINCT attacker_id, target_id FROM timings WHERE status = 'approved' AND hidden = 0)"),
   ]);
   const ev = (e.results as EventRow[])[0];
+  // 進み具合：イベント期間中（日本時間の開始日 0 時〜終了日の翌日 0 時）に承認されたタイミングの数（docs/DECISIONS.md AZ）
+  let filled = 0;
+  if (ev) {
+    const JST = 9 * 3600_000;
+    const from = new Date(Date.parse(ev.starts_on + "T00:00:00Z") - JST).toISOString();
+    const to = new Date(Date.parse(ev.ends_on + "T00:00:00Z") - JST + 86400_000).toISOString();
+    const r = await env.DB.prepare("SELECT COUNT(*) AS n FROM timings WHERE status = 'approved' AND hidden = 0 AND reviewed_at >= ? AND reviewed_at < ?").bind(from, to).first<{ n: number }>();
+    filled = r?.n ?? 0;
+  }
   return {
-    event: ev ? { ...toEvent(ev), filled: (filled.results as { n: number }[])[0]?.n ?? 0 } : null,
+    event: ev ? { ...toEvent(ev), filled } : null,
     featured: (f.results as FeaturedRow[]).map(toFeatured).map(({ heroId, startsOn, endsOn }) => ({ heroId, startsOn, endsOn })),
   };
 }
