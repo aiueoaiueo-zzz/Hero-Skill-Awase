@@ -2,7 +2,7 @@ import { useNavigate } from "react-router";
 import { BADGES } from "../../shared/ranking";
 import type { RankingResponse } from "../../shared/types";
 import { Header } from "../components/Header";
-import { NotYet, RankList } from "../components/RankBits";
+import { NotYet, Podium } from "../components/RankBits";
 import { useApi } from "../lib/api";
 import { PROG, useBootFx } from "../lib/fx";
 
@@ -31,19 +31,19 @@ export function Ranking() {
                   {md(data.event.startsOn)}〜{md(data.event.endsOn)}
                 </small>
               </p>
-              {data.event.rows ? <RankList rows={data.event.rows} /> : <NotYet />}
+              {data.event.rows ? <Podium rows={data.event.rows} /> : <NotYet />}
             </div>
           )}
           {data.mode === "normal" && data.show.total && (
             <div className="box">
               <p className="bt">累計ランキング</p>
-              {data.total ? <RankList rows={data.total} /> : <NotYet />}
+              {data.total ? <Podium rows={data.total} /> : <NotYet />}
             </div>
           )}
           {data.mode === "normal" && data.show.month && (
             <div className="box">
               <p className="bt">今月のランキング</p>
-              {data.month ? <RankList rows={data.month} /> : <NotYet />}
+              {data.month ? <Podium rows={data.month} /> : <NotYet />}
             </div>
           )}
           {data.mode === "normal" && !data.show.total && !data.show.month && <div className="empty">ランキングは現在お休み中です</div>}

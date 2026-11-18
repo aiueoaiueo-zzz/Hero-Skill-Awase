@@ -1,9 +1,9 @@
 import { Link, useNavigate } from "react-router";
 import type { RankingResponse } from "../../shared/types";
 import { useApi } from "../lib/api";
-import { NotYet, RankList } from "./RankBits";
+import { MiniPodium, NotYet } from "./RankBits";
 
-/** トップ画面の小さなランキングの枠（イベント期間中はイベント、それ以外は累計→今月の上位 3 人。どれも非公開なら出さない） */
+/** トップ画面の小さなランキングの枠。上位 3 人を小さな表彰台で（docs/DECISIONS.md AY。イベント期間中はイベント、それ以外は累計→今月の上位 3 人。どれも非公開なら出さない） */
 export function RankBox() {
   const nav = useNavigate();
   const { data } = useApi<RankingResponse>("/api/ranking", { cached: true });
@@ -25,7 +25,7 @@ export function RankBox() {
           すべて見る ›
         </Link>
       </div>
-      {rows ? <RankList rows={rows.slice(0, 3)} /> : <NotYet />}
+      {rows ? <MiniPodium rows={rows.slice(0, 3)} /> : <NotYet />}
     </div>
   );
 }

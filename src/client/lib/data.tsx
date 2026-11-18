@@ -1,6 +1,7 @@
 import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
 import type { Bootstrap } from "../../shared/types";
 import { api } from "./api";
+import { HeroWall, rememberedWall, useRememberWall } from "../components/HeroWall";
 
 type Ctx = Bootstrap & { reload: () => Promise<void> };
 const DataContext = createContext<Ctx | null>(null);
@@ -21,9 +22,10 @@ export function DataProvider({ children }: { children: ReactNode }) {
     reload();
   }, []);
   if (error) return <div className="empty" style={{ marginTop: 40 }}>読み込みに失敗しました。時間をおいて再読み込みしてください。</div>;
-  if (!data) return null;
+  if (!data) return <Loading />;
   return (
     <DataContext.Provider value={{ ...data, reload }}>
+      <RememberWall urls={data.heroes.map((h) => h.imageUrl ?? "")} />
       {data.stage === "staging" && <StagingBar />}
       {children}
     </DataContext.Provider>
@@ -46,4 +48,22 @@ function StagingBar() {
     document.title = `【確認用】${document.title}`;
   }, []);
   return <div className="stagingbar">確認用サイト（本番ではありません・データは本番のコピー）</div>;
+}
+
+function RememberWall({ urls }: { urls: string[] }) {
+  useRememberWall(urls);
+  return null;
+}
+
+/** 読み込み中の画面：前に開いたときのキャラのアイコンを、後ろに薄く流す（docs/DECISIONS.md AX） */
+function Loading() {
+  return (
+    <>
+      <HeroWall urls={rememberedWall()} />
+      <div className="booting">
+        <img src="/icon-192.png" alt="" width={72} height={72} />
+        <span>読み込み中…</span>
+      </div>
+    </>
+  );
 }

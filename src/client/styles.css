@@ -691,3 +691,44 @@ img.av{object-fit:cover;background:#ddd}
 .card .ngmark small{font-size:.76em}
 /* 合わせ不可の帯はアイコンの上の端に重ねる（幅はアイコンより少し広く、カードの端から 3px 内側。docs/DECISIONS.md AU） */
 .card .ngmark{position:absolute;top:2px;left:2px;right:2px;margin:0}
+/* キャラのアイコンの壁（読み込み中・申請完了の画面の後ろ。docs/DECISIONS.md AX） */
+#root{position:relative;z-index:1}
+.herowall{position:fixed;inset:0;z-index:0;overflow:hidden;pointer-events:none;opacity:.13}
+.herowall .hw-in{position:absolute;left:50%;top:50%;width:130vmax;transform:translate(-50%,-50%) rotate(-8deg)}
+.herowall .hw-grid{display:grid;grid-template-columns:repeat(22,1fr);gap:.45vmax;padding-bottom:.45vmax;animation:hwflow 60s linear infinite}
+.herowall img{width:100%;aspect-ratio:1;object-fit:cover;display:block;border:1px solid #000}
+@keyframes hwflow{from{transform:translateY(0)}to{transform:translateY(-100%)}}
+@media (prefers-reduced-motion:reduce){.herowall .hw-grid{animation:none}}
+.booting{position:relative;z-index:1;min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;font-weight:700;color:#000}
+.booting img{border:2px solid #000}
+/* ランキングの表彰台（docs/DECISIONS.md AY） */
+.podium{display:grid;grid-template-columns:1fr 1.15fr 1fr;align-items:end;gap:8px;margin:6px 0 12px}
+.podium .pd{display:flex;flex-direction:column;align-items:center;text-align:center;min-width:0;color:#000;text-decoration:none}
+.podium .crown{font-size:22px;line-height:1;height:24px;margin-bottom:2px}
+.podium .pav{width:58px;height:58px;border:3px solid #000;background:#eee;display:grid;place-items:center;overflow:hidden;margin-bottom:6px;font-family:"Chakra Petch",sans-serif;font-size:26px}
+.podium .pav .av{width:100%;height:100%;max-width:none;margin:0;border:none;border-radius:0}
+.podium .pd1 .pav{width:74px;height:74px;box-shadow:4px 4px 0 var(--accent)}
+.podium .pid{font-weight:700;font-size:12px;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.podium .badge{margin-top:3px}
+.podium .ppt{font-family:"Chakra Petch",sans-serif;font-weight:700;font-size:15px}
+.podium .pd1 .ppt{font-size:20px;color:#c94f00}
+.podium .step{width:100%;margin-top:6px;border:2px solid #000;background:#000;color:#fff;font-family:"Chakra Petch",sans-serif;font-weight:700;display:grid;place-items:center}
+.podium .pd1 .step{height:74px;background:var(--accent);color:#000;font-size:34px}
+.podium .pd2 .step{height:54px;font-size:26px}
+.podium .pd3 .step{height:40px;background:#6b6b6b;font-size:22px}
+/* トップ画面の小さなランキング：上位 3 人を横並び（1 位を一番広く） */
+.toprank{display:grid;grid-template-columns:1.6fr 1fr 1fr;gap:6px;margin-top:4px}
+.toprank .tr{position:relative;display:flex;flex-direction:column;align-items:center;gap:3px;min-width:0;padding:16px 4px 6px;border:2px solid #000;background:#fff;color:#000;text-decoration:none;box-shadow:2px 2px 0 #000}
+.toprank .tr1{flex-direction:row;gap:8px;padding:16px 8px 6px;background:#fff3e8;border-color:#000;box-shadow:3px 3px 0 var(--accent)}
+.toprank .trno{position:absolute;left:-2px;top:-2px;font-family:"Chakra Petch",sans-serif;font-weight:700;font-size:11px;line-height:1;padding:2px 6px;background:#000;color:#fff}
+.toprank .tr1 .trno{background:var(--accent);color:#000;font-size:12px}
+.toprank .tr3 .trno{background:#6b6b6b}
+.toprank .pav{width:34px;height:34px;flex:none;border:2px solid #000;background:#eee;display:grid;place-items:center;overflow:hidden;font-family:"Chakra Petch",sans-serif;font-size:16px}
+.toprank .tr1 .pav{width:46px;height:46px}
+.toprank .pav .av{width:100%;height:100%;max-width:none;margin:0;border:none;border-radius:0}
+.toprank .trtx{display:flex;flex-direction:column;align-items:center;min-width:0;max-width:100%}
+.toprank .tr1 .trtx{align-items:flex-start}
+.toprank .pid{font-weight:700;font-size:10.5px;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.toprank .tr1 .pid{font-size:12px}
+.toprank .ppt{font-family:"Chakra Petch",sans-serif;font-weight:700;font-size:12px}
+.toprank .tr1 .ppt{font-size:17px;color:#c94f00}
