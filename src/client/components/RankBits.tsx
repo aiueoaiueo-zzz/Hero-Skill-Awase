@@ -55,27 +55,24 @@ export function Podium({ rows }: { rows: RankRow[] }) {
   );
 }
 
-/** トップ画面用の小さな表彰台（2・1・3 位を横に並べる。アイコンは表彰台と同じ） */
+/** トップ画面用：上位 3 人を横に並べる（1 位を一番広く。アイコンは表彰台と同じ。docs/DECISIONS.md AY） */
 export function MiniPodium({ rows }: { rows: RankRow[] }) {
   const { heroes } = useData();
-  const spot = (r: RankRow | undefined, k: number) => {
-    if (!r) return <div className={`mp mp${k}`} />;
-    const h = r.hero ? heroes.find((x) => x.id === r.hero) : undefined;
-    return (
-      <Link className={`mp mp${k}`} to={`/u/${r.xId}`} onClick={(e) => e.stopPropagation()}>
-        <span className="crown">{k === 1 ? "👑" : ""}</span>
-        <span className="pav">{h ? <Avatar hero={h} /> : <b>{r.xId[0]?.toUpperCase()}</b>}</span>
-        <span className="pid">@{r.xId}</span>
-        <span className="ppt">{fmtPoints(r.points)}pt</span>
-        <span className="step">{k}</span>
-      </Link>
-    );
-  };
   return (
-    <div className="minipodium">
-      {spot(rows[1], 2)}
-      {spot(rows[0], 1)}
-      {spot(rows[2], 3)}
+    <div className="toprank">
+      {rows.slice(0, 3).map((r) => {
+        const h = r.hero ? heroes.find((x) => x.id === r.hero) : undefined;
+        return (
+          <Link key={r.xId} className={`tr tr${r.rank}`} to={`/u/${r.xId}`} onClick={(e) => e.stopPropagation()}>
+            <span className="trno">{r.rank === 1 ? "👑 1" : r.rank}</span>
+            <span className="pav">{h ? <Avatar hero={h} /> : <b>{r.xId[0]?.toUpperCase()}</b>}</span>
+            <span className="trtx">
+              <span className="pid">@{r.xId}</span>
+              <span className="ppt">{fmtPoints(r.points)}pt</span>
+            </span>
+          </Link>
+        );
+      })}
     </div>
   );
 }
