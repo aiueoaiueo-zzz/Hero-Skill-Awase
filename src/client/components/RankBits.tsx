@@ -4,7 +4,7 @@ import type { RankRow } from "../../shared/types";
 import { useData } from "../lib/data";
 import { Avatar } from "./Avatar";
 
-/** ランキングの一覧（順位・@ID・バッジ・ポイント） */
+/** ランキングの一覧（順位・@ID・バッジ・合わせポイント） */
 export function RankList({ rows }: { rows: RankRow[] }) {
   return (
     <ol className="ranklist">
@@ -15,7 +15,10 @@ export function RankList({ rows }: { rows: RankRow[] }) {
             @{r.xId}
           </Link>
           {r.badge && <span className="badge">{r.badge}</span>}
-          <span className="pt">{fmtPoints(r.points)}pt</span>
+          <span className="pt">
+            {fmtPoints(r.points)}
+            <small>合わせpt</small>
+          </span>
         </li>
       ))}
     </ol>
@@ -38,7 +41,10 @@ export function Podium({ rows }: { rows: RankRow[] }) {
         <span className="pav">{h ? <Avatar hero={h} /> : <b>{r.xId[0]?.toUpperCase()}</b>}</span>
         <span className="pid">@{r.xId}</span>
         {r.badge && <span className="badge">{r.badge}</span>}
-        <span className="ppt">{fmtPoints(r.points)}pt</span>
+        <span className="ppt">
+          {fmtPoints(r.points)}
+          <small>合わせpt</small>
+        </span>
         <span className="step">{k}</span>
       </Link>
     );
@@ -68,7 +74,10 @@ export function MiniPodium({ rows }: { rows: RankRow[] }) {
             <span className="pav">{h ? <Avatar hero={h} /> : <b>{r.xId[0]?.toUpperCase()}</b>}</span>
             <span className="trtx">
               <span className="pid">@{r.xId}</span>
-              <span className="ppt">{fmtPoints(r.points)}pt</span>
+              <span className="ppt">
+          {fmtPoints(r.points)}
+          <small>合わせpt</small>
+        </span>
             </span>
           </Link>
         );
