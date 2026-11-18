@@ -732,7 +732,3 @@ img.av{object-fit:cover;background:#ddd}
 .toprank .tr1 .pid{font-size:12px}
 .toprank .ppt{font-family:"Chakra Petch",sans-serif;font-weight:700;font-size:12px}
 .toprank .tr1 .ppt{font-size:17px;color:#c94f00}
-/* 合わせポイントの単位（数字より小さく） */
-.ranklist .pt small,.podium .ppt small,.toprank .ppt small{font-size:.62em;margin-left:2px;font-family:"Zen Kaku Gothic New",sans-serif;font-weight:700;letter-spacing:-.02em}
-.ub-stats .unit{font-size:.6em;margin-left:3px;font-weight:700}
-.toprank .ppt{white-space:nowrap}.toprank .tr1 .ppt small{font-size:.55em}

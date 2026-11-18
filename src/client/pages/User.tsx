@@ -53,8 +53,7 @@ export function User() {
               <div>
                 <dt>累計</dt>
                 <dd>
-                  {fmtPoints(data.total)}
-                  <span className="unit">合わせpt</span>
+                  {fmtPoints(data.total)}pt
                   {data.rankTotal && <small>（{data.rankTotal}位）</small>}
                 </dd>
               </div>
@@ -62,8 +61,7 @@ export function User() {
                 <div>
                   <dt>{data.event.name}</dt>
                   <dd>
-                    {fmtPoints(data.event.points)}
-                  <span className="unit">合わせpt</span>
+                    {fmtPoints(data.event.points)}pt
                     {data.event.rank && <small>（{data.event.rank}位）</small>}
                   </dd>
                 </div>
@@ -72,8 +70,7 @@ export function User() {
                 <div>
                   <dt>今月</dt>
                   <dd>
-                    {fmtPoints(data.month)}
-                  <span className="unit">合わせpt</span>
+                    {fmtPoints(data.month)}pt
                     {data.rankMonth && <small>（{data.rankMonth}位）</small>}
                   </dd>
                 </div>
