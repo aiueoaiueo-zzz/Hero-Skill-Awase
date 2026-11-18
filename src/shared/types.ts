@@ -73,7 +73,8 @@ export type PublicEvent = EventInfo & { filled: number };
 /** 今週のキャラのスケジュール 1 行 */
 export type FeaturedHero = { id: string; heroId: string; startsOn: string; endsOn: string };
 
-export type RankRow = { rank: number; xId: string; points: number; badge: string | null };
+/** hero：その期間の集計対象の投稿で、攻撃側にいちばん多く選んだキャラの ID（同じ数ならあとで承認されたほう。docs/DECISIONS.md AY） */
+export type RankRow = { rank: number; xId: string; points: number; badge: string | null; hero: string | null };
 export type RankingResponse = {
   minUsers: number;
   /** "event"：イベント期間中（イベントランキングだけ）／"normal"：それ以外（公開にしたものだけ） */

@@ -6,7 +6,8 @@ import { getSettings } from "./settings";
 
 // ランキングの集計。投稿は多くないので、毎回データベースから数え直す（保存した集計とずれない）
 
-export type UserScore = { xId: string; total: number; month: number; event: number; totalAt: string; monthAt: string; eventAt: string };
+type HeroCount = Map<string, { n: number; at: string }>;
+export type UserScore = { xId: string; total: number; month: number; event: number; totalAt: string; monthAt: string; eventAt: string; heroes: { total: HeroCount; month: HeroCount; event: HeroCount } };
 /** イベントの期間（日本時間の開始日 0 時〜終了日の翌日 0 時の UTC ミリ秒） */
 export type Window = { start: number; end: number };
 const JST = 9 * 3600_000;
@@ -52,21 +53,26 @@ export async function computeScores(env: Env, now = Date.now(), win: Window | nu
   ]);
   const monthStart = jstMonthStart(now);
   const users = new Map<string, UserScore>();
-  const add = (raw: string | null, at: string, pt: number) => {
+  const add = (raw: string | null, at: string, pt: number, hero?: string) => {
     // 古い投稿で @ 付きのまま保存された ID も同じ人として数える
     const x = normalizeXId(raw);
     if (!isXId(x)) return;
     const k = x.toLowerCase();
-    const u = users.get(k) ?? { xId: x, total: 0, month: 0, event: 0, totalAt: "", monthAt: "", eventAt: "" };
+    const u = users.get(k) ?? { xId: x, total: 0, month: 0, event: 0, totalAt: "", monthAt: "", eventAt: "", heroes: { total: new Map(), month: new Map(), event: new Map() } };
+    // 攻撃側のキャラを数える（投稿だけ。修正提案は数えない）
+    const count = (m: HeroCount) => { if (!hero) return; const c = m.get(hero) ?? { n: 0, at: "" }; c.n++; if (at > c.at) c.at = at; m.set(hero, c); };
+    count(u.heroes.total);
     u.total += pt;
     if (at > u.totalAt) u.totalAt = at;
     if (Date.parse(at) >= monthStart) {
       u.month += pt;
+      count(u.heroes.month);
       if (at > u.monthAt) u.monthAt = at;
     }
     // イベント期間中に承認されたもの（ポイントの付け方は累計と同じ）
     if (win && Date.parse(at) >= win.start && Date.parse(at) < win.end) {
       u.event += pt;
+      count(u.heroes.event);
       if (at > u.eventAt) u.eventAt = at;
     }
     users.set(k, u);
@@ -77,13 +83,20 @@ export async function computeScores(env: Env, now = Date.now(), win: Window | nu
     const key = `${p.a}|${p.t}`;
     const first = !seen.has(key);
     seen.add(key);
-    add(p.x, p.at, (p.fixed ? POINTS.postFixed : POINTS.post) + (first ? POINTS.firstPair : 0));
+    add(p.x, p.at, (p.fixed ? POINTS.postFixed : POINTS.post) + (first ? POINTS.firstPair : 0), p.a);
   }
   for (const f of fixes.results) add(f.x, f.at, POINTS.fix);
   return { users, excluded };
 }
 
-export type RankRow = { rank: number; xId: string; points: number; badge: string | null };
+export type { RankRow } from "../../shared/types";
+import type { RankRow } from "../../shared/types";
+/** いちばん多いキャラ（同じ数ならあとで承認されたほう） */
+const topHero = (m: HeroCount): string | null => {
+  let best: string | null = null, bn = 0, ba = "";
+  for (const [h, c] of m) if (c.n > bn || (c.n === bn && c.at > ba)) { best = h; bn = c.n; ba = c.at; }
+  return best;
+};
 
 /** ポイントの多い順。同じポイントなら、先にそのポイントに届いた人が上 */
 function rank(users: UserScore[], key: "total" | "month" | "event"): RankRow[] {
@@ -91,7 +104,7 @@ function rank(users: UserScore[], key: "total" | "month" | "event"): RankRow[] {
   return users
     .filter((u) => u[key] > 0)
     .sort((a, b) => b[key] - a[key] || a[at].localeCompare(b[at]))
-    .map((u, i) => ({ rank: i + 1, xId: u.xId, points: u[key], badge: badgeFor(u.total) }));
+    .map((u, i) => ({ rank: i + 1, xId: u.xId, points: u[key], badge: badgeFor(u.total), hero: topHero(u.heroes[key]) }));
 }
 
 export async function rankingSummary(env: Env, now = Date.now()) {
