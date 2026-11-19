@@ -45,8 +45,11 @@ export const xWeight = (s: string) => {
   return n;
 };
 
-/** 投稿者の表示。X の ID は「＠ID」、古い自由入力の名前は @ を全角にしてそのまま（X でほかの人に通知が飛ばないように） */
-const noMention = (s: string) => (X_ID_RE.test(normalizeXId(s)) ? `＠${normalizeXId(s)}` : s.replace(/@/g, "＠"));
+/**
+ * 投稿者の表示。X では全角の「＠」でもメンションになり、投稿者に通知が飛ぶため、X の ID は「#ID」（ハッシュタグ）にする。
+ * 古い自由入力の名前は、@・＠ を消してそのまま
+ */
+const noMention = (s: string) => (X_ID_RE.test(normalizeXId(s)) ? `#${normalizeXId(s)}` : s.replace(/[@＠]/g, ""));
 
 type Base = {
   attacker: string;
@@ -55,6 +58,7 @@ type Base = {
   cueType: CueType;
   timingText: string;
   nickname?: string | null;
+  /** 共有の文面には載せない（詳細画面には表示する） */
   supportCode?: string | null;
 };
 
@@ -73,7 +77,6 @@ function build(p: Base, head: string[], nickMax = 20): string {
       `${timing}${cue}`,
       "",
       ...(p.nickname ? [`投稿者：${noMention(clip(p.nickname, nickMax))}`] : []),
-      ...(p.supportCode ? [`応援コード：${clip(p.supportCode, 20)}`] : []),
       HASHTAGS,
     ].join("\n");
   const full = Array.from(p.timingText.replace(/\s+/g, " ").trim());
