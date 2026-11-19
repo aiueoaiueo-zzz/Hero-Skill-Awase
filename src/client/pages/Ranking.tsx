@@ -62,7 +62,7 @@ export function Ranking() {
             <ul className="badges">
               {BADGES.map((b) => (
                 <li key={b.name}>
-                  <span className="badge">{b.name}</span> 累計 {b.min} ポイント〜
+                  <span className="badge">{b.name}</span> 累計 {b.min} 合わせポイント〜
                 </li>
               ))}
             </ul>

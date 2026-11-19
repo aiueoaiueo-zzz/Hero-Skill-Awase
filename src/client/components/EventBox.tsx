@@ -27,8 +27,8 @@ export function EventBox() {
       {event && (
         <div className="evprog">
           <div className="evnum">
-            投稿がある組み合わせ <b>{event.filled}</b>
-            {event.goal ? <> / 目標 {event.goal} 組</> : " 組"}
+            イベント中に集まったタイミング <b>{event.filled}</b>
+            {event.goal ? <> / 目標 {event.goal}</> : ""}
           </div>
           {pct !== null && (
             <div className="evbar" role="progressbar" aria-valuenow={pct} aria-valuemin={0} aria-valuemax={100}>

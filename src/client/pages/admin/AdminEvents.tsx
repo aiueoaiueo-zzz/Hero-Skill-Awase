@@ -94,7 +94,7 @@ export function AdminEvents() {
                   <b>{e.name}</b>
                   <span>
                     {md(e.startsOn)} 〜 {md(e.endsOn)}
-                    {e.goal ? `・目標 ${e.goal} 組` : ""}
+                    {e.goal ? `・目標 ${e.goal} タイミング` : ""}
                   </span>
                 </div>
                 <ArmedButton className="sbtn danger" label="削除" armedLabel="確定" onConfirm={() => run(() => api<Data>(`/api/admin/events/${e.id}`, { method: "DELETE" }), "削除しました")} />
@@ -120,8 +120,8 @@ export function AdminEvents() {
               </label>
             </div>
             <label>
-              目標の組み合わせ数（任意）
-              <input className="inp" id="ev-goal" type="number" inputMode="numeric" min={1} placeholder="例：100" value={goal} onChange={(e) => setGoal(e.target.value)} />
+              目標のタイミング数（任意。イベント期間中に承認されたタイミングの数）
+              <input className="inp" id="ev-goal" type="number" inputMode="numeric" min={1} placeholder="例：50" value={goal} onChange={(e) => setGoal(e.target.value)} />
             </label>
             <div className="btns">
               <button

@@ -9,7 +9,7 @@ export function RankBox() {
   const { data } = useApi<RankingResponse>("/api/ranking", { cached: true });
   if (!data) return null;
   const [rows, label] = data.event
-    ? [data.event.rows, `${data.event.name} ランキング`]
+    ? [data.event.rows, "イベントランキング"] // イベント名は上のイベントの枠に出ているので、ここは短く
     : data.show.total
       ? [data.total, "累計ランキング"]
       : data.show.month
