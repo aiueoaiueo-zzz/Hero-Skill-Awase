@@ -55,7 +55,6 @@ export function Ranking() {
             <ul>
               <li>X の ID はご自身のもののみ入力してください</li>
               <li>投稿する動画は、ご自身で撮影したもの、または撮影者（友人・知人）の許可を得たもののみにしてください</li>
-              <li>合わせポイントは、ランキングとバッジのためのものです。景品などとの交換はありません</li>
             </ul>
           </div>
           <div className="box rules">
@@ -63,7 +62,7 @@ export function Ranking() {
             <ul className="badges">
               {BADGES.map((b) => (
                 <li key={b.name}>
-                  <span className="badge">{b.name}</span> 累計 {b.min} 合わせポイント〜
+                  <span className="badge">{b.name}</span> 累計 {b.min} ポイント〜
                 </li>
               ))}
             </ul>

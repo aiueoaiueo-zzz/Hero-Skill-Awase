@@ -8,7 +8,7 @@ import { useApi } from "../lib/api";
 import { PROG, useBootFx } from "../lib/fx";
 import { fmtDate } from "../lib/ui";
 
-/** 投稿者のページ（バッジ・合わせポイント・順位と、その人の公開中の合わせ） */
+/** 投稿者のページ（バッジ・ポイント・順位と、その人の公開中の合わせ） */
 export function User() {
   const { xid = "" } = useParams();
   const { data, error } = useApi<UserResponse>(
@@ -48,7 +48,7 @@ export function User() {
                 X のプロフィール ↗
               </a>
             </div>
-            {/* ランキングの対象外の人も、バッジと合わせポイントは出す（順位は出ない） */}
+            {/* ランキングの対象外の人も、バッジとポイントは出す（順位は出ない） */}
             <dl className="ub-stats">
               <div>
                 <dt>累計</dt>

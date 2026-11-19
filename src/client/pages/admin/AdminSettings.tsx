@@ -64,14 +64,14 @@ export function AdminSettings() {
             <p>
               <b style={{ color: "var(--text)" }}>ランキングの公開・非公開</b>
               <br />
-              イベントの期間中は、イベントランキングだけを出します（累計・今月は隠れます）。期間外は、公開にしたものを出します。合わせポイントの集計とバッジは、非公開でも続きます。
+              イベントの期間中は、イベントランキングだけを出します（累計・今月は隠れます）。期間外は、公開にしたものを出します。ポイントの集計とバッジは、非公開でも続きます。
             </p>
             <div className="rkshow">
               {(
                 [
-                  ["ranking_show_event", "イベントランキング", "イベント期間中の合わせポイント"],
-                  ["ranking_show_total", "累計ランキング", "これまでの全合わせポイント"],
-                  ["ranking_show_month", "今月のランキング", "今月（日本時間）の合わせポイント"],
+                  ["ranking_show_event", "イベントランキング", "イベント期間中のポイント"],
+                  ["ranking_show_total", "累計ランキング", "これまでの全ポイント"],
+                  ["ranking_show_month", "今月のランキング", "今月（日本時間）のポイント"],
                 ] as const
               ).map(([k, label, note]) => (
                 <label key={k} className="rkrow">

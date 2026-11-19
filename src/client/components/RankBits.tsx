@@ -4,7 +4,7 @@ import type { RankRow } from "../../shared/types";
 import { useData } from "../lib/data";
 import { Avatar } from "./Avatar";
 
-/** ランキングの一覧（順位・@ID・バッジ・合わせポイント） */
+/** ランキングの一覧（順位・@ID・バッジ・ポイント） */
 export function RankList({ rows }: { rows: RankRow[] }) {
   return (
     <ol className="ranklist">
