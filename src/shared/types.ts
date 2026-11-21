@@ -208,6 +208,12 @@ export type AdminPendingResponse = { groups: AdminGroup[]; usage: StorageUsage }
 export type AdminHero = Hero & { sortOrder: number; timingCount: number };
 
 /** 管理：公開中（と非公開）のタイミング */
+/** 管理：集計（公開中のタイミングを、攻撃側 a × 受ける側 t × 攻撃方法 k ごとに数えた件数 n） */
+export type AdminStatsResponse = {
+  heroes: Hero[];
+  pairs: { a: string; t: string; k: AttackType; n: number }[];
+};
+
 export type AdminPublished = {
   id: string;
   attacker: Hero;

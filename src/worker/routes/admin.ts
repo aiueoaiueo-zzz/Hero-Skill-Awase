@@ -2,7 +2,7 @@ import { Hono } from "hono";
 import { adminEventRoutes } from "./admin-events";
 import { SETTING_KEYS } from "../../shared/constants";
 import { approveSchema, posterSchema, rejectSchema, settingsSchema } from "../../shared/schema";
-import type { AdminGroup, AdminPendingResponse, AdminPublished, AdminTiming } from "../../shared/types";
+import type { AdminGroup, AdminPendingResponse, AdminPublished, AdminStatsResponse, AdminTiming } from "../../shared/types";
 import type { AppEnv, Env } from "../env";
 import { adminContactRoutes } from "./contact";
 import { requireAdmin } from "../lib/admin-auth";
@@ -351,6 +351,17 @@ adminRoutes.on(["GET", "HEAD"], "/media/*", async (c) => {
 });
 
 /** 設定（制作者の応援コード・注意事項・このアプリについて） */
+/** 集計：公開中のタイミングを、攻撃側×受ける側×攻撃方法ごとに数える（非公開は除く） */
+adminRoutes.get("/stats", async (c) => {
+  const { results } = await c.env.DB.prepare(
+    `SELECT attacker_id AS a, target_id AS t, attack_type AS k, COUNT(*) AS n
+       FROM timings
+      WHERE status = 'approved' AND hidden = 0
+      GROUP BY attacker_id, target_id, attack_type`,
+  ).all<AdminStatsResponse["pairs"][number]>();
+  return c.json<AdminStatsResponse>({ heroes: await listHeroes(c.env), pairs: results });
+});
+
 adminRoutes.get("/settings", async (c) => c.json(await getSettings(c.env)));
 adminRoutes.put("/settings", async (c) => {
   const body = settingsSchema.safeParse(await c.req.json().catch(() => null));
