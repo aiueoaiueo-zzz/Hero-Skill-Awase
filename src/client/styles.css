@@ -505,6 +505,19 @@ a.entry.ulink{display:block;text-decoration:none;color:inherit}
 .hhead .tri{flex:none;width:28px;height:28px;display:grid;place-items:center;border:1px solid #000;font-size:11px}
 .hhead .hn{font-size:15px;font-weight:800;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .hhead.on{border-color:#000;border-bottom-style:dashed}
+/* 管理：集計 */
+.stat .hhead{gap:10px}
+.stat .hn{flex:1}
+.stat .stn{flex:none;text-align:right;font-size:12px;line-height:1.3}
+.stat .stn b{font-size:20px;font-weight:800}
+.stat .stn small{color:var(--sub)}
+.stat .stk{display:block;color:var(--sub);font-size:11px;white-space:nowrap}
+.stbody{background:#fff;border:1px solid #000;border-top:none;padding:8px 12px 10px;font-size:13px}
+.stp{list-style:none;margin:0;padding:0}
+.stp li{display:flex;justify-content:space-between;gap:10px;padding:5px 0;border-bottom:1px dotted var(--line)}
+.stp li small{color:var(--sub);font-size:11px}
+.stnone{margin:4px 0;color:var(--sub)}
+.stmiss{margin:8px 0 0;color:var(--sub);font-size:12px;line-height:1.6}
 .hcard{background:#fff;border:1px solid #000;border-top:none;padding:12px 10px}
 .hcard input{color:#000}
 .htop{display:flex;gap:12px;align-items:flex-start;padding-bottom:4px}

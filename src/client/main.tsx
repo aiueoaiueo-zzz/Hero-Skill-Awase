@@ -17,6 +17,7 @@ import { AdminHeroes } from "./pages/admin/AdminHeroes";
 import { AdminPending } from "./pages/admin/AdminPending";
 import { AdminPublished } from "./pages/admin/AdminPublished";
 import { AdminSettings } from "./pages/admin/AdminSettings";
+import { AdminStats } from "./pages/admin/AdminStats";
 import { Status } from "./pages/Status";
 import { Submit } from "./pages/Submit";
 import { Targets } from "./pages/Targets";
@@ -61,6 +62,7 @@ function App() {
         <Route path="/status" element={<Status />} />
         <Route path="/admin" element={<AdminPending />} />
         <Route path="/admin/published" element={<AdminPublished />} />
+        <Route path="/admin/stats" element={<AdminStats />} />
         <Route path="/admin/contacts" element={<AdminContacts />} />
         <Route path="/admin/heroes" element={<AdminHeroes />} />
         <Route path="/admin/events" element={<AdminEvents />} />
