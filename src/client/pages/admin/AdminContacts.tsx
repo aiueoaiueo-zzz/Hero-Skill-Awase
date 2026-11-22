@@ -5,13 +5,13 @@ import { api, ApiError, useApi } from "../../lib/api";
 import { useBootFx } from "../../lib/fx";
 import { copyText, toast } from "../../lib/ui";
 import { ArmedButton } from "./AdminHeroes";
-import { AdminLayout, adminErrorMessage } from "./AdminLayout";
+import { AdminLayout, adminErrorMessage, pendingTotal } from "./AdminLayout";
 
 const fmtDateTime = (s: string) => new Date(s).toLocaleString("ja-JP", { month: "numeric", day: "numeric", hour: "2-digit", minute: "2-digit" });
 
 /** 管理：お問い合わせ（未対応 → 対応済み、削除） */
 export function AdminContacts() {
-  const pending = useApi<{ groups: { timings: unknown[] }[] }>("/api/admin/pending");
+  const pending = useApi<{ groups: { timings: unknown[] }[]; posterChanges?: unknown[] }>("/api/admin/pending");
   const [items, setItems] = useState<AdminContact[] | null>(null);
   const [error, setError] = useState<number | null>(null);
   const [busy, setBusy] = useState<string | null>(null);
@@ -44,7 +44,7 @@ export function AdminContacts() {
   const openCount = (items ?? []).filter((c) => c.status === "open").length;
 
   return (
-    <AdminLayout tab="contacts" pendingCount={pending.data?.groups.reduce((s, g) => s + g.timings.length, 0)} contactCount={items ? openCount : undefined}>
+    <AdminLayout tab="contacts" pendingCount={pendingTotal(pending.data)} contactCount={items ? openCount : undefined}>
       {error !== null && <div className="empty">{adminErrorMessage(error)}</div>}
       {items && (
         <>

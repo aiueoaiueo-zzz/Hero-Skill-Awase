@@ -7,11 +7,11 @@ import { api, ApiError, useApi } from "../../lib/api";
 import { useBootFx } from "../../lib/fx";
 import { fmtDate, toast } from "../../lib/ui";
 import { ArmedButton } from "./AdminHeroes";
-import { AdminLayout, adminErrorMessage } from "./AdminLayout";
+import { AdminLayout, adminErrorMessage, pendingTotal } from "./AdminLayout";
 
 /** 管理：公開中のタイミング（非公開にする・公開に戻す・削除） */
 export function AdminPublished() {
-  const pending = useApi<{ groups: { timings: unknown[] }[] }>("/api/admin/pending");
+  const pending = useApi<{ groups: { timings: unknown[] }[]; posterChanges?: unknown[] }>("/api/admin/pending");
   const [items, setItems] = useState<Item[] | null>(null);
   const [error, setError] = useState<number | null>(null);
   const [q, setQ] = useState("");
@@ -60,7 +60,7 @@ export function AdminPublished() {
   const hiddenCount = (items ?? []).filter((t) => t.hidden).length;
 
   return (
-    <AdminLayout tab="published" pendingCount={pending.data?.groups.reduce((s, g) => s + g.timings.length, 0)}>
+    <AdminLayout tab="published" pendingCount={pendingTotal(pending.data)}>
       {error !== null && <div className="empty">{adminErrorMessage(error)}</div>}
       {items && (
         <>

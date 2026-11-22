@@ -60,6 +60,13 @@ export const uploadRequestSchema = z.object({
 export type UploadRequest = z.infer<typeof uploadRequestSchema>;
 
 export const withdrawSchema = z.object({ deleteKey: z.string().min(1).max(128) });
+/** このブラウザで投稿したもの（受付番号と取り下げ用キー）。投稿者情報の変更申請・取り下げに使う */
+const ownedSchema = z
+  .array(z.object({ code: z.string().regex(/^HS-[A-Z0-9]{6}$/), deleteKey: z.string().min(1).max(128) }))
+  .min(1)
+  .max(LIMITS.posterChangeItems);
+export const posterChangeSchema = z.object({ items: ownedSchema, nickname: xIdSchema, supportCode: optText(LIMITS.supportCode) });
+export const posterChangeWithdrawSchema = z.object({ items: ownedSchema });
 export const codeSchema = z.string().regex(/^HS-[A-Z0-9]{6}$/);
 
 export const approveSchema = z.object({

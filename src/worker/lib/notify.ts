@@ -57,6 +57,28 @@ export function newSubmissionPayload(
   };
 }
 
+/** 投稿者情報（X の ID・応援コード）の変更申請が届いたとき */
+export function posterChangePayload(env: Env, p: { codes: string[]; oldNickname: string | null; nickname: string | null; pendingTotal: number }): DiscordPayload {
+  const url = adminLink(env);
+  const id = (s: string | null) => (s ? clip(s, 20) : "（なし）");
+  return {
+    embeds: [
+      {
+        title: `🪪 投稿者情報の変更申請が届きました（${p.codes.length} 件）`,
+        description: `X の ID：${id(p.oldNickname)} → ${id(p.nickname)}`,
+        color: CYAN,
+        ...(url ? { url } : {}),
+        fields: [
+          { name: "受付番号", value: clip(p.codes.join("、"), 200) },
+          { name: "審査待ちの変更申請", value: `合計 ${p.pendingTotal} 件`, inline: true },
+          ...(url ? [{ name: "管理画面", value: url }] : []),
+        ],
+      },
+    ],
+    allowed_mentions: { parse: [] },
+  };
+}
+
 /** 容量の上限で、動画の受付が止まったとき */
 export function capacityPayload(env: Env, u: { totalBytes: number; limitBytes: number; pendingBytes: number; pendingLimitBytes: number }): DiscordPayload {
   const gb = (n: number) => `${(n / 1024 ** 3).toFixed(2)}GB`;

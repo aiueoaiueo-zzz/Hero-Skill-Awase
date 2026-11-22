@@ -8,7 +8,7 @@ import { useData } from "../../lib/data";
 import { useBootFx } from "../../lib/fx";
 import { sniffImageType } from "../../lib/image";
 import { toast } from "../../lib/ui";
-import { AdminLayout, adminErrorMessage } from "./AdminLayout";
+import { AdminLayout, adminErrorMessage, pendingTotal } from "./AdminLayout";
 import { HeroSearch, matchHero, useHeroQuery } from "./HeroSearch";
 
 const ERRORS: Record<string, string> = {
@@ -114,7 +114,7 @@ function InlineInput({ value, onCommit, style, allowEmpty, ...rest }: { value: s
 
 /** 8. 管理：キャラ管理 */
 export function AdminHeroes() {
-  const pending = useApi<{ groups: { timings: unknown[] }[] }>("/api/admin/pending");
+  const pending = useApi<{ groups: { timings: unknown[] }[]; posterChanges?: unknown[] }>("/api/admin/pending");
   const { reload } = useData();
   const [heroes, setHeroes] = useState<AdminHero[] | null>(null);
   const [error, setError] = useState<number | null>(null);
@@ -214,7 +214,7 @@ export function AdminHeroes() {
   };
 
   return (
-    <AdminLayout tab="heroes" pendingCount={pending.data?.groups.reduce((s, g) => s + g.timings.length, 0)}>
+    <AdminLayout tab="heroes" pendingCount={pendingTotal(pending.data)}>
       {error !== null && <div className="empty">{adminErrorMessage(error)}</div>}
       {heroes && (
         <>

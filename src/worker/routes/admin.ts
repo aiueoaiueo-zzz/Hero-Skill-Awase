@@ -2,7 +2,7 @@ import { Hono } from "hono";
 import { adminEventRoutes } from "./admin-events";
 import { SETTING_KEYS } from "../../shared/constants";
 import { approveSchema, posterSchema, rejectSchema, settingsSchema } from "../../shared/schema";
-import type { AdminGroup, AdminPendingResponse, AdminPublished, AdminStatsResponse, AdminTiming } from "../../shared/types";
+import type { AdminGroup, AdminPendingResponse, AdminPosterChange, AdminPublished, AdminStatsResponse, AdminTiming, Hero } from "../../shared/types";
 import type { AppEnv, Env } from "../env";
 import { adminContactRoutes } from "./contact";
 import { requireAdmin } from "../lib/admin-auth";
@@ -105,7 +105,78 @@ adminRoutes.get("/pending", async (c) => {
     }
     g.timings.push(toAdminTiming(c.env, r));
   }
-  return c.json<AdminPendingResponse>({ groups, usage: await getUsage(c.env) });
+  return c.json<AdminPendingResponse>({ groups, posterChanges: await pendingPosterChanges(c.env, heroes), usage: await getUsage(c.env) });
+});
+
+/** 審査待ちの、投稿者情報の変更申請（古い順） */
+async function pendingPosterChanges(env: Env, heroes: Map<string, Hero>): Promise<AdminPosterChange[]> {
+  const { results } = await env.DB.prepare(
+    `SELECT pc.id, pc.nickname, pc.support_code, pc.created_at, s.code, s.attacker_id, s.target_id, s.replaces_timing_id,
+            i.old_nickname, i.old_support_code,
+            (SELECT COUNT(*) FROM timings t WHERE (t.submission_id = s.id AND t.status = 'approved') OR (t.credit_submission_id = s.id AND t.status = 'approved')) AS published
+       FROM poster_changes pc
+       JOIN poster_change_items i ON i.change_id = pc.id
+       JOIN submissions s ON s.id = i.submission_id
+      WHERE pc.status = 'pending'
+      ORDER BY pc.created_at, pc.id, s.created_at`,
+  ).all<{
+    id: string;
+    nickname: string | null;
+    support_code: string | null;
+    created_at: string;
+    code: string;
+    attacker_id: string;
+    target_id: string;
+    replaces_timing_id: string | null;
+    old_nickname: string | null;
+    old_support_code: string | null;
+    published: number;
+  }>();
+  const out: AdminPosterChange[] = [];
+  for (const r of results) {
+    let g = out[out.length - 1];
+    if (!g || g.id !== r.id) out.push((g = { id: r.id, nickname: r.nickname, supportCode: r.support_code, createdAt: r.created_at, items: [] }));
+    g.items.push({
+      code: r.code,
+      attacker: heroes.get(r.attacker_id)!,
+      target: heroes.get(r.target_id)!,
+      oldNickname: r.old_nickname,
+      oldSupportCode: r.old_support_code,
+      published: r.published,
+      isFix: !!r.replaces_timing_id,
+    });
+  }
+  return out;
+}
+
+/** 投稿者情報の変更申請を承認：申請に入っている投稿の X の ID・応援コードを書き換える */
+adminRoutes.post("/poster-changes/:id/approve", async (c) => {
+  const id = c.req.param("id");
+  const now = nowIso();
+  const db = c.env.DB;
+  const res = await db.batch([
+    db.prepare("UPDATE poster_changes SET status = 'approved', reviewed_at = ? WHERE id = ? AND status = 'pending'").bind(now, id),
+    db
+      .prepare(
+        `UPDATE submissions SET nickname = (SELECT nickname FROM poster_changes WHERE id = ?), support_code = (SELECT support_code FROM poster_changes WHERE id = ?)
+          WHERE id IN (SELECT submission_id FROM poster_change_items WHERE change_id = ?)
+            AND EXISTS (SELECT 1 FROM poster_changes WHERE id = ? AND status = 'approved' AND reviewed_at = ?)`,
+      )
+      .bind(id, id, id, id, now),
+  ]);
+  if (!res[0].meta.changes) return c.json({ error: "not_pending" }, 409);
+  return c.json({ ok: true, updated: res[1].meta.changes });
+});
+
+/** 投稿者情報の変更申請を却下（理由は投稿者の審査状況の画面に出る） */
+adminRoutes.post("/poster-changes/:id/reject", async (c) => {
+  const body = rejectSchema.safeParse(await c.req.json().catch(() => ({})));
+  if (!body.success) return c.json({ error: "invalid_request" }, 400);
+  const r = await c.env.DB.prepare("UPDATE poster_changes SET status = 'rejected', reject_reason = ?, reviewed_at = ? WHERE id = ? AND status = 'pending'")
+    .bind(body.data.reason, nowIso(), c.req.param("id"))
+    .run();
+  if (!r.meta.changes) return c.json({ error: "not_pending" }, 409);
+  return c.json({ ok: true });
 });
 
 const getPending = (env: Env, id: string) =>

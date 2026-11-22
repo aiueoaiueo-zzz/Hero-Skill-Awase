@@ -36,6 +36,10 @@ export function AdminLayout({ tab, pendingCount, contactCount, children }: { tab
   );
 }
 
+/** タブに出す承認待ちの件数（タイミング＋投稿者情報の変更申請） */
+export const pendingTotal = (d?: { groups: { timings: unknown[] }[]; posterChanges?: unknown[] } | null) =>
+  d ? d.groups.reduce((s, g) => s + g.timings.length, 0) + (d.posterChanges?.length ?? 0) : undefined;
+
 export const adminErrorMessage = (status?: number) =>
   status === 401 || status === 403 || status === 503
     ? "管理者としてログインしていません。Cloudflare Access でログインしてから開き直してください。"
