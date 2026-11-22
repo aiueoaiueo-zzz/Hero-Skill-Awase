@@ -1,16 +1,18 @@
 import { Link } from "react-router";
 import { fmtPoints } from "../../shared/ranking";
-import type { RankRow } from "../../shared/types";
+import type { Hero, RankRow } from "../../shared/types";
 import { useData } from "../lib/data";
 import { Avatar } from "./Avatar";
 
-/** ランキングの一覧（順位・@ID・バッジ・合わせポイント） */
+/** ランキングの一覧（順位・キャラのアイコン・@ID・バッジ・合わせポイント）。アイコンは表彰台と同じ（docs/DECISIONS.md AY・BF） */
 export function RankList({ rows }: { rows: RankRow[] }) {
+  const { heroes } = useData();
   return (
     <ol className="ranklist">
       {rows.map((r) => (
         <li key={r.xId} className={r.rank <= 3 ? `top${r.rank}` : ""}>
           <span className="no">{r.rank}</span>
+          <RankIcon xId={r.xId} hero={r.hero ? heroes.find((x) => x.id === r.hero) : undefined} />
           <Link className="who" to={`/u/${r.xId}`} onClick={(e) => e.stopPropagation()}>
             @{r.xId}
           </Link>
@@ -21,6 +23,9 @@ export function RankList({ rows }: { rows: RankRow[] }) {
     </ol>
   );
 }
+
+/** 一覧の小さいアイコン（キャラがなければ ID の頭文字） */
+const RankIcon = ({ xId, hero }: { xId: string; hero?: Hero }) => <span className="pav">{hero ? <Avatar hero={hero} /> : <b>{xId[0]?.toUpperCase()}</b>}</span>;
 
 /** 人数が足りないときの案内 */
 export const NotYet = () => <p className="notyet">ランキング準備中です</p>;
