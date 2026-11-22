@@ -517,6 +517,9 @@ a.entry.ulink{display:block;text-decoration:none;color:inherit}
 .stp li{display:flex;justify-content:space-between;gap:10px;padding:5px 0;border-bottom:1px dotted var(--line)}
 .stp li small{color:var(--sub);font-size:11px}
 .stnone{margin:4px 0;color:var(--sub)}
+/* 管理：公開中タブの非公開のタイミング */
+.entry.hiddenpost{position:relative;opacity:.6;background:repeating-linear-gradient(-45deg,#fff 0 10px,#f1f1f1 10px 20px)}
+.entry.hiddenpost::after{content:"非公開";position:absolute;top:8px;right:10px;font-size:11px;font-weight:800;color:#fff;background:#555;padding:2px 8px}
 .stmiss{margin:8px 0 0;color:var(--sub);font-size:12px;line-height:1.6}
 .hcard{background:#fff;border:1px solid #000;border-top:none;padding:12px 10px}
 .hcard input{color:#000}

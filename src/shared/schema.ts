@@ -69,6 +69,14 @@ export const posterChangeSchema = z.object({ items: ownedSchema, nickname: xIdSc
 export const posterChangeWithdrawSchema = z.object({ items: ownedSchema });
 export const codeSchema = z.string().regex(/^HS-[A-Z0-9]{6}$/);
 
+/** 管理：公開中のタイミングの内容を直す（動画はそのまま） */
+export const timingEditSchema = z.object({
+  attackType: attackTypeSchema,
+  cueType: cueTypeSchema,
+  timingText: text(LIMITS.timingText).refine((s) => s.length > 0, { message: "合わせるタイミングを入力してください" }),
+  note: optText(LIMITS.note),
+});
+
 export const approveSchema = z.object({
   edits: z
     .object({

@@ -1,7 +1,9 @@
 import { Hono } from "hono";
 import { adminEventRoutes } from "./admin-events";
 import { SETTING_KEYS } from "../../shared/constants";
-import { approveSchema, posterSchema, rejectSchema, settingsSchema } from "../../shared/schema";
+import { approveSchema, posterSchema, rejectSchema, settingsSchema, timingEditSchema } from "../../shared/schema";
+import { blockedAttacks } from "../../shared/hs";
+import type { AttackType } from "../../shared/constants";
 import type { AdminGroup, AdminPendingResponse, AdminPosterChange, AdminPublished, AdminStatsResponse, AdminTiming, Hero } from "../../shared/types";
 import type { AppEnv, Env } from "../env";
 import { adminContactRoutes } from "./contact";
@@ -380,6 +382,26 @@ adminRoutes.post("/timings/:id/unhide", async (c) => {
 });
 
 /** 削除：タイミングと動画を消す（元に戻せない）。投稿にほかのタイミングが残っていなければ投稿ごと消す */
+/** 公開中（非公開を含む）のタイミングの内容を直す：攻撃方法・目印・タイミング・備考（動画はそのまま。docs/DECISIONS.md AZ） */
+adminRoutes.post("/timings/:id/edit", async (c) => {
+  const body = timingEditSchema.safeParse(await c.req.json().catch(() => null));
+  if (!body.success) return c.json({ error: "invalid_request", issues: body.error.issues.map((i) => i.message) }, 400);
+  const t = await c.env.DB.prepare("SELECT attacker_id, target_id, attack_type FROM timings WHERE id = ? AND status = 'approved'")
+    .bind(c.req.param("id"))
+    .first<{ attacker_id: string; target_id: string; attack_type: string }>();
+  if (!t) return c.json({ error: "not_found" }, 404);
+  const e = body.data;
+  // 合わせ不可（存在しない）の攻撃方法には変えられない（今と同じなら、そのままにできる）
+  if (e.attackType !== t.attack_type) {
+    const heroes = new Map((await listHeroes(c.env)).map((h) => [h.id, h]));
+    if (blockedAttacks(heroes.get(t.attacker_id), heroes.get(t.target_id)).has(e.attackType as AttackType)) return c.json({ error: "attack_not_allowed" }, 400);
+  }
+  await c.env.DB.prepare("UPDATE timings SET attack_type = ?, cue_type = ?, timing_text = ?, note = ?, updated_at = ? WHERE id = ? AND status = 'approved'")
+    .bind(e.attackType, e.cueType, e.timingText, e.note, nowIso(), c.req.param("id"))
+    .run();
+  return c.json({ ok: true });
+});
+
 /** 公開中のタイミングの投稿者（表示している投稿者）の X の ID を直す（打ち間違い・なりすましの対応） */
 adminRoutes.post("/timings/:id/poster", async (c) => {
   const body = posterSchema.safeParse(await c.req.json().catch(() => null));

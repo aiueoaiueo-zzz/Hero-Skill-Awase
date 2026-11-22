@@ -7,22 +7,32 @@ import { HeroGrid } from "../components/HeroGrid";
 import { hsJudge } from "../../shared/hs";
 import { useData } from "../lib/data";
 import { PROG, useBootFx } from "../lib/fx";
+import type { Hero } from "../../shared/types";
 
 /** 2. HSを使う相手の選択 */
 export function Targets() {
   const { a = "" } = useParams();
   const { heroes, registered: reg } = useData();
   const attacker = heroes.find((h) => h.slug === a);
-  const [q, setQ] = useState("");
-  const f = useHeroFilter("target");
   useBootFx(true); // 登録済みの組み合わせは最初の読み込みで受け取っているので、待たずに表示できる
   if (!attacker) return <Navigate to="/" replace />;
+  return (
+    <>
+      <Header title={`${attacker.name} で攻撃`} sub="② HSを使う側（相手）を選択" back="/" prog={PROG.step2} />
+      <TargetsBody attacker={attacker} registered={new Set(reg[attacker.id] ?? [])} base="/h" />
+    </>
+  );
+}
 
-  const registered = new Set(reg[attacker.id] ?? []);
+/** 相手キャラの選択（検索・並び替え・登録済み／未登録）。一般向けと管理画面の公開中タブで同じものを使う */
+export function TargetsBody({ attacker, registered, base }: { attacker: Hero; registered: Set<string>; base: string }) {
+  const { heroes } = useData();
+  const [q, setQ] = useState("");
+  const f = useHeroFilter("target");
   const list = f.apply(heroes.filter((h) => heroMatches(h, q)));
   const w = list.filter((h) => registered.has(h.id));
   const wo = list.filter((h) => !registered.has(h.id));
-  const to = (h: { slug: string }) => `/h/${attacker.slug}/${h.slug}`;
+  const to = (h: { slug: string }) => `${base}/${attacker.slug}/${h.slug}`;
   // 自分の HS のダメージ発生が、相手の HS の無敵時間に（どの場面でも）間に合わない相手（HS が不可のキャラなら出さない）
   const ng = new Set(heroes.filter((h) => hsJudge(attacker, h)?.all).map((h) => h.id));
   // 一部の場面（例：1,2回目）だけ間に合わない相手（docs/DECISIONS.md AJ）
@@ -30,7 +40,6 @@ export function Targets() {
   const preload = (h: { slug: string }) => `/api/pairs/${encodeURIComponent(attacker.slug)}/${encodeURIComponent(h.slug)}`;
   return (
     <>
-      <Header title={`${attacker.name} で攻撃`} sub="② HSを使う側（相手）を選択" back="/" prog={PROG.step2} />
       <input className="search" placeholder="相手キャラを検索" value={q} onChange={(e) => setQ(e.target.value)} />
       <HeroFilter {...f} />
       {w.length > 0 && (

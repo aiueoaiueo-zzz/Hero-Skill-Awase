@@ -7,7 +7,20 @@ import { PROG } from "../../lib/fx";
 export type AdminTab = "pending" | "published" | "stats" | "contacts" | "heroes" | "events" | "settings";
 
 /** 管理画面の共通部分（タブ）。一般向けのヘッダーボタンとフッターは出さない */
-export function AdminLayout({ tab, pendingCount, contactCount, children }: { tab: AdminTab; pendingCount?: number; contactCount?: number; children: ReactNode }) {
+export function AdminLayout({
+  tab,
+  pendingCount,
+  contactCount,
+  header,
+  children,
+}: {
+  tab: AdminTab;
+  pendingCount?: number;
+  contactCount?: number;
+  /** 見出しを変える（公開中タブで、一般向けの画面と同じ見出しを出す） */
+  header?: { title: ReactNode; sub?: ReactNode; back?: string; prog?: number };
+  children: ReactNode;
+}) {
   const nav = useNavigate();
   // 未対応のお問い合わせの件数（「問い合わせ」タブでは、そのページが持っている最新の件数を使う）
   const contacts = useApi<{ open: number }>(contactCount === undefined ? "/api/admin/contacts/count" : null);
@@ -23,7 +36,7 @@ export function AdminLayout({ tab, pendingCount, contactCount, children }: { tab
   ];
   return (
     <>
-      <Header title="管理画面" prog={PROG.other} />
+      <Header title={header?.title ?? "管理画面"} sub={header?.sub} back={header?.back} prog={header?.prog ?? PROG.other} />
       <div className="tabs">
         {tabs.map(([k, label, to]) => (
           <button key={k} className={tab === k ? "on" : ""} onClick={() => tab !== k && nav(to)}>
