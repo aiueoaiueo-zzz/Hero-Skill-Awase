@@ -443,7 +443,6 @@ adminRoutes.on(["GET", "HEAD"], "/media/*", async (c) => {
   return serveR2(c.env.MEDIA, c.req.raw, key, "private, no-store");
 });
 
-/** 設定（制作者の応援コード・注意事項・このアプリについて） */
 /** 集計：公開中のタイミングを、攻撃側×受ける側×攻撃方法ごとに数える（非公開は除く） */
 adminRoutes.get("/stats", async (c) => {
   const { results } = await c.env.DB.prepare(
@@ -455,6 +454,7 @@ adminRoutes.get("/stats", async (c) => {
   return c.json<AdminStatsResponse>({ heroes: await listHeroes(c.env), pairs: results });
 });
 
+/** 設定（制作者の応援コード・注意事項・このアプリについて） */
 adminRoutes.get("/settings", async (c) => c.json(await getSettings(c.env)));
 adminRoutes.put("/settings", async (c) => {
   const body = settingsSchema.safeParse(await c.req.json().catch(() => null));

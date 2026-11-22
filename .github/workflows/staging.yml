@@ -75,6 +75,8 @@ jobs:
         if: steps.check.outputs.ready == 'true'
         run: |
           node scripts/sql-reorder.mjs "$RUNNER_TEMP/prod.sql" "$RUNNER_TEMP/prod-sorted.sql"
+          # 本番のデータに参照切れがあると取り込み全体が失敗するので、確認用のコピーだけ直す（docs/DECISIONS.md BG）
+          node scripts/sql-fk-clean.mjs "$RUNNER_TEMP/prod-sorted.sql"
           npx wrangler d1 execute DB --remote --file "$RUNNER_TEMP/prod-sorted.sql" -y
           npx wrangler d1 execute DB --remote --command "DELETE FROM contacts" -y
 
