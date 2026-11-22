@@ -5,7 +5,7 @@ import type { AppEnv, Env } from "../env";
 import { nowIso, sha256Hex, ulid } from "../lib/ids";
 import { posterChangePayload, sendDiscord } from "../lib/notify";
 
-// 投稿者情報（X の ID・応援コード）の変更申請（docs/DECISIONS.md AY）
+// 投稿者情報（X の ID・応援コード）の変更申請（docs/DECISIONS.md BC）
 //   投稿したブラウザに残っている「受付番号と取り下げ用キー」で本人と確かめる。まとめて複数の投稿を申請できる。
 //   - まだ公開前（承認済み・採用済みのタイミングがない）の投稿：申請を挟まず、すぐ書き換える
 //   - 公開中の投稿：審査待ちの申請にし、管理者が承認したら反映する

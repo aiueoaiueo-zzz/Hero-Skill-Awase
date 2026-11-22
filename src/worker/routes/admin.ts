@@ -382,7 +382,7 @@ adminRoutes.post("/timings/:id/unhide", async (c) => {
 });
 
 /** 削除：タイミングと動画を消す（元に戻せない）。投稿にほかのタイミングが残っていなければ投稿ごと消す */
-/** 公開中（非公開を含む）のタイミングの内容を直す：攻撃方法・目印・タイミング・備考（動画はそのまま。docs/DECISIONS.md AZ） */
+/** 公開中（非公開を含む）のタイミングの内容を直す：攻撃方法・目印・タイミング・備考（動画はそのまま。docs/DECISIONS.md BD） */
 adminRoutes.post("/timings/:id/edit", async (c) => {
   const body = timingEditSchema.safeParse(await c.req.json().catch(() => null));
   if (!body.success) return c.json({ error: "invalid_request", issues: body.error.issues.map((i) => i.message) }, 400);

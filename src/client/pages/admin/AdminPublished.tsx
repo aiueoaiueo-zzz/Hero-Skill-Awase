@@ -15,7 +15,7 @@ import { TargetsBody } from "../Targets";
 import { ArmedButton } from "./AdminHeroes";
 import { AdminLayout, adminErrorMessage, pendingTotal } from "./AdminLayout";
 
-// 管理：公開中のタイミング（docs/DECISIONS.md AZ）
+// 管理：公開中のタイミング（docs/DECISIONS.md BD）
 // 一般向けの画面と同じ流れ（攻撃する側 → 相手 → タイミング）で、ボタンは「編集」だけ。
 // 一般向けと違い、非公開のタイミングも（「非公開」の印つきで）出す。
 

@@ -343,7 +343,7 @@ function EditSheet({
   );
 }
 
-/** 投稿者情報（X の ID・応援コード）の変更申請（docs/DECISIONS.md AY） */
+/** 投稿者情報（X の ID・応援コード）の変更申請（docs/DECISIONS.md BC） */
 function PosterChanges({ list, reload }: { list: AdminPosterChange[]; reload: () => Promise<void> }) {
   const [busy, setBusy] = useState<string | null>(null);
   const [rejecting, setRejecting] = useState<AdminPosterChange | null>(null);
