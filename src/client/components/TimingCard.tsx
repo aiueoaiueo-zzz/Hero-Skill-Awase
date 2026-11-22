@@ -48,9 +48,9 @@ export function Who({ nickname, supportCode, badge }: { nickname: string | null;
 }
 
 /** 詳細画面のタイミングカード（試作版 pointCard を移植） */
-export function TimingCard({ t, num, actions, id, flash }: { t: TimingCardData; num: number; actions?: ReactNode; id?: string; flash?: boolean }) {
+export function TimingCard({ t, num, actions, id, flash, className }: { t: TimingCardData; num: number; actions?: ReactNode; id?: string; flash?: boolean; className?: string }) {
   return (
-    <div className={`entry ${flash ? "flash" : ""}`} id={id}>
+    <div className={`entry ${flash ? "flash" : ""} ${className ?? ""}`} id={id}>
       <span className="pnum">{num}</span>
       <span className="chip">目印：{CUE_LABEL[t.cueType] || "その他"}</span>
       <div className="tim" style={{ marginTop: 6 }}>

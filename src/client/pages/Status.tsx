@@ -3,6 +3,7 @@ import { STATUS_LABEL } from "../../shared/constants";
 import { formatCue } from "../../shared/text";
 import type { StatusResponse, StatusTiming } from "../../shared/types";
 import { EntryCard } from "../components/EntryCard";
+import { PosterChangeForm, PosterChangeState, withdrawPosterChange, type Owned } from "../components/PosterChange";
 import { Header } from "../components/Header";
 import { api, ApiError } from "../lib/api";
 import { PROG, useBootFx } from "../lib/fx";
@@ -22,8 +23,10 @@ const FoldButton = ({ open, onClick }: { open: boolean; onClick: () => void }) =
 );
 
 /** 受付番号ごとのまとまり（タイミングごとのステータス） */
-function Group({ s, deleteKey, onChanged }: { s: StatusResponse; deleteKey?: string; onChanged: () => void }) {
+function Group({ s, deleteKey, mine, onChanged }: { s: StatusResponse; deleteKey?: string; mine: Owned[]; onChanged: () => void }) {
   const [armed, setArmed] = useState(false);
+  const [editing, setEditing] = useState(false);
+  const pc = s.posterChange;
   const [opened, setOpened] = useState<Set<string>>(new Set());
   const toggle = (id: string) =>
     setOpened((s) => {
@@ -95,12 +98,42 @@ function Group({ s, deleteKey, onChanged }: { s: StatusResponse; deleteKey?: str
         />
         );
       })}
-      {deleteKey && pending && (
+      {deleteKey && (pending || (!pc && !editing)) && (
         <div className="acts" style={{ margin: "-2px 0 12px" }}>
-          <button className={`sbtn danger ${armed ? "armed" : ""}`} onClick={withdraw}>
-            {armed ? "もう一度で取り下げ" : "承認待ちの分を取り下げ"}
-          </button>
+          {!pc && !editing && (
+            <button className="sbtn" onClick={() => setEditing(true)}>
+              投稿者情報の変更を申請
+            </button>
+          )}
+          {pending && (
+            <button className={`sbtn danger ${armed ? "armed" : ""}`} onClick={withdraw}>
+              {armed ? "もう一度で取り下げ" : "承認待ちの分を取り下げ"}
+            </button>
+          )}
         </div>
+      )}
+      {pc && !editing && (
+        <PosterChangeState
+          pc={pc}
+          canAct={!!deleteKey}
+          onRetry={() => setEditing(true)}
+          onWithdraw={async () => {
+            // 同じ申請に入っている、このブラウザの投稿をまとめて取り下げる
+            const same = mine.filter((m) => m.s.posterChange?.id === pc.id);
+            await withdrawPosterChange(same.length ? same : [{ s, deleteKey: deleteKey! }]);
+            onChanged();
+          }}
+        />
+      )}
+      {deleteKey && editing && (
+        <PosterChangeForm
+          targets={[{ s, deleteKey }]}
+          onCancel={() => setEditing(false)}
+          onDone={() => {
+            setEditing(false);
+            onChanged();
+          }}
+        />
       )}
     </>
   );
@@ -110,12 +143,13 @@ function Group({ s, deleteKey, onChanged }: { s: StatusResponse; deleteKey?: str
 export function Status() {
   const [code, setCode] = useState("");
   const [result, setResult] = useState<StatusResponse | "notfound" | null>(null);
-  const [mine, setMine] = useState<{ s: StatusResponse; deleteKey: string }[] | null>(null);
+  const [mine, setMine] = useState<Owned[] | null>(null);
+  const [bulk, setBulk] = useState(false);
 
   const loadMine = async () => {
     const my = loadMy();
     const rs = await Promise.all(my.map((m) => fetchStatus(m.code).then((s) => ({ s, deleteKey: m.deleteKey }), () => null)));
-    setMine(rs.filter((x): x is { s: StatusResponse; deleteKey: string } => !!x));
+    setMine(rs.filter((x): x is Owned => !!x));
   };
   useEffect(() => {
     loadMine();
@@ -158,14 +192,31 @@ export function Status() {
         {result === "notfound" && <p style={{ marginTop: 10, color: "var(--danger)" }}>見つかりませんでした</p>}
         {result && result !== "notfound" && (
           <div style={{ marginTop: 8 }}>
-            <Group s={result} deleteKey={myKey(result.code)} onChanged={refresh} />
+            <Group s={result} deleteKey={myKey(result.code)} mine={mine ?? []} onChanged={refresh} />
           </div>
         )}
       </div>
       <div className="sec" style={{ fontWeight: 700 }}>
         このブラウザで投稿したもの
       </div>
-      {mine && (mine.length ? mine.map((m) => <Group key={m.s.code} s={m.s} deleteKey={m.deleteKey} onChanged={refresh} />) : <div className="empty">まだ投稿していません</div>)}
+      {mine && mine.length > 1 && !bulk && (
+        <div className="acts" style={{ margin: "-4px 0 12px" }}>
+          <button className="sbtn" onClick={() => setBulk(true)}>
+            投稿者情報をまとめて変更
+          </button>
+        </div>
+      )}
+      {mine && bulk && (
+        <PosterChangeForm
+          targets={mine}
+          onCancel={() => setBulk(false)}
+          onDone={() => {
+            setBulk(false);
+            refresh();
+          }}
+        />
+      )}
+      {mine && (mine.length ? mine.map((m) => <Group key={m.s.code} s={m.s} deleteKey={m.deleteKey} mine={mine} onChanged={refresh} />) : <div className="empty">まだ投稿していません</div>)}
     </>
   );
 }

@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
-import type { AdminGroup, AdminPendingResponse, AdminTiming, StorageUsage } from "../../../shared/types";
+import type { AdminGroup, AdminPendingResponse, AdminPosterChange, AdminTiming, StorageUsage } from "../../../shared/types";
 import { EntryCard, type EntryPoint } from "../../components/EntryCard";
 import { pointId, PointsEditor, type PointDraft } from "../../components/PointsEditor";
 import { Sheet } from "../../components/Sheet";
@@ -11,7 +11,7 @@ import { openShare } from "../../lib/share";
 import { useBootFx } from "../../lib/fx";
 import { fmtDate, fmtSize, toast } from "../../lib/ui";
 import { ArmedButton } from "./AdminHeroes";
-import { AdminLayout, adminErrorMessage } from "./AdminLayout";
+import { AdminLayout, adminErrorMessage, pendingTotal } from "./AdminLayout";
 
 const ERRORS: Record<string, string> = {
   not_pending: "すでに審査済みです（一覧を更新しました）",
@@ -167,7 +167,7 @@ export function AdminPending() {
 
   const count = data ? data.groups.reduce((s, g) => s + g.timings.length, 0) : undefined;
   return (
-    <AdminLayout tab="pending" pendingCount={count}>
+    <AdminLayout tab="pending" pendingCount={pendingTotal(data)}>
       {error !== null && <div className="empty">{adminErrorMessage(error)}</div>}
       {data && (
         <>
@@ -190,6 +190,7 @@ export function AdminPending() {
               ))}
             </div>
           )}
+          {data.posterChanges.length > 0 && <PosterChanges list={data.posterChanges} reload={load} />}
           {count ? (
             <div className="box allok">
               <p>
@@ -204,7 +205,7 @@ export function AdminPending() {
               )}
             </div>
           ) : null}
-          {data.groups.length ? (
+          {data.groups.length || data.posterChanges.length ? (
             data.groups.map((g) => (
               <div key={g.code}>
                 <div className="sec" style={{ fontWeight: 700, color: "var(--text)" }}>
@@ -338,6 +339,83 @@ function EditSheet({
       }}
     >
       <PointsEditor points={points} update={setPoints} opts={{ upload: false, single: true, locked: isFix }} />
+    </Sheet>
+  );
+}
+
+/** 投稿者情報（X の ID・応援コード）の変更申請（docs/DECISIONS.md AY） */
+function PosterChanges({ list, reload }: { list: AdminPosterChange[]; reload: () => Promise<void> }) {
+  const [busy, setBusy] = useState<string | null>(null);
+  const [rejecting, setRejecting] = useState<AdminPosterChange | null>(null);
+  const run = async (id: string, path: string, body: unknown, msg: string) => {
+    setBusy(id);
+    try {
+      await api(`/api/admin/poster-changes/${id}/${path}`, { method: "POST", body: JSON.stringify(body) });
+      toast(msg);
+    } catch (e) {
+      toast(errMsg(e));
+    }
+    await reload();
+    setBusy(null);
+  };
+  const v = (s: string | null) => s || "（なし）";
+  return (
+    <>
+      <div className="sec" style={{ fontWeight: 700, color: "var(--text)" }}>
+        投稿者情報の変更申請（{list.length}件）
+      </div>
+      {list.map((c) => {
+        // 変更前の値が投稿ごとに違うことがある（まとめて申請したとき）
+        const olds = [...new Set(c.items.map((i) => `${v(i.oldNickname)}／${v(i.oldSupportCode)}`))];
+        return (
+          <div className="box" key={c.id}>
+            <div className="bt">
+              {fmtDate(c.createdAt)} 申請・{c.items.length}件
+            </div>
+            <p style={{ color: "var(--text)", margin: "0 0 8px" }}>
+              X の ID：{olds.length === 1 ? v(c.items[0].oldNickname) : "（投稿ごとに下に）"} → <b>{v(c.nickname)}</b>
+              <br />
+              応援コード：{olds.length === 1 ? v(c.items[0].oldSupportCode) : "（投稿ごとに下に）"} → <b>{v(c.supportCode)}</b>
+            </p>
+            <div style={{ fontSize: 12.5 }}>
+              {c.items.map((i) => (
+                <div key={i.code} style={{ padding: "5px 0", borderTop: "1px dotted var(--line)" }}>
+                  {i.code}・{i.attacker.name}→{i.target.name}・公開中 {i.published} 件{i.isFix ? "（修正提案）" : ""}
+                  {olds.length > 1 && (
+                    <span style={{ color: "var(--sub)" }}>
+                      　今：{v(i.oldNickname)}／{v(i.oldSupportCode)}
+                    </span>
+                  )}
+                </div>
+              ))}
+            </div>
+            <div className="acts">
+              <button className={`sbtn danger ${busy === c.id ? "busy" : ""}`} disabled={!!busy} onClick={() => setRejecting(c)}>
+                却下
+              </button>
+              <button className={`sbtn ok ${busy === c.id ? "busy" : ""}`} disabled={!!busy} onClick={() => run(c.id, "approve", {}, "承認し、投稿者情報を変更しました")}>
+                <Busy on={busy === c.id} label="承認" busyLabel="承認中…" />
+              </button>
+            </div>
+          </div>
+        );
+      })}
+      {rejecting && (
+        <PosterRejectSheet
+          onClose={() => setRejecting(null)}
+          onReject={(reason) => run(rejecting.id, "reject", { reason }, "却下しました")}
+        />
+      )}
+    </>
+  );
+}
+
+function PosterRejectSheet({ onClose, onReject }: { onClose: () => void; onReject: (reason: string) => Promise<void> }) {
+  const [reason, setReason] = useState("");
+  return (
+    <Sheet title="変更申請を却下" okLabel="却下する" busyLabel="却下中…" onClose={onClose} onOk={() => onReject(reason)}>
+      <label className="h">却下理由（任意・投稿者に表示されます）</label>
+      <textarea maxLength={500} placeholder="例：ご本人の ID か確認できませんでした" value={reason} onChange={(e) => setReason(e.target.value)} />
     </Sheet>
   );
 }

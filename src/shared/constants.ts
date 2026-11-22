@@ -57,6 +57,8 @@ export const LIMITS = {
   videoSeconds: 30,
   sourceVideoBytes: 500 * 1024 * 1024,
   videoBytes: 15 * 1024 * 1024,
+  /** 投稿者情報の変更申請で、一度にまとめて変えられる投稿の数 */
+  posterChangeItems: 100,
 } as const;
 
 /** お問い合わせの種類 */

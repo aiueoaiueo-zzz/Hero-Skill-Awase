@@ -1,7 +1,7 @@
 import { Hono } from "hono";
 import { LIMITS, type AttackType } from "../../shared/constants";
 import { codeSchema, entryInputSchema, uploadRequestSchema, withdrawSchema } from "../../shared/schema";
-import type { EntryResponse, FixSource, StatusResponse, StatusTiming, UploadResponse } from "../../shared/types";
+import type { EntryResponse, FixSource, StatusPosterChange, StatusResponse, StatusTiming, UploadResponse } from "../../shared/types";
 import type { AppEnv } from "../env";
 import { parseInvincible, parseNgAttacks, toHero, type HeroRow } from "../lib/heroes";
 import { blockedAttacks } from "../../shared/hs";
@@ -286,6 +286,29 @@ submitRoutes.get("/status/:code", async (c) => {
     // 承認待ち・却下・非公開の動画は一般には見せない（承認済みで公開領域にあるものだけ）
     videoUrl: t.status === "approved" && !t.hidden && t.video_key.startsWith("public/") ? mediaUrl(c.env, t.video_key) : null,
   }));
+  // 投稿者情報の変更申請：この投稿が入っている最新の申請（審査待ち、または却下のときだけ見せる）
+  const pc = await c.env.DB.prepare(
+    `SELECT pc.id, pc.status, pc.nickname, pc.support_code, pc.reject_reason, pc.created_at, i.old_nickname, i.old_support_code,
+            (SELECT COUNT(*) FROM poster_change_items x WHERE x.change_id = pc.id) AS cnt
+       FROM poster_change_items i JOIN poster_changes pc ON pc.id = i.change_id
+      WHERE i.submission_id = ? ORDER BY pc.created_at DESC LIMIT 1`,
+  )
+    .bind(s.id)
+    .first<{ id: string; status: string; nickname: string | null; support_code: string | null; reject_reason: string | null; created_at: string; old_nickname: string | null; old_support_code: string | null; cnt: number }>();
+  const posterChange: StatusPosterChange | null =
+    pc && (pc.status === "pending" || pc.status === "rejected")
+      ? {
+          id: pc.id,
+          status: pc.status,
+          nickname: pc.nickname,
+          supportCode: pc.support_code,
+          oldNickname: pc.old_nickname,
+          oldSupportCode: pc.old_support_code,
+          rejectReason: pc.status === "rejected" ? pc.reject_reason : null,
+          createdAt: pc.created_at,
+          count: pc.cnt,
+        }
+      : null;
   return c.json<StatusResponse>({
     code: s.code,
     createdAt: s.created_at,
@@ -295,6 +318,7 @@ submitRoutes.get("/status/:code", async (c) => {
     supportCode: s.support_code,
     isFix: !!s.replaces_timing_id,
     timings,
+    posterChange,
   });
 });
 

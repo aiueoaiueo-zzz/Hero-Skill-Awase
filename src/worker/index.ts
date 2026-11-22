@@ -8,6 +8,7 @@ import { contactRoutes } from "./routes/contact";
 import { mediaRoutes } from "./routes/media";
 import { publicRoutes, shortLinkRoutes } from "./routes/public";
 import { submitRoutes } from "./routes/submit";
+import { posterChangeRoutes } from "./routes/poster-change";
 
 const app = new Hono<AppEnv>();
 
@@ -47,6 +48,7 @@ app.get("/api/health", async (c) => {
 });
 app.route("/api", publicRoutes);
 app.route("/api", submitRoutes);
+app.route("/api", posterChangeRoutes);
 app.route("/api", contactRoutes);
 app.route("/api/admin", adminRoutes);
 

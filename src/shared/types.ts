@@ -173,7 +173,27 @@ export type StatusResponse = {
   supportCode: string | null;
   isFix: boolean;
   timings: StatusTiming[];
+  /** 投稿者情報の変更申請（審査待ち、または最後の申請が却下のとき）。なければ null */
+  posterChange: StatusPosterChange | null;
 };
+
+/** 審査状況：投稿者情報（X の ID・応援コード）の変更申請 */
+export type StatusPosterChange = {
+  id: string;
+  status: "pending" | "rejected";
+  nickname: string | null;
+  supportCode: string | null;
+  /** 申請した時点の値 */
+  oldNickname: string | null;
+  oldSupportCode: string | null;
+  rejectReason: string | null;
+  createdAt: string;
+  /** この申請に入っている投稿の数（まとめて申請したとき 2 以上） */
+  count: number;
+};
+
+/** 投稿者情報の変更申請の結果：applied＝まだ公開前ですぐ書き換えた数、requested＝審査待ちにした数 */
+export type PosterChangeResponse = { applied: number; requested: number };
 
 export type AdminTiming = {
   id: string;
@@ -203,17 +223,36 @@ export type AdminGroup = {
 
 export type StorageUsage = { totalBytes: number; pendingBytes: number; limitBytes: number; pendingLimitBytes: number };
 
-export type AdminPendingResponse = { groups: AdminGroup[]; usage: StorageUsage };
+export type AdminPendingResponse = { groups: AdminGroup[]; posterChanges: AdminPosterChange[]; usage: StorageUsage };
+
+/** 管理：投稿者情報の変更申請（審査待ち） */
+export type AdminPosterChange = {
+  id: string;
+  nickname: string | null;
+  supportCode: string | null;
+  createdAt: string;
+  items: {
+    code: string;
+    attacker: Hero;
+    target: Hero;
+    /** 申請した時点の値 */
+    oldNickname: string | null;
+    oldSupportCode: string | null;
+    /** その投稿の公開中（非公開を含む）のタイミング数 */
+    published: number;
+    isFix: boolean;
+  }[];
+};
 
 export type AdminHero = Hero & { sortOrder: number; timingCount: number };
 
-/** 管理：公開中（と非公開）のタイミング */
 /** 管理：集計（公開中のタイミングを、攻撃側 a × 受ける側 t × 攻撃方法 k ごとに数えた件数 n） */
 export type AdminStatsResponse = {
   heroes: Hero[];
   pairs: { a: string; t: string; k: AttackType; n: number }[];
 };
 
+/** 管理：公開中（と非公開）のタイミング */
 export type AdminPublished = {
   id: string;
   attacker: Hero;

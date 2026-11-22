@@ -4,14 +4,14 @@ import { api, ApiError, useApi } from "../../lib/api";
 import { useData } from "../../lib/data";
 import { useBootFx } from "../../lib/fx";
 import { mdLite, toast } from "../../lib/ui";
-import { AdminLayout, adminErrorMessage } from "./AdminLayout";
+import { AdminLayout, adminErrorMessage, pendingTotal } from "./AdminLayout";
 
 type Settings = Record<SettingKey, string>;
 
 /** 管理：設定（制作者の応援コード・フッターの注意書き・注意事項・プライバシー・このアプリについて） */
 export function AdminSettings() {
   const { data, error } = useApi<Settings>("/api/admin/settings");
-  const pending = useApi<{ groups: { timings: unknown[] }[] }>("/api/admin/pending");
+  const pending = useApi<{ groups: { timings: unknown[] }[]; posterChanges?: unknown[] }>("/api/admin/pending");
   const { reload } = useData();
   const [own, setOwn] = useState("");
   const [notices, setNotices] = useState("");
@@ -42,7 +42,7 @@ export function AdminSettings() {
       toast(e instanceof ApiError && e.status === 400 ? "入力内容を確認してください（文字数など）" : "保存できませんでした");
     }
   };
-  const count = pending.data?.groups.reduce((s, g) => s + g.timings.length, 0);
+  const count = pendingTotal(pending.data);
 
   return (
     <AdminLayout tab="settings" pendingCount={count}>

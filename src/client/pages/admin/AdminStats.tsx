@@ -4,7 +4,7 @@ import type { AdminStatsResponse, Hero } from "../../../shared/types";
 import { Avatar } from "../../components/Avatar";
 import { useApi } from "../../lib/api";
 import { useBootFx } from "../../lib/fx";
-import { AdminLayout, adminErrorMessage } from "./AdminLayout";
+import { AdminLayout, adminErrorMessage, pendingTotal } from "./AdminLayout";
 
 type Side = "attacker" | "target";
 type Sort = "most" | "least" | "order";
@@ -25,7 +25,7 @@ const breakdown = (o: Partial<Record<AttackType, number>>) =>
 
 /** 管理：集計（キャラごとに、攻撃側・HS を受ける側として何組・何件たまっているか） */
 export function AdminStats() {
-  const pending = useApi<{ groups: { timings: unknown[] }[] }>("/api/admin/pending");
+  const pending = useApi<{ groups: { timings: unknown[] }[]; posterChanges?: unknown[] }>("/api/admin/pending");
   const { data, error } = useApi<AdminStatsResponse>("/api/admin/stats");
   const [side, setSide] = useState<Side>("attacker");
   const [sort, setSort] = useState<Sort>("most");
@@ -67,7 +67,7 @@ export function AdminStats() {
   const sideLabel = side === "attacker" ? "合わせる相手" : "合わせてくる相手";
 
   return (
-    <AdminLayout tab="stats" pendingCount={pending.data?.groups.reduce((s, g) => s + g.timings.length, 0)}>
+    <AdminLayout tab="stats" pendingCount={pendingTotal(pending.data)}>
       {error && <div className="empty">{adminErrorMessage(error.status)}</div>}
       {data && (
         <>

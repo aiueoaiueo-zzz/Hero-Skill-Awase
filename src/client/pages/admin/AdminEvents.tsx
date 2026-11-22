@@ -5,7 +5,7 @@ import { useData } from "../../lib/data";
 import { useBootFx } from "../../lib/fx";
 import { toast } from "../../lib/ui";
 import { ArmedButton } from "./AdminHeroes";
-import { AdminLayout, adminErrorMessage } from "./AdminLayout";
+import { AdminLayout, adminErrorMessage, pendingTotal } from "./AdminLayout";
 
 type Data = { events: EventInfo[]; featured: FeaturedHero[] };
 
@@ -28,7 +28,7 @@ const errText = (e: unknown) =>
 /** 管理：イベント（期間・目標）と今週のキャラのスケジュール（docs/DECISIONS.md AL） */
 export function AdminEvents() {
   const { heroes, reload } = useData();
-  const pending = useApi<{ groups: { timings: unknown[] }[] }>("/api/admin/pending");
+  const pending = useApi<{ groups: { timings: unknown[] }[]; posterChanges?: unknown[] }>("/api/admin/pending");
   const [data, setData] = useState<Data | null>(null);
   const [error, setError] = useState<number | null>(null);
   useEffect(() => {
@@ -67,7 +67,7 @@ export function AdminEvents() {
     const h = heroes.find((x) => x.id === id);
     return h ? h.fullName || h.name : "（削除されたキャラ）";
   };
-  const count = pending.data?.groups.reduce((s, g) => s + g.timings.length, 0);
+  const count = pendingTotal(pending.data);
 
   return (
     <AdminLayout tab="events" pendingCount={count}>
