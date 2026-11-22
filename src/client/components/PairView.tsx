@@ -87,6 +87,7 @@ export function PairView<X extends PairTiming>({
           {T && T.hsInvincible.length > 0 && (
             <span className="inv">
               無敵時間：<b>{fmtInvincible(T.hsInvincible)}</b>
+              {T.cardMuTime ? <small>（＋無発動カード {fmtSec(T.cardMuTime)}）</small> : null}
             </span>
           )}
         </div>
@@ -96,12 +97,12 @@ export function PairView<X extends PairTiming>({
           {ng.all ? (
             <>
               <b>HS での合わせは不可能です</b>
-              {`${T.name}の HS の無敵時間（${fmtInvincible(ng.short)}）が、${A.name}の HS のダメージ発生（${A.hsAttackLabel ? `${A.hsAttackLabel} ` : ""}${fmtSec(ng.attackTime)}）より短いため、HS では合わせられません。`}
+              {`${T.name}の HS の無敵時間（${fmtInvincible(ng.short)}）${ng.cardTime ? `＋無発動カードの発生（${fmtSec(ng.cardTime)}）` : ""}が、${A.name}の HS のダメージ発生（${A.hsAttackLabel ? `${A.hsAttackLabel} ` : ""}${fmtSec(ng.attackTime)}）より短いため、HS では合わせられません。`}
             </>
           ) : (
             <>
               <b>一部の場面では HS で合わせられません</b>
-              {`${ng.short.map((v) => `${v.label}（${fmtSec(v.sec)}）`).join("・")}は、${T.name}の HS の無敵時間が${A.name}の HS のダメージ発生（${A.hsAttackLabel ? `${A.hsAttackLabel} ` : ""}${fmtSec(ng.attackTime)}）より短いため、HS では合わせられません。`}
+              {`${ng.short.map((v) => `${v.label}（${fmtSec(v.sec)}）`).join("・")}は、${T.name}の HS の無敵時間${ng.cardTime ? `＋無発動カードの発生（${fmtSec(ng.cardTime)}）` : ""}が${A.name}の HS のダメージ発生（${A.hsAttackLabel ? `${A.hsAttackLabel} ` : ""}${fmtSec(ng.attackTime)}）より短いため、HS では合わせられません。`}
             </>
           )}
         </div>

@@ -141,6 +141,8 @@ export const heroPatchSchema = z.object({
   hsAttackLabel: z.string().trim().max(20).optional(),
   // ダメージ継続時間（秒）。-1 は「−」、null で未入力
   hsDamageDuration: z.union([z.literal(-1), hsSeconds.unwrap().unwrap()]).nullable().optional(),
+  // 無発動カードの発生（秒）。null で未入力
+  cardMuTime: z.number().min(0).max(10).transform((n) => Math.round(n * 100) / 100).nullable().optional(),
   // HS のダメージ発生（パターンごと。[] で未入力に戻す。最初のパターンを判定・並び替えに使う。docs/DECISIONS.md AS）
   hsAttack: z
     .array(z.object({ label: z.string().trim().max(20), sec: z.number().min(0).max(60).transform((n) => Math.round(n * 100) / 100) }))

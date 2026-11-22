@@ -20,6 +20,8 @@ export type Hero = {
   hsAttack: HsInvincible[];
   /** HS のダメージ継続時間（秒。極大ダメージまたは転倒が入る攻撃のみ）。-1 は「−」、未入力は null */
   hsDamageDuration: number | null;
+  /** 無発動カードの発生（秒）。HS合わせの判定で、このキャラが HS を使う側（相手）のとき無敵時間に足す。未入力は null（docs/DECISIONS.md BE） */
+  cardMuTime: number | null;
   /** HS の無敵時間（秒）。場面で変わるときは場面ごと（label 付き）。場面で変わらなければ label は空。未入力は [] */
   hsInvincible: HsInvincible[];
   /** HS合わせ適性の重要タグ（同じ ★ の中で上に並べる。HS が不可なら false。docs/DECISIONS.md AT） */
