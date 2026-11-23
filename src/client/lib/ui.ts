@@ -90,3 +90,10 @@ export function mdLite(text: string): string {
   flushL();
   return out.join("");
 }
+
+/** 受付番号の入力をそろえる（全角の英数字・ハイフンを半角に、大文字に。前後の空白を消す） */
+export const normCode = (s: string) =>
+  s
+    .trim()
+    .replace(/[Ａ-Ｚａ-ｚ０-９－ー]/g, (ch) => (ch === "－" || ch === "ー" ? "-" : String.fromCharCode(ch.charCodeAt(0) - 0xfee0)))
+    .toUpperCase();

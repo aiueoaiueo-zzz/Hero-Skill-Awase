@@ -10,7 +10,7 @@ import { Sheet } from "../../components/Sheet";
 import { api, ApiError, useApi } from "../../lib/api";
 import { useData } from "../../lib/data";
 import { PROG, useBootFx } from "../../lib/fx";
-import { toast } from "../../lib/ui";
+import { normCode, toast } from "../../lib/ui";
 import { AttackerPick } from "../Home";
 import { TargetsBody } from "../Targets";
 import { ArmedButton } from "./AdminHeroes";
@@ -79,7 +79,7 @@ function CodeSearch({ items }: { items: Item[] }) {
   const [hits, setHits] = useState<{ code: string; list: Item[] } | null>(null);
   const search = () => {
     // 全角の英数字・ハイフンも受け付ける
-    let c = code.trim().replace(/[Ａ-Ｚａ-ｚ０-９－ー]/g, (ch) => (ch === "－" || ch === "ー" ? "-" : String.fromCharCode(ch.charCodeAt(0) - 0xfee0))).toUpperCase();
+    let c = normCode(code);
     if (!c) return;
     if (/^[A-Z0-9]{6}$/.test(c)) c = `HS-${c}`;
     const list = items.filter((t) => t.code === c || t.fixCode === c);
