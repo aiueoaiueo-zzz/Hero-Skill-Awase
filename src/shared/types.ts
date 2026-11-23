@@ -270,6 +270,8 @@ export type AdminPublished = {
   hidden: boolean;
   shareCode: string | null;
   code: string;
+  /** 修正提案が反映されたタイミングは、その修正提案の受付番号（公開中タブの受付番号の検索用） */
+  fixCode: string | null;
 };
 
 /** 管理：お問い合わせ */

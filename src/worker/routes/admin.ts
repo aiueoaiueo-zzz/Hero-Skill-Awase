@@ -309,14 +309,14 @@ async function copyObject(env: Env, from: string, to: string) {
 /** 公開中・非公開のタイミングの一覧（新しく承認した順） */
 adminRoutes.get("/published", async (c) => {
   const { results } = await c.env.DB.prepare(
-    `SELECT t.*, s.code, cs.nickname, cs.support_code
+    `SELECT t.*, s.code, cs.code AS credit_code, cs.nickname, cs.support_code
        FROM timings t
        JOIN submissions s ON s.id = t.submission_id
        JOIN submissions cs ON cs.id = COALESCE(t.credit_submission_id, t.submission_id)
       WHERE t.status = 'approved'
       ORDER BY t.reviewed_at DESC
-      LIMIT 1000`,
-  ).all<Row & { code: string; nickname: string | null; support_code: string | null }>();
+      LIMIT 10000`,
+  ).all<Row & { code: string; credit_code: string; nickname: string | null; support_code: string | null }>();
   const heroes = new Map((await listHeroes(c.env)).map((h) => [h.id, h]));
   const items: AdminPublished[] = results.map((r) => ({
     id: r.id,
@@ -333,6 +333,7 @@ adminRoutes.get("/published", async (c) => {
     hidden: !!r.hidden,
     shareCode: r.share_code ?? null,
     code: r.code,
+    fixCode: r.credit_code !== r.code ? r.credit_code : null,
   }));
   return c.json({ items });
 });
