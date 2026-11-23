@@ -94,7 +94,7 @@ describe("合わせられるかの判定", () => {
     hsInvincible: v.map((x) => (typeof x === "number" ? { label: "", sec: x } : { label: x[0], sec: x[1] })),
   });
   it("相手の無敵時間がダメージ発生より短いと HS は合わせ不可能", () => {
-    expect(hsJudge(atk(1.5), tgt(1.2))).toEqual({ attackTime: 1.5, short: [{ label: "", sec: 1.2 }], all: true });
+    expect(hsJudge(atk(1.5), tgt(1.2))).toEqual({ attackTime: 1.5, cardTime: 0, short: [{ label: "", sec: 1.2 }], all: true });
     expect([...blockedAttacks(atk(1.5), tgt(1.2))]).toEqual(["hs"]);
   });
   it("同じか長ければ合わせられる", () => {
@@ -110,9 +110,20 @@ describe("合わせられるかの判定", () => {
     expect([...blockedAttacks(atk(1.5, ["hs", "card"]), tgt(1))].sort()).toEqual(["card", "hs"]);
     expect([...blockedAttacks(atk(null, ["normal"]), null)]).toEqual(["normal"]);
   });
+  it("相手の無発動カードの発生を無敵時間に足して比べる（無敵＋無発動 ＜ ダメージ発生なら不可）", () => {
+    const t = (inv: number, card: number | null) => ({ ...tgt(inv), cardMuTime: card });
+    // 7.9 + 0.56 = 8.46 ＜ 8.5 → 不可
+    expect(hsJudge(atk(8.5), t(7.9, 0.56))).toEqual({ attackTime: 8.5, cardTime: 0.56, short: [{ label: "", sec: 7.9 }], all: true });
+    // 7.9 ＜ 8.3 でも、7.9 + 0.56 = 8.46 ≧ 8.3 なら合わせられる
+    expect(hsJudge(atk(8.3), t(7.9, 0.56))).toBe(null);
+    // ちょうど同じ（0.1 + 0.2 のような誤差でも同じ扱い）なら合わせられる
+    expect(hsJudge(atk(0.3), t(0.1, 0.2))).toBe(null);
+    // 未入力は 0 として扱う
+    expect(hsJudge(atk(8.3), t(7.9, null))?.cardTime).toBe(0);
+  });
   it("無敵時間が場面で変わるときは、全部の場面で足りないときだけ HS を不可にする", () => {
     const j = hsJudge(atk(2), tgt(["1,2回目", 1.3], ["3回目", 5.5]));
-    expect(j).toEqual({ attackTime: 2, short: [{ label: "1,2回目", sec: 1.3 }], all: false });
+    expect(j).toEqual({ attackTime: 2, cardTime: 0, short: [{ label: "1,2回目", sec: 1.3 }], all: false });
     expect(blockedAttacks(atk(2), tgt(["1,2回目", 1.3], ["3回目", 5.5])).size).toBe(0);
     expect(hsJudge(atk(6), tgt(["1,2回目", 1.3], ["3回目", 5.5]))?.all).toBe(true);
   });

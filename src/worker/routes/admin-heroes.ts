@@ -5,6 +5,7 @@ import type { AdminHero } from "../../shared/types";
 import type { AppEnv, Env } from "../env";
 import { toHero, type HeroRow } from "../lib/heroes";
 import { nowIso, ulid } from "../lib/ids";
+import { closeEmptyPosterChanges } from "../lib/poster-changes";
 import { deleteIfUnused, deleteMedia, recordObject } from "../lib/storage";
 
 // 管理：キャラ管理（仕様 4-7）。/api/admin/heroes 以下（requireAdmin は admin.ts 側で適用済み）
@@ -64,8 +65,8 @@ adminHeroRoutes.post("/", async (c) => {
 adminHeroRoutes.patch("/:id", async (c) => {
   const body = heroPatchSchema.safeParse(await c.req.json().catch(() => null));
   if (!body.success) return c.json({ error: "invalid_request", issues: body.error.issues.map((i) => i.message) }, 400);
-  const { name, slug, fullName, ngAttacks, hsAttackTime, hsAttackLabel, hsAttack, hsDamageDuration, hsInvincible, role, hsAttackImportance, hsTargetImportance, hsAttackKey } = body.data;
-  if ([name, slug, fullName, ngAttacks, hsAttackTime, hsAttackLabel, hsAttack, hsDamageDuration, hsInvincible, role, hsAttackImportance, hsTargetImportance, hsAttackKey].every((v) => v === undefined)) return c.json({ error: "invalid_request" }, 400);
+  const { name, slug, fullName, ngAttacks, hsAttackTime, hsAttackLabel, hsAttack, hsDamageDuration, cardMuTime, hsInvincible, role, hsAttackImportance, hsTargetImportance, hsAttackKey } = body.data;
+  if ([name, slug, fullName, ngAttacks, hsAttackTime, hsAttackLabel, hsAttack, hsDamageDuration, cardMuTime, hsInvincible, role, hsAttackImportance, hsTargetImportance, hsAttackKey].every((v) => v === undefined)) return c.json({ error: "invalid_request" }, 400);
   // 無敵時間：場面で変わらなければ hs_invincible_time だけ、場面ごとなら hs_invincible_detail に JSON（一番長い値を hs_invincible_time にも）
   const inv = hsInvincible;
   // ダメージ発生：パターンが 1 つなら hs_attack_time・hs_attack_label だけ、複数なら hs_attack_detail に JSON（最初のパターンを hs_attack_time・hs_attack_label にも。docs/DECISIONS.md AS）
@@ -77,13 +78,13 @@ adminHeroRoutes.patch("/:id", async (c) => {
   try {
     const r = await c.env.DB.prepare(
       `UPDATE heroes SET name = COALESCE(?, name), slug = COALESCE(?, slug), full_name = CASE WHEN ? THEN ? ELSE full_name END,
-              ng_attacks = CASE WHEN ? THEN ? ELSE ng_attacks END, hs_attack_time = CASE WHEN ? THEN ? ELSE hs_attack_time END, hs_attack_label = CASE WHEN ? THEN ? ELSE hs_attack_label END, hs_attack_detail = CASE WHEN ? THEN ? ELSE hs_attack_detail END, hs_damage_duration = CASE WHEN ? THEN ? ELSE hs_damage_duration END,
+              ng_attacks = CASE WHEN ? THEN ? ELSE ng_attacks END, hs_attack_time = CASE WHEN ? THEN ? ELSE hs_attack_time END, hs_attack_label = CASE WHEN ? THEN ? ELSE hs_attack_label END, hs_attack_detail = CASE WHEN ? THEN ? ELSE hs_attack_detail END, hs_damage_duration = CASE WHEN ? THEN ? ELSE hs_damage_duration END, card_mu_time = CASE WHEN ? THEN ? ELSE card_mu_time END,
               hs_invincible_time = CASE WHEN ? THEN ? ELSE hs_invincible_time END, hs_invincible_detail = CASE WHEN ? THEN ? ELSE hs_invincible_detail END,
               role = CASE WHEN ? THEN ? ELSE role END, hs_importance = CASE WHEN ? THEN ? ELSE hs_importance END,
               hs_attack_importance = CASE WHEN ? THEN ? ELSE hs_attack_importance END,
               hs_attack_key = CASE WHEN ? THEN ? ELSE hs_attack_key END WHERE id = ?`,
     )
-      .bind(name ?? null, slug ?? null, ...set(fullName), ...set(ngAttacks && NG_ATTACK_TYPES.filter((k) => ngAttacks.includes(k)).join(",")), ...set(atkTime), ...set(atkLabel), ...set(atk && (atk.length > 1 ? JSON.stringify(atk) : null)), ...set(hsDamageDuration), ...set(inv && (inv.length ? Math.max(...inv.map((v) => v.sec)) : null)), ...set(inv && (inv.length > 1 || inv.some((v) => v.label) ? JSON.stringify(inv) : null)), ...set(role), ...set(hsTargetImportance), ...set(hsAttackImportance), ...set(hsAttackKey === undefined ? undefined : hsAttackKey ? 1 : 0), c.req.param("id"))
+      .bind(name ?? null, slug ?? null, ...set(fullName), ...set(ngAttacks && NG_ATTACK_TYPES.filter((k) => ngAttacks.includes(k)).join(",")), ...set(atkTime), ...set(atkLabel), ...set(atk && (atk.length > 1 ? JSON.stringify(atk) : null)), ...set(hsDamageDuration), ...set(cardMuTime), ...set(inv && (inv.length ? Math.max(...inv.map((v) => v.sec)) : null)), ...set(inv && (inv.length > 1 || inv.some((v) => v.label) ? JSON.stringify(inv) : null)), ...set(role), ...set(hsTargetImportance), ...set(hsAttackImportance), ...set(hsAttackKey === undefined ? undefined : hsAttackKey ? 1 : 0), c.req.param("id"))
       .run();
     if (!r.meta.changes) return c.json({ error: "not_found" }, 404);
     // ヒーロースキルが不可なら、HS合わせ重要度は「−」（0）に固定し、重要タグも外す（docs/DECISIONS.md AB・AT）
@@ -138,8 +139,11 @@ adminHeroRoutes.delete("/:id", async (c) => {
     const part = subIds.slice(i, i + 50);
     stmts.push(db.prepare(`UPDATE timings SET credit_submission_id = NULL WHERE credit_submission_id IN (${part.map(() => "?").join(",")})`).bind(...part));
     stmts.push(db.prepare(`DELETE FROM timings WHERE submission_id IN (${part.map(() => "?").join(",")})`).bind(...part));
+    // 投稿者情報の変更申請からも外す（外部キーで削除が失敗しないように）
+    stmts.push(db.prepare(`DELETE FROM poster_change_items WHERE submission_id IN (${part.map(() => "?").join(",")})`).bind(...part));
     stmts.push(db.prepare(`DELETE FROM submissions WHERE id IN (${part.map(() => "?").join(",")})`).bind(...part));
   }
+  stmts.push(closeEmptyPosterChanges(db));
   stmts.push(db.prepare("DELETE FROM heroes WHERE id = ?").bind(id));
   await db.batch(stmts);
   await deleteIfUnused(c.env, [...vids.map((v) => v.video_key), ...(hero.image_key ? [hero.image_key] : [])]);

@@ -9,7 +9,7 @@ import { api, ApiError } from "../../lib/api";
 import { useData } from "../../lib/data";
 import { openShare } from "../../lib/share";
 import { useBootFx } from "../../lib/fx";
-import { fmtDate, fmtSize, toast } from "../../lib/ui";
+import { fmtDate, fmtSize, normCode, toast } from "../../lib/ui";
 import { ArmedButton } from "./AdminHeroes";
 import { AdminLayout, adminErrorMessage, pendingTotal } from "./AdminLayout";
 
@@ -83,6 +83,8 @@ export function AdminPending() {
   const [editing, setEditing] = useState<{ t: AdminTiming; g: AdminGroup } | null>(null);
   const [busy, setBusy] = useState<{ id: string; action: "approve" | "reject" | "edit" } | null>(null);
   const [approved, setApproved] = useState<Approved[]>([]);
+  // 受付番号で絞り込む（一部だけでも可。「HS-」は省略可）
+  const [q, setQ] = useState("");
   const { publicAppUrl } = useData();
 
   const load = useCallback(async () => {
@@ -166,6 +168,9 @@ export function AdminPending() {
     });
 
   const count = data ? data.groups.reduce((s, g) => s + g.timings.length, 0) : undefined;
+  const nq = normCode(q);
+  const groups = data ? (nq ? data.groups.filter((g) => g.code.includes(nq)) : data.groups) : [];
+  const posterChanges = data ? (nq ? data.posterChanges.filter((c) => c.items.some((i) => i.code.includes(nq))) : data.posterChanges) : [];
   return (
     <AdminLayout tab="pending" pendingCount={pendingTotal(data)}>
       {error !== null && <div className="empty">{adminErrorMessage(error)}</div>}
@@ -190,8 +195,29 @@ export function AdminPending() {
               ))}
             </div>
           )}
-          {data.posterChanges.length > 0 && <PosterChanges list={data.posterChanges} reload={load} />}
-          {count ? (
+          {(count || data.posterChanges.length > 0) && (
+            <div className="box">
+              <p>受付番号で絞り込む（一部だけでも可）</p>
+              <div style={{ display: "flex", gap: 8 }}>
+                <input className="inp" placeholder="HS-XXXXXX" style={{ textTransform: "uppercase" }} value={q} onChange={(e) => setQ(e.target.value)} />
+                {q && (
+                  <button className="sbtn" style={{ whiteSpace: "nowrap" }} onClick={() => setQ("")}>
+                    クリア
+                  </button>
+                )}
+              </div>
+              {nq && (
+                <p style={{ margin: "10px 0 0", color: groups.length || posterChanges.length ? "var(--text)" : "var(--danger)" }}>
+                  {groups.length || posterChanges.length
+                    ? `「${nq}」に一致：投稿 ${groups.length} 件${posterChanges.length ? `・投稿者情報の変更申請 ${posterChanges.length} 件` : ""}`
+                    : `「${nq}」に一致する承認待ちはありません（公開中のものは「公開中」タブで探せます）`}
+                </p>
+              )}
+            </div>
+          )}
+          {posterChanges.length > 0 && <PosterChanges list={posterChanges} reload={load} />}
+          {/* 絞り込み中は「すべて承認」を出さない（見えていない分まで承認しないように） */}
+          {count && !nq ? (
             <div className="box allok">
               <p>
                 承認待ちの <b>{count} 件</b>をまとめて承認します{data.groups.some((g) => g.isFix) ? "（修正提案も含みます。承認すると公開中のタイミングが置き換わります）" : ""}。
@@ -205,8 +231,8 @@ export function AdminPending() {
               )}
             </div>
           ) : null}
-          {data.groups.length || data.posterChanges.length ? (
-            data.groups.map((g) => (
+          {groups.length || posterChanges.length ? (
+            groups.map((g) => (
               <div key={g.code}>
                 <div className="sec" style={{ fontWeight: 700, color: "var(--text)" }}>
                   {g.code}・{fmtDate(g.createdAt)}・{g.isFix ? "修正提案" : `${g.total}タイミング`}
@@ -282,7 +308,7 @@ export function AdminPending() {
               </div>
             ))
           ) : (
-            <div className="empty">承認待ちの投稿はありません</div>
+            <div className="empty">{nq ? "一致する承認待ちはありません" : "承認待ちの投稿はありません"}</div>
           )}
         </>
       )}
@@ -343,7 +369,7 @@ function EditSheet({
   );
 }
 
-/** 投稿者情報（X の ID・応援コード）の変更申請（docs/DECISIONS.md AY） */
+/** 投稿者情報（X の ID・応援コード）の変更申請（docs/DECISIONS.md BC） */
 function PosterChanges({ list, reload }: { list: AdminPosterChange[]; reload: () => Promise<void> }) {
   const [busy, setBusy] = useState<string | null>(null);
   const [rejecting, setRejecting] = useState<AdminPosterChange | null>(null);

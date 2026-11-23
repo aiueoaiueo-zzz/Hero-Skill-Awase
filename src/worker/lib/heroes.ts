@@ -15,6 +15,7 @@ export type HeroRow = {
   hs_attack_label?: string | null;
   hs_attack_detail?: string | null;
   hs_damage_duration?: number | null;
+  card_mu_time?: number | null;
   hs_invincible_time?: number | null;
   hs_invincible_detail?: string | null;
   role?: string | null;
@@ -63,6 +64,7 @@ export const toHero = (env: Env, r: HeroRow): Hero => ({
   ngAttacks: parseNgAttacks(r.ng_attacks),
   ...attackOf(r),
   hsDamageDuration: r.hs_damage_duration ?? null,
+  cardMuTime: r.card_mu_time ?? null,
   hsInvincible: parseInvincible(r.hs_invincible_time, r.hs_invincible_detail),
   hsAttackKey: !!r.hs_attack_key && !parseNgAttacks(r.ng_attacks).includes("hs"),
   role: HERO_ROLES.some(([k]) => k === r.role) ? (r.role as HeroRole) : null,
@@ -74,13 +76,13 @@ export const toHero = (env: Env, r: HeroRow): Hero => ({
 
 export const listHeroes = async (env: Env): Promise<Hero[]> => {
   const { results } = await env.DB.prepare(
-    "SELECT id, name, full_name, slug, image_key, sort_order, ng_attacks, hs_attack_time, hs_attack_label, hs_attack_detail, hs_damage_duration, hs_invincible_time, hs_invincible_detail, role, hs_importance, hs_attack_importance, hs_attack_key FROM heroes ORDER BY sort_order, created_at",
+    "SELECT id, name, full_name, slug, image_key, sort_order, ng_attacks, hs_attack_time, hs_attack_label, hs_attack_detail, hs_damage_duration, card_mu_time, hs_invincible_time, hs_invincible_detail, role, hs_importance, hs_attack_importance, hs_attack_key FROM heroes ORDER BY sort_order, created_at",
   ).all<HeroRow>();
   return results.map((r) => toHero(env, r));
 };
 
 export const heroBySlug = async (env: Env, slug: string): Promise<Hero | null> => {
-  const r = await env.DB.prepare("SELECT id, name, full_name, slug, image_key, sort_order, ng_attacks, hs_attack_time, hs_attack_label, hs_attack_detail, hs_damage_duration, hs_invincible_time, hs_invincible_detail, role, hs_importance, hs_attack_importance, hs_attack_key FROM heroes WHERE slug = ?")
+  const r = await env.DB.prepare("SELECT id, name, full_name, slug, image_key, sort_order, ng_attacks, hs_attack_time, hs_attack_label, hs_attack_detail, hs_damage_duration, card_mu_time, hs_invincible_time, hs_invincible_detail, role, hs_importance, hs_attack_importance, hs_attack_key FROM heroes WHERE slug = ?")
     .bind(slug)
     .first<HeroRow>();
   return r ? toHero(env, r) : null;

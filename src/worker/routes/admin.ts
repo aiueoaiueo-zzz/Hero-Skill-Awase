@@ -11,6 +11,7 @@ import { requireAdmin } from "../lib/admin-auth";
 import { adminHeroRoutes } from "./admin-heroes";
 import { listHeroes } from "../lib/heroes";
 import { nowIso } from "../lib/ids";
+import { closeEmptyPosterChanges } from "../lib/poster-changes";
 import { mediaUrl } from "../lib/media";
 import { serveR2 } from "../lib/serve";
 import { getSettings } from "../lib/settings";
@@ -309,14 +310,14 @@ async function copyObject(env: Env, from: string, to: string) {
 /** 公開中・非公開のタイミングの一覧（新しく承認した順） */
 adminRoutes.get("/published", async (c) => {
   const { results } = await c.env.DB.prepare(
-    `SELECT t.*, s.code, cs.nickname, cs.support_code
+    `SELECT t.*, s.code, cs.code AS credit_code, cs.nickname, cs.support_code
        FROM timings t
        JOIN submissions s ON s.id = t.submission_id
        JOIN submissions cs ON cs.id = COALESCE(t.credit_submission_id, t.submission_id)
       WHERE t.status = 'approved'
       ORDER BY t.reviewed_at DESC
-      LIMIT 1000`,
-  ).all<Row & { code: string; nickname: string | null; support_code: string | null }>();
+      LIMIT 10000`,
+  ).all<Row & { code: string; credit_code: string; nickname: string | null; support_code: string | null }>();
   const heroes = new Map((await listHeroes(c.env)).map((h) => [h.id, h]));
   const items: AdminPublished[] = results.map((r) => ({
     id: r.id,
@@ -333,6 +334,7 @@ adminRoutes.get("/published", async (c) => {
     hidden: !!r.hidden,
     shareCode: r.share_code ?? null,
     code: r.code,
+    fixCode: r.credit_code !== r.code ? r.credit_code : null,
   }));
   return c.json({ items });
 });
@@ -382,7 +384,7 @@ adminRoutes.post("/timings/:id/unhide", async (c) => {
 });
 
 /** 削除：タイミングと動画を消す（元に戻せない）。投稿にほかのタイミングが残っていなければ投稿ごと消す */
-/** 公開中（非公開を含む）のタイミングの内容を直す：攻撃方法・目印・タイミング・備考（動画はそのまま。docs/DECISIONS.md AZ） */
+/** 公開中（非公開を含む）のタイミングの内容を直す：攻撃方法・目印・タイミング・備考（動画はそのまま。docs/DECISIONS.md BD） */
 adminRoutes.post("/timings/:id/edit", async (c) => {
   const body = timingEditSchema.safeParse(await c.req.json().catch(() => null));
   if (!body.success) return c.json({ error: "invalid_request", issues: body.error.issues.map((i) => i.message) }, 400);
@@ -423,6 +425,15 @@ adminRoutes.delete("/timings/:id", async (c) => {
     // このタイミングへの修正提案（承認待ち・反映済み）からの参照を外す
     db.prepare("UPDATE submissions SET replaces_timing_id = NULL WHERE replaces_timing_id = ?").bind(t.id),
     db.prepare("DELETE FROM timings WHERE id = ?").bind(t.id),
+    // 投稿ごと消すときは、投稿者情報の変更申請からも外す（外部キーで削除が失敗しないように。docs/DECISIONS.md BC）
+    db
+      .prepare(
+        `DELETE FROM poster_change_items WHERE submission_id = ?
+           AND NOT EXISTS (SELECT 1 FROM timings WHERE submission_id = ?)
+           AND NOT EXISTS (SELECT 1 FROM timings WHERE credit_submission_id = ?)`,
+      )
+      .bind(t.submission_id, t.submission_id, t.submission_id),
+    closeEmptyPosterChanges(db),
     // 投稿にタイミングが残っておらず、ほかのタイミングの投稿者表示にも使われていなければ投稿ごと削除
     db
       .prepare(
@@ -443,7 +454,6 @@ adminRoutes.on(["GET", "HEAD"], "/media/*", async (c) => {
   return serveR2(c.env.MEDIA, c.req.raw, key, "private, no-store");
 });
 
-/** 設定（制作者の応援コード・注意事項・このアプリについて） */
 /** 集計：公開中のタイミングを、攻撃側×受ける側×攻撃方法ごとに数える（非公開は除く） */
 adminRoutes.get("/stats", async (c) => {
   const { results } = await c.env.DB.prepare(
@@ -455,6 +465,7 @@ adminRoutes.get("/stats", async (c) => {
   return c.json<AdminStatsResponse>({ heroes: await listHeroes(c.env), pairs: results });
 });
 
+/** 設定（制作者の応援コード・注意事項・このアプリについて） */
 adminRoutes.get("/settings", async (c) => c.json(await getSettings(c.env)));
 adminRoutes.put("/settings", async (c) => {
   const body = settingsSchema.safeParse(await c.req.json().catch(() => null));

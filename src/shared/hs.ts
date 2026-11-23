@@ -2,11 +2,12 @@
 import { NG_ATTACK_TYPES, type AttackType } from "./constants";
 import type { Hero, HsInvincible } from "./types";
 
-type HsInfo = Pick<Hero, "ngAttacks" | "hsAttackTime" | "hsInvincible">;
+type HsInfo = Pick<Hero, "ngAttacks" | "hsAttackTime" | "hsInvincible"> & { cardMuTime?: number | null };
 
-/** 相手の HS の無敵時間が、自分の HS のダメージ発生より短い。
- *  short：足りない場面（無敵時間が場面で変わるキャラは場面ごとに比べる）。all：全部の場面で足りない */
-export type HsJudge = { attackTime: number; short: HsInvincible[]; all: boolean } | null;
+/** 相手の HS の無敵時間＋相手の無発動カードの発生が、自分の HS のダメージ発生より短い（docs/DECISIONS.md BE）。
+ *  short：足りない場面（無敵時間が場面で変わるキャラは場面ごとに比べる。sec は無敵時間だけの値）。all：全部の場面で足りない。
+ *  cardTime：足した無発動カードの発生（相手が未入力なら 0） */
+export type HsJudge = { attackTime: number; cardTime: number; short: HsInvincible[]; all: boolean } | null;
 
 /** 自分の HS で、相手の HS 明けに時間が足りるか。足りない場面があるときだけ返す（HS が不可のキャラ・情報が足りないときは null） */
 export function hsJudge(attacker: HsInfo | null | undefined, target: HsInfo | null | undefined): HsJudge {
@@ -14,8 +15,10 @@ export function hsJudge(attacker: HsInfo | null | undefined, target: HsInfo | nu
   const a = attacker.hsAttackTime;
   const list = target.hsInvincible;
   if (a == null || !list.length) return null;
-  const short = list.filter((v) => v.sec < a);
-  return short.length ? { attackTime: a, short, all: short.length === list.length } : null;
+  const card = target.cardMuTime ?? 0;
+  // 足し算の誤差（0.1 + 0.2 など）で判定が変わらないよう、0.01 秒単位にそろえて比べる
+  const short = list.filter((v) => Math.round((v.sec + card) * 100) < Math.round(a * 100));
+  return short.length ? { attackTime: a, cardTime: card, short, all: short.length === list.length } : null;
 }
 
 /** 合わせ不可（存在しない）の攻撃方法：自分のキャラで「不可」にしたもの＋全部の場面で時間が足りない HS */

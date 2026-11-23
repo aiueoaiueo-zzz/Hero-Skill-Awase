@@ -3,9 +3,10 @@ import { posterChangeSchema, posterChangeWithdrawSchema } from "../../shared/sch
 import type { PosterChangeResponse } from "../../shared/types";
 import type { AppEnv, Env } from "../env";
 import { nowIso, sha256Hex, ulid } from "../lib/ids";
+import { closeEmptyPosterChanges } from "../lib/poster-changes";
 import { posterChangePayload, sendDiscord } from "../lib/notify";
 
-// 投稿者情報（X の ID・応援コード）の変更申請（docs/DECISIONS.md AY）
+// 投稿者情報（X の ID・応援コード）の変更申請（docs/DECISIONS.md BC）
 //   投稿したブラウザに残っている「受付番号と取り下げ用キー」で本人と確かめる。まとめて複数の投稿を申請できる。
 //   - まだ公開前（承認済み・採用済みのタイミングがない）の投稿：申請を挟まず、すぐ書き換える
 //   - 公開中の投稿：審査待ちの申請にし、管理者が承認したら反映する
@@ -64,11 +65,6 @@ const detachStmts = (env: Env, ids: string[]) =>
       "DELETE FROM poster_change_items WHERE submission_id = ? AND change_id IN (SELECT id FROM poster_changes WHERE status = 'pending')",
     ).bind(id),
   );
-const closeEmptyStmt = (env: Env, now: string) =>
-  env.DB.prepare(
-    "UPDATE poster_changes SET status = 'withdrawn', reviewed_at = ? WHERE status = 'pending' AND NOT EXISTS (SELECT 1 FROM poster_change_items i WHERE i.change_id = poster_changes.id)",
-  ).bind(now);
-
 /** 変更を申請する */
 posterChangeRoutes.post("/poster-changes", async (c) => {
   const body = posterChangeSchema.safeParse(await c.req.json().catch(() => null));
@@ -105,7 +101,7 @@ posterChangeRoutes.post("/poster-changes", async (c) => {
           ),
         ]
       : []),
-    closeEmptyStmt(env, now),
+    closeEmptyPosterChanges(env.DB, now),
   ];
   await env.DB.batch(stmts);
 
@@ -129,6 +125,6 @@ posterChangeRoutes.post("/poster-changes/withdraw", async (c) => {
   if (!body.success) return c.json({ error: "invalid_request" }, 400);
   const owned = await verifyOwned(c.env, body.data.items);
   if (!owned) return c.json({ error: "invalid_delete_key" }, 403);
-  await c.env.DB.batch([...detachStmts(c.env, owned.map((s) => s.id)), closeEmptyStmt(c.env, nowIso())]);
+  await c.env.DB.batch([...detachStmts(c.env, owned.map((s) => s.id)), closeEmptyPosterChanges(c.env.DB)]);
   return c.json({ ok: true });
 });

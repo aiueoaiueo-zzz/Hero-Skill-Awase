@@ -5,7 +5,7 @@ import { api, ApiError } from "../lib/api";
 import { saveNickSup } from "../lib/storage";
 import { fmtDate, toast } from "../lib/ui";
 
-// 投稿者情報（X の ID・応援コード）の変更申請（審査状況の画面。docs/DECISIONS.md AY）
+// 投稿者情報（X の ID・応援コード）の変更申請（審査状況の画面。docs/DECISIONS.md BC）
 
 export type Owned = { s: StatusResponse; deleteKey: string };
 

@@ -360,6 +360,12 @@ function HeroCard({ h, first, last, save, move, remove, removeImage, setImage }:
         <span className="u">秒</span>
       </div>
       <div className="hint hinvh">場面で変わるときは「1回目:1.5 / 2回目以降:5.5」、補足は「最短距離時:4.7」のように入力</div>
+      <div className="hline hinv">
+        <span>無発動カードの発生</span>
+        <CardTimeInput value={h.cardMuTime} onCommit={(v) => save({ cardMuTime: v }, "無発動カードの発生を保存しました")} />
+        <span className="u">秒</span>
+      </div>
+      <div className="hint hinvh">HS合わせの判定で、無敵時間に足して比べます（無敵時間＋無発動カードの発生 ＜ 相手の HS のダメージ発生なら不可）</div>
       <div className="hbot">
         <div>
           <ImpRow label="HS警戒度" aria="HS警戒度" value={h.hsTargetImportance} onChange={(v) => save({ hsTargetImportance: v }, "HS警戒度を保存しました")} />
@@ -458,6 +464,38 @@ function InvInput({ value, onCommit }: { value: HsInvincible[]; onCommit: (v: Hs
 }
 
 /** ダメージ継続時間の入力欄（「2.5」・「-」・空。空にすると未入力。フォーカスが外れたら保存） */
+/** 無発動カードの発生（秒。空で未入力）。docs/DECISIONS.md BE */
+function CardTimeInput({ value, onCommit }: { value: number | null; onCommit: (v: number | null) => Promise<boolean> }) {
+  const text = value == null ? "" : String(value);
+  const [v, setV] = useState(text);
+  useEffect(() => setV(text), [text]);
+  return (
+    <input
+      aria-label="無発動カードの発生"
+      className="invin"
+      value={v}
+      placeholder="—"
+      inputMode="decimal"
+      onChange={(e) => setV(e.target.value)}
+      onKeyDown={(e) => e.key === "Enter" && (e.target as HTMLInputElement).blur()}
+      onBlur={async () => {
+        const t = v.trim().replace(/秒$/, "");
+        let n: number | null = null;
+        if (t !== "") {
+          n = Number(t);
+          if (!Number.isFinite(n) || n < 0 || n > 10) {
+            toast("無発動カードの発生は 0〜10 秒の数字で入力してください");
+            return setV(text);
+          }
+          n = Math.round(n * 100) / 100;
+        }
+        if (n === value) return setV(text);
+        if (!(await onCommit(n))) setV(text);
+      }}
+    />
+  );
+}
+
 function DurInput({ value, disabled, onCommit }: { value: number | null; disabled: boolean; onCommit: (v: number | null) => Promise<boolean> }) {
   const text = value == null ? "" : value === -1 ? "-" : String(value);
   const [v, setV] = useState(text);

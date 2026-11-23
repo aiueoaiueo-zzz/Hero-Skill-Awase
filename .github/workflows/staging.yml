@@ -75,6 +75,8 @@ jobs:
         if: steps.check.outputs.ready == 'true'
         run: |
           node scripts/sql-reorder.mjs "$RUNNER_TEMP/prod.sql" "$RUNNER_TEMP/prod-sorted.sql"
+          # 外部キーの順番どおりに INSERT を組み立て直す（D1 は分けて確定するので、順番が違うと取り込みが失敗する。docs/DECISIONS.md BG）
+          node scripts/sql-fk-clean.mjs "$RUNNER_TEMP/prod-sorted.sql"
           npx wrangler d1 execute DB --remote --file "$RUNNER_TEMP/prod-sorted.sql" -y
           npx wrangler d1 execute DB --remote --command "DELETE FROM contacts" -y
 

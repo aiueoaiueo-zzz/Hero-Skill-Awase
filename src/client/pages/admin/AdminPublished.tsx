@@ -1,6 +1,7 @@
-import { useCallback, useEffect, useState } from "react";
-import { Navigate, useParams } from "react-router";
-import type { AttackType } from "../../../shared/constants";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { Navigate, useLocation, useNavigate, useParams } from "react-router";
+import { ATTACK_LABEL, type AttackType } from "../../../shared/constants";
+import { formatCue } from "../../../shared/text";
 import { blockedAttacks } from "../../../shared/hs";
 import type { AdminPublished as Item } from "../../../shared/types";
 import { PairView, tabMemory } from "../../components/PairView";
@@ -9,13 +10,13 @@ import { Sheet } from "../../components/Sheet";
 import { api, ApiError, useApi } from "../../lib/api";
 import { useData } from "../../lib/data";
 import { PROG, useBootFx } from "../../lib/fx";
-import { toast } from "../../lib/ui";
+import { normCode, toast } from "../../lib/ui";
 import { AttackerPick } from "../Home";
 import { TargetsBody } from "../Targets";
 import { ArmedButton } from "./AdminHeroes";
 import { AdminLayout, adminErrorMessage, pendingTotal } from "./AdminLayout";
 
-// 管理：公開中のタイミング（docs/DECISIONS.md AZ）
+// 管理：公開中のタイミング（docs/DECISIONS.md BD）
 // 一般向けの画面と同じ流れ（攻撃する側 → 相手 → タイミング）で、ボタンは「編集」だけ。
 // 一般向けと違い、非公開のタイミングも（「非公開」の印つきで）出す。
 
@@ -62,8 +63,64 @@ export function AdminPublished() {
           </p>
         </div>
       )}
+      {items && <CodeSearch items={items} />}
       <AttackerPick base={BASE} />
     </AdminLayout>
+  );
+}
+
+/** タイミングの詳細画面へのリンク（#t-<id> でそのタイミングのタブを開いて、そこまで移動する） */
+const timingPath = (t: Item) => `${BASE}/${t.attacker.slug}/${t.target.slug}#t-${encodeURIComponent(t.id)}`;
+
+/** 受付番号で探す（「HS-」は省略可。修正提案が反映されたものは、修正提案の受付番号でも見つかる）。1 件ならすぐ開く */
+function CodeSearch({ items }: { items: Item[] }) {
+  const nav = useNavigate();
+  const [code, setCode] = useState("");
+  const [hits, setHits] = useState<{ code: string; list: Item[] } | null>(null);
+  const search = () => {
+    // 全角の英数字・ハイフンも受け付ける
+    let c = normCode(code);
+    if (!c) return;
+    if (/^[A-Z0-9]{6}$/.test(c)) c = `HS-${c}`;
+    const list = items.filter((t) => t.code === c || t.fixCode === c);
+    setHits({ code: c, list });
+    if (list.length === 1) nav(timingPath(list[0]));
+  };
+  return (
+    <div className="box">
+      <p>受付番号で探す</p>
+      <div style={{ display: "flex", gap: 8 }}>
+        <input
+          className="inp"
+          placeholder="HS-XXXXXX"
+          style={{ textTransform: "uppercase" }}
+          value={code}
+          onChange={(e) => setCode(e.target.value)}
+          onKeyDown={(e) => e.key === "Enter" && search()}
+        />
+        <button className="sbtn ok" style={{ whiteSpace: "nowrap" }} onClick={search}>
+          検索
+        </button>
+      </div>
+      {hits && !hits.list.length && (
+        <p style={{ margin: "10px 0 0", color: "var(--danger)" }}>
+          {hits.code} は公開中・非公開のタイミングにありません（承認待ち・却下・取り下げのものは「承認待ち」タブや審査状況の画面で）
+        </p>
+      )}
+      {hits && hits.list.length > 1 && (
+        <div style={{ marginTop: 10 }}>
+          <p style={{ margin: "0 0 6px" }}>
+            {hits.code}：{hits.list[0].attacker.name} → {hits.list[0].target.name}・{hits.list.length}件
+          </p>
+          {hits.list.map((t) => (
+            <button key={t.id} className="sbtn" style={{ display: "block", width: "100%", textAlign: "left", marginBottom: 6 }} onClick={() => nav(timingPath(t))}>
+              {t.hidden ? "【非公開】" : ""}
+              {ATTACK_LABEL[t.attackType]}｜{formatCue(t.cueType, t.timingText)}
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
   );
 }
 
@@ -95,6 +152,26 @@ export function AdminPublishedDetail() {
   const [tab, setTab] = useState<AttackType | undefined>(tabMemory.get(key));
   const [editing, setEditing] = useState<Item | null>(null);
   useBootFx(!!items || error !== null);
+  // 受付番号の検索から（#t-<タイミングID>）：そのタイミングのタブを開いて、そこまで移動する（一般向けの詳細画面と同じ）
+  const { hash } = useLocation();
+  const linkedId = hash.startsWith("#t-") ? decodeURIComponent(hash.slice(3)) : null;
+  const [flashId, setFlashId] = useState<string | null>(null);
+  const scrolled = useRef<string | null>(null);
+  useEffect(() => {
+    if (!items || !linkedId || scrolled.current === linkedId) return;
+    const x = items.find((i) => i.id === linkedId);
+    if (!x) return;
+    if (tab !== x.attackType) {
+      setTab(x.attackType);
+      return; // タブが切り替わってから移動する
+    }
+    scrolled.current = linkedId;
+    requestAnimationFrame(() => {
+      document.getElementById(`t-${linkedId}`)?.scrollIntoView({ behavior: "smooth", block: "start" });
+      setFlashId(linkedId);
+      setTimeout(() => setFlashId(null), 2500);
+    });
+  }, [items, linkedId, tab]);
   const A = heroes.find((h) => h.slug === a);
   const T = heroes.find((h) => h.slug === t);
   if (!A || !T) return <Navigate to="/admin/published" replace />;
@@ -117,6 +194,8 @@ export function AdminPublishedDetail() {
           tabMemory.set(key, k);
           setTab(k);
         }}
+        flashId={flashId}
+        showBlocked
         cardClass={(x) => (x.hidden ? "hiddenpost" : undefined)}
         emptyText="公開中のタイミングはありません"
         actions={(x) => (
