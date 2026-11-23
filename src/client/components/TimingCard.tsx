@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
-import { Link } from "react-router";
+import { Link, useLocation } from "react-router";
+import { useData } from "../lib/data";
 import { isXId, normalizeXId } from "../../shared/ranking";
 import { CUE_LABEL, type CueType } from "../../shared/constants";
 import { formatCue } from "../../shared/text";
@@ -18,14 +19,26 @@ export type TimingCardData = {
   reviewedAt: string | null;
 };
 
-/** 投稿者の表示。X の ID なら「@ID」で投稿者ページへのリンク（古い投稿の自由入力の名前はそのまま） */
+/**
+ * 投稿者の表示。X の ID なら「@ID」で投稿者ページへのリンク（古い投稿の自由入力の名前はそのまま）。
+ * 管理画面では、管理画面から離れないよう、一般向けの投稿者ページを新しいタブで開く
+ */
 export function Poster({ nickname, badge }: { nickname: string; badge?: string | null }) {
   const id = normalizeXId(nickname);
+  const { pathname } = useLocation();
+  const { publicAppUrl } = useData();
+  const admin = pathname.startsWith("/admin");
   return isXId(id) ? (
     <>
-      <Link className="nick" to={`/u/${id}`}>
-        @{id}
-      </Link>
+      {admin ? (
+        <a className="nick" href={`${publicAppUrl.replace(/\/+$/, "")}/u/${encodeURIComponent(id)}`} target="_blank" rel="noopener noreferrer" title="一般向けの投稿者ページを新しいタブで開く">
+          @{id}
+        </a>
+      ) : (
+        <Link className="nick" to={`/u/${id}`}>
+          @{id}
+        </Link>
+      )}
       {badge && <span className="badge">{badge}</span>}
     </>
   ) : (
