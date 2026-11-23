@@ -11,14 +11,18 @@ export type PairTiming = TimingCardData & { id: string; attackType: AttackType }
 /** 組み合わせごとに選んだタブを覚えておく（画面を行き来しても戻る） */
 export const tabMemory = new Map<string, AttackType>();
 
-/** タブの初期表示：件数が 1 件以上ある最初のタブ（合わせ不可のタブは選ばない） */
-export function currentTab<X extends PairTiming>(A: Hero | undefined, T: Hero | undefined, timings: X[], tab: AttackType | undefined) {
+/**
+ * タブの初期表示：件数が 1 件以上ある最初のタブ（合わせ不可のタブは選ばない）。
+ * showBlocked（管理画面）：合わせ不可の攻撃方法のタイミングも出し、件数があればそのタブも選べる（キャラの設定を後から変えても、編集できるように）
+ */
+export function currentTab<X extends PairTiming>(A: Hero | undefined, T: Hero | undefined, timings: X[], tab: AttackType | undefined, showBlocked = false) {
   const blocked = blockedAttacks(A, T);
-  const shown = timings.filter((x) => !blocked.has(x.attackType));
+  const shown = showBlocked ? timings : timings.filter((x) => !blocked.has(x.attackType));
   const counts = Object.fromEntries(ATTACK_TYPES.map(([k]) => [k, shown.filter((x) => x.attackType === k).length])) as Record<AttackType, number>;
-  const open = ATTACK_TYPES.filter(([k]) => !blocked.has(k));
-  const cur: AttackType = tab && !blocked.has(tab) ? tab : (open.find(([k]) => counts[k] > 0) ?? open[0])[0];
-  return { blocked, shown, counts, cur };
+  const usable = (k: AttackType) => !blocked.has(k) || (showBlocked && counts[k] > 0);
+  const open = ATTACK_TYPES.filter(([k]) => usable(k));
+  const cur: AttackType = tab && usable(tab) ? tab : (open.find(([k]) => counts[k] > 0) ?? open[0] ?? ATTACK_TYPES[0])[0];
+  return { blocked, shown, counts, cur, usable };
 }
 
 /**
@@ -36,6 +40,7 @@ export function PairView<X extends PairTiming>({
   flashId,
   cardClass,
   emptyText,
+  showBlocked,
 }: {
   A?: Hero;
   T?: Hero;
@@ -48,11 +53,13 @@ export function PairView<X extends PairTiming>({
   /** カードの見た目を変える（管理画面の非公開など） */
   cardClass?: (x: X) => string | undefined;
   emptyText: ReactNode;
+  /** 管理画面：合わせ不可の攻撃方法のタイミングも出す */
+  showBlocked?: boolean;
 }) {
   // 自分の HS で、相手の HS 明けに時間が足りるか（足りないときだけ理由が入る）
   const ng = hsJudge(A, T);
   // 合わせ不可（存在しない）の攻撃方法：タブをグレーにして選べなくし、その投稿も出さない
-  const { blocked, shown, counts, cur } = currentTab(A, T, timings, tab);
+  const { blocked, shown, counts, cur, usable } = currentTab(A, T, timings, tab, showBlocked);
   const list = shown.filter((x) => x.attackType === cur);
   return (
     <>
@@ -117,8 +124,8 @@ export function PairView<X extends PairTiming>({
               {ATTACK_TYPES.map(([k]) => (
                 <button
                   key={k}
-                  className={`${k === cur ? "on" : ""} ${counts[k] ? "" : "zero"} ${blocked.has(k) ? "off" : ""}`}
-                  disabled={blocked.has(k)}
+                  className={`${k === cur ? "on" : ""} ${counts[k] ? "" : "zero"} ${usable(k) ? "" : "off"}`}
+                  disabled={!usable(k)}
                   onClick={() => onTab(k)}
                 >
                   <span>
@@ -130,7 +137,7 @@ export function PairView<X extends PairTiming>({
                       </>
                     )}
                   </span>
-                  <b>{blocked.has(k) ? "不可" : `${counts[k]}件`}</b>
+                  <b>{blocked.has(k) ? (counts[k] ? `不可・${counts[k]}件` : "不可") : `${counts[k]}件`}</b>
                 </button>
               ))}
             </div>

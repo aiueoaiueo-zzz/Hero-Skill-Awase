@@ -11,6 +11,7 @@ import { requireAdmin } from "../lib/admin-auth";
 import { adminHeroRoutes } from "./admin-heroes";
 import { listHeroes } from "../lib/heroes";
 import { nowIso } from "../lib/ids";
+import { closeEmptyPosterChanges } from "../lib/poster-changes";
 import { mediaUrl } from "../lib/media";
 import { serveR2 } from "../lib/serve";
 import { getSettings } from "../lib/settings";
@@ -424,6 +425,15 @@ adminRoutes.delete("/timings/:id", async (c) => {
     // このタイミングへの修正提案（承認待ち・反映済み）からの参照を外す
     db.prepare("UPDATE submissions SET replaces_timing_id = NULL WHERE replaces_timing_id = ?").bind(t.id),
     db.prepare("DELETE FROM timings WHERE id = ?").bind(t.id),
+    // 投稿ごと消すときは、投稿者情報の変更申請からも外す（外部キーで削除が失敗しないように。docs/DECISIONS.md BC）
+    db
+      .prepare(
+        `DELETE FROM poster_change_items WHERE submission_id = ?
+           AND NOT EXISTS (SELECT 1 FROM timings WHERE submission_id = ?)
+           AND NOT EXISTS (SELECT 1 FROM timings WHERE credit_submission_id = ?)`,
+      )
+      .bind(t.submission_id, t.submission_id, t.submission_id),
+    closeEmptyPosterChanges(db),
     // 投稿にタイミングが残っておらず、ほかのタイミングの投稿者表示にも使われていなければ投稿ごと削除
     db
       .prepare(

@@ -195,6 +195,7 @@ export function AdminPublishedDetail() {
           setTab(k);
         }}
         flashId={flashId}
+        showBlocked
         cardClass={(x) => (x.hidden ? "hiddenpost" : undefined)}
         emptyText="公開中のタイミングはありません"
         actions={(x) => (

@@ -5,6 +5,7 @@ import type { AdminHero } from "../../shared/types";
 import type { AppEnv, Env } from "../env";
 import { toHero, type HeroRow } from "../lib/heroes";
 import { nowIso, ulid } from "../lib/ids";
+import { closeEmptyPosterChanges } from "../lib/poster-changes";
 import { deleteIfUnused, deleteMedia, recordObject } from "../lib/storage";
 
 // 管理：キャラ管理（仕様 4-7）。/api/admin/heroes 以下（requireAdmin は admin.ts 側で適用済み）
@@ -138,8 +139,11 @@ adminHeroRoutes.delete("/:id", async (c) => {
     const part = subIds.slice(i, i + 50);
     stmts.push(db.prepare(`UPDATE timings SET credit_submission_id = NULL WHERE credit_submission_id IN (${part.map(() => "?").join(",")})`).bind(...part));
     stmts.push(db.prepare(`DELETE FROM timings WHERE submission_id IN (${part.map(() => "?").join(",")})`).bind(...part));
+    // 投稿者情報の変更申請からも外す（外部キーで削除が失敗しないように）
+    stmts.push(db.prepare(`DELETE FROM poster_change_items WHERE submission_id IN (${part.map(() => "?").join(",")})`).bind(...part));
     stmts.push(db.prepare(`DELETE FROM submissions WHERE id IN (${part.map(() => "?").join(",")})`).bind(...part));
   }
+  stmts.push(closeEmptyPosterChanges(db));
   stmts.push(db.prepare("DELETE FROM heroes WHERE id = ?").bind(id));
   await db.batch(stmts);
   await deleteIfUnused(c.env, [...vids.map((v) => v.video_key), ...(hero.image_key ? [hero.image_key] : [])]);
