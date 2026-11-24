@@ -108,6 +108,26 @@ adminRoutes.get("/pending", async (c) => {
     }
     g.timings.push(toAdminTiming(c.env, r));
   }
+
+  // 同じ組み合わせ・同じ攻撃方法で、すでにあるタイミング（公開中・非公開／ほかの承認待ち）。重複に気づくため（docs/DECISIONS.md BI）
+  const key = (a: string, t: string, k: string) => `${a}|${t}|${k}`;
+  const published = new Map<string, NonNullable<AdminTiming["same"]>["published"]>();
+  const { results: pub } = await db
+    .prepare("SELECT attacker_id, target_id, attack_type, cue_type, timing_text, hidden FROM timings WHERE status = 'approved' ORDER BY reviewed_at DESC")
+    .all<{ attacker_id: string; target_id: string; attack_type: string; cue_type: AdminTiming["cueType"]; timing_text: string; hidden: number }>();
+  for (const p of pub) {
+    const k = key(p.attacker_id, p.target_id, p.attack_type);
+    const list = published.get(k) ?? [];
+    list.push({ cueType: p.cue_type, timingText: p.timing_text, hidden: !!p.hidden });
+    published.set(k, list);
+  }
+  const pendingCount = new Map<string, number>();
+  for (const r of results) pendingCount.set(key(r.attacker_id, r.target_id, r.attack_type), (pendingCount.get(key(r.attacker_id, r.target_id, r.attack_type)) ?? 0) + 1);
+  for (const g of groups)
+    for (const t of g.timings) {
+      const k = key(g.attacker.id, g.target.id, t.attackType);
+      t.same = { published: published.get(k) ?? [], pending: (pendingCount.get(k) ?? 1) - 1 };
+    }
   return c.json<AdminPendingResponse>({ groups, posterChanges: await pendingPosterChanges(c.env, heroes), usage: await getUsage(c.env) });
 });
 
