@@ -12,9 +12,11 @@ import { posterChangePayload, sendDiscord } from "../lib/notify";
 //   - 公開中の投稿：審査待ちの申請にし、管理者が承認したら反映する
 export const posterChangeRoutes = new Hono<AppEnv>();
 
+// "/api" に付けたミドルウェアは /api 以下のすべて（管理画面の動画の配信も）に効くので、
+// すでに Cache-Control が付いている応答は上書きしない（docs/DECISIONS.md BH）
 posterChangeRoutes.use("*", async (c, next) => {
   await next();
-  c.header("Cache-Control", "no-store");
+  if (!c.res.headers.has("Cache-Control")) c.header("Cache-Control", "no-store");
 });
 
 type Owned = { id: string; code: string; nickname: string | null; support_code: string | null };

@@ -451,7 +451,9 @@ adminRoutes.delete("/timings/:id", async (c) => {
 adminRoutes.on(["GET", "HEAD"], "/media/*", async (c) => {
   const key = decodeURIComponent(c.req.path.replace(/^\/api\/admin\/media\//, ""));
   if (!key.startsWith("pending/") || key.includes("..")) return c.text("Not Found", 404);
-  return serveR2(c.env.MEDIA, c.req.raw, key, "private, no-store");
+  // 承認待ち・非公開の動画のキーは中身ごとに決まって変わらないので、管理者のブラウザには保存してよい
+  // （no-store だと、巻き戻しや 2 回目の再生のたびに Access を通って取り直しになり、途切れやすい。docs/DECISIONS.md BH）
+  return serveR2(c.env.MEDIA, c.req.raw, key, "private, max-age=86400");
 });
 
 /** 集計：公開中のタイミングを、攻撃側×受ける側×攻撃方法ごとに数える（非公開は除く） */

@@ -15,9 +15,11 @@ import { verifyTurnstile } from "../lib/turnstile";
 // 投稿・審査状況・取り下げ（ログイン不要）
 export const submitRoutes = new Hono<AppEnv>();
 
+// "/api" に付けたミドルウェアは /api 以下のすべて（管理画面の動画の配信も）に効くので、
+// すでに Cache-Control が付いている応答は上書きしない（docs/DECISIONS.md BH）
 submitRoutes.use("*", async (c, next) => {
   await next();
-  c.header("Cache-Control", "no-store");
+  if (!c.res.headers.has("Cache-Control")) c.header("Cache-Control", "no-store");
 });
 
 const UPLOAD_URL_TTL_MS = 10 * 60 * 1000; // 署名付き URL の有効期限 10 分

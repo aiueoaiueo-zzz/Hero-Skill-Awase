@@ -750,3 +750,6 @@ img.av{object-fit:cover;background:#ddd}
 .toprank .tr1 .pid{font-size:12px}
 .toprank .ppt{font-family:"Chakra Petch",sans-serif;font-weight:700;font-size:12px}
 .toprank .tr1 .ppt{font-size:17px;color:#c94f00}
+
+/* 動画の再生中は、背景の回り続けるアニメーションを止める（スマホで動画のコマ落ちを防ぐ。docs/DECISIONS.md BH） */
+.video-playing body::before,.video-playing .vs .x,.video-playing .vs .side.def::after,.video-playing .fab::after,.video-playing .herowall .hw-grid{animation-play-state:paused!important}
