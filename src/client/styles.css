@@ -753,3 +753,25 @@ img.av{object-fit:cover;background:#ddd}
 
 /* 動画の再生中は、背景の回り続けるアニメーションを止める（スマホで動画のコマ落ちを防ぐ。docs/DECISIONS.md BH） */
 .video-playing body::before,.video-playing .vs .x,.video-playing .vs .side.def::after,.video-playing .fab::after,.video-playing .herowall .hw-grid{animation-play-state:paused!important}
+
+/* 承認待ち：同じ組み合わせ・攻撃方法がすでにあるか（docs/DECISIONS.md BI） */
+.same{margin:0 0 6px;border:2px solid #000;padding:8px 10px;font-size:13px;background:#fff}
+.same.has{background:#fff4e6;border-left:6px solid #ff6a00}
+.same.none{background:#f2fbf4;border-left:6px solid #2e9e55}
+.same-h{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.same-tag{font-weight:900;color:#fff;padding:1px 8px}
+.same.has .same-tag{background:#e8400c}
+.same.none .same-tag{background:#2e9e55}
+.same-w{color:var(--sub);font-size:12px}
+.same-h .sbtn{margin-left:auto;padding:4px 10px;font-size:12px}
+.same-p{margin-top:6px;color:#b45309;font-weight:700;font-size:12px}
+.same-l{list-style:none;margin:8px 0 0;padding:0}
+.same-l li{padding:6px 0;border-top:1px dotted var(--line);font-size:13px;line-height:1.5}
+.same-l .chip{margin-right:6px;font-size:11px}
+
+/* 修正提案の画面：「変更可」「変更不可」の印と、変更できない項目のグレー（docs/DECISIONS.md BJ） */
+.ftag{display:inline-block;margin-left:8px;font-size:11px;font-weight:900;padding:1px 8px;vertical-align:1px;border:1px solid}
+.ftag.ok{color:#1f7a44;border-color:#1f9d55;background:#e9f8ef}
+.ftag.ng{color:#666;border-color:#aaa;background:#eee}
+.lockg{filter:grayscale(1);opacity:.55;pointer-events:none}
+.lockg .pick,.lockg button{background:#eee!important}

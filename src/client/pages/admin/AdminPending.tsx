@@ -4,7 +4,8 @@ import { EntryCard, type EntryPoint } from "../../components/EntryCard";
 import { pointId, PointsEditor, type PointDraft } from "../../components/PointsEditor";
 import { Sheet } from "../../components/Sheet";
 import { approvedShareText, shortLink, timingLink } from "../../../shared/share";
-import { ATTACK_LABEL } from "../../../shared/constants";
+import { ATTACK_LABEL, CUE_LABEL } from "../../../shared/constants";
+import { formatCue } from "../../../shared/text";
 import { api, ApiError } from "../../lib/api";
 import { useData } from "../../lib/data";
 import { openShare } from "../../lib/share";
@@ -291,18 +292,20 @@ export function AdminPending() {
                     );
                   }
                   return (
-                    <EntryCard
-                      key={t.id}
-                      label={g.total > 1 ? `タイミング ${t.position + 1} / ${g.total}` : undefined}
-                      points={[toPoint(t)]}
-                      attacker={i === 0 ? g.attacker : undefined}
-                      target={g.target}
-                      nickname={g.nickname}
-                      supportCode={g.supportCode}
-                      dateText={`${fmtDate(g.createdAt)} 投稿`}
-                      actionsRow
-                      actions={actions}
-                    />
+                    <div key={t.id}>
+                      <SameInfo t={t} g={g} />
+                      <EntryCard
+                        label={g.total > 1 ? `タイミング ${t.position + 1} / ${g.total}` : undefined}
+                        points={[toPoint(t)]}
+                        attacker={i === 0 ? g.attacker : undefined}
+                        target={g.target}
+                        nickname={g.nickname}
+                        supportCode={g.supportCode}
+                        dateText={`${fmtDate(g.createdAt)} 投稿`}
+                        actionsRow
+                        actions={actions}
+                      />
+                    </div>
                   );
                 })}
               </div>
@@ -443,5 +446,42 @@ function PosterRejectSheet({ onClose, onReject }: { onClose: () => void; onRejec
       <label className="h">却下理由（任意・投稿者に表示されます）</label>
       <textarea maxLength={500} placeholder="例：ご本人の ID か確認できませんでした" value={reason} onChange={(e) => setReason(e.target.value)} />
     </Sheet>
+  );
+}
+
+/**
+ * 同じ組み合わせ・同じ攻撃方法で、すでにタイミングがあるか（重複に気づくため。docs/DECISIONS.md BI）。
+ * あれば件数を出し、開くと公開中のタイミングの目印と文が見られる
+ */
+function SameInfo({ t, g }: { t: AdminTiming; g: AdminGroup }) {
+  const [open, setOpen] = useState(false);
+  if (!t.same) return null;
+  const { published, pending } = t.same;
+  const has = published.length > 0;
+  const what = `${g.attacker?.name} → ${g.target?.name}・${ATTACK_LABEL[t.attackType]}`;
+  return (
+    <div className={`same ${has ? "has" : "none"}`}>
+      <div className="same-h">
+        <span className="same-tag">{has ? `公開中にあり（${published.length}件）` : "公開中になし"}</span>
+        <span className="same-w">{what}</span>
+        {has && (
+          <button type="button" className="sbtn" onClick={() => setOpen((v) => !v)}>
+            {open ? "閉じる" : "中身を見る"}
+          </button>
+        )}
+      </div>
+      {pending > 0 && <div className="same-p">ほかの承認待ちにも、同じ組み合わせ・攻撃方法が {pending} 件あります</div>}
+      {open && (
+        <ul className="same-l">
+          {published.map((x, i) => (
+            <li key={i}>
+              {x.hidden && <span className="chip st-hidden">非公開</span>}
+              <span className="chip">目印：{CUE_LABEL[x.cueType] || "その他"}</span>
+              {formatCue(x.cueType, x.timingText)}
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
   );
 }

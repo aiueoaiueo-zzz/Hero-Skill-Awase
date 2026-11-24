@@ -1,6 +1,6 @@
 import { Hono } from "hono";
 import { LIMITS, type AttackType } from "../../shared/constants";
-import { codeSchema, entryInputSchema, uploadRequestSchema, withdrawSchema } from "../../shared/schema";
+import { codeSchema, entryInputSchema, ownerCheckSchema, uploadRequestSchema, withdrawSchema } from "../../shared/schema";
 import type { EntryResponse, FixSource, StatusPosterChange, StatusResponse, StatusTiming, UploadResponse } from "../../shared/types";
 import type { AppEnv } from "../env";
 import { parseInvincible, parseNgAttacks, toHero, type HeroRow } from "../lib/heroes";
@@ -93,7 +93,38 @@ type TimingRow = {
   video_key: string;
   status: string;
   hidden?: number;
+  submission_id: string;
+  credit_submission_id?: string | null;
 };
+
+/**
+ * 修正提案の元のタイミングを投稿した本人か（docs/DECISIONS.md BJ）。
+ * このブラウザに残っている受付番号と取り下げ用キーのどれかが、元の投稿（または今表示されている投稿者の投稿）と一致すれば本人。
+ */
+async function isOwner(db: D1Database, t: Pick<TimingRow, "submission_id" | "credit_submission_id">, items: { code: string; deleteKey: string }[] | undefined) {
+  if (!items?.length) return false;
+  const ids = [...new Set([t.submission_id, t.credit_submission_id].filter((x): x is string => !!x))];
+  const { results } = await db
+    .prepare(`SELECT code, delete_key_hash FROM submissions WHERE id IN (${ids.map(() => "?").join(",")})`)
+    .bind(...ids)
+    .all<{ code: string; delete_key_hash: string }>();
+  for (const r of results) {
+    const it = items.find((i) => i.code.toUpperCase() === r.code);
+    if (it && (await sha256Hex(it.deleteKey)) === r.delete_key_hash) return true;
+  }
+  return false;
+}
+
+/** 修正提案の画面：元のタイミングを投稿した本人か（本人なら一部の修正でよい） */
+submitRoutes.post("/timings/:id/owner", async (c) => {
+  const body = ownerCheckSchema.safeParse(await c.req.json().catch(() => null));
+  if (!body.success) return c.json({ error: "invalid_request" }, 400);
+  const t = await c.env.DB.prepare("SELECT submission_id, credit_submission_id FROM timings WHERE id = ? AND status = 'approved' AND hidden = 0")
+    .bind(c.req.param("id"))
+    .first<Pick<TimingRow, "submission_id" | "credit_submission_id">>();
+  if (!t) return c.json({ error: "not_found" }, 404);
+  return c.json({ owner: await isOwner(c.env.DB, t, body.data.items) });
+});
 
 /** 修正提案の元になる公開中のタイミング（承認済みのみ） */
 submitRoutes.get("/timings/:id", async (c) => {
@@ -158,6 +189,11 @@ submitRoutes.post("/entries", async (c) => {
       original.cue_type !== t.cueType
     )
       return c.json({ error: "invalid_fix" }, 400);
+    // 本人でなければ、合わせるタイミングと動画の両方を新しくすること（少しだけ直して投稿者名が変わるのを防ぐ。docs/DECISIONS.md BJ）
+    if (!(await isOwner(db, original, input.ownerItems))) {
+      const norm = (s: string) => s.replace(/\s+/g, "");
+      if (norm(t.timingText) === norm(original.timing_text) || t.videoKey === original.video_key) return c.json({ error: "fix_needs_full" }, 400);
+    }
   }
 
   // 動画：このアプリが発行した未使用のキーで、R2 に実在し、サイズが制限内であること

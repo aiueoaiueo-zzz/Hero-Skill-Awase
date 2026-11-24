@@ -32,6 +32,11 @@ export const xIdSchema = z
   .refine((s) => !s || X_ID_RE.test(s), { message: "X の ID は英数字と _ の 15 文字までで入力してください" })
   .transform((s) => s || null);
 
+/** このブラウザで投稿したもの（受付番号と取り下げ用キー）。修正提案で、元の投稿の本人か確かめるのに使う */
+const ownedItemsSchema = z
+  .array(z.object({ code: z.string().regex(/^HS-[A-Z0-9]{6}$/), deleteKey: z.string().min(1).max(128) }))
+  .max(200);
+
 export const entryInputSchema = z.object({
   attackerId: z.string().min(1).max(40),
   targetId: z.string().min(1).max(40),
@@ -39,6 +44,8 @@ export const entryInputSchema = z.object({
   nickname: xIdSchema,
   supportCode: optText(LIMITS.supportCode),
   replacesTimingId: z.string().max(40).nullish(),
+  /** 修正提案のとき：このブラウザで投稿したもの（本人なら一部の修正でよい。docs/DECISIONS.md BJ） */
+  ownerItems: ownedItemsSchema.optional(),
   timings: z.array(timingInputSchema).min(1).max(LIMITS.timingsPerSubmission),
   turnstileToken: z.string().max(4096).optional(),
   uploadTicket: z.string().max(64).optional(),
@@ -67,6 +74,7 @@ const ownedSchema = z
   .max(LIMITS.posterChangeItems);
 export const posterChangeSchema = z.object({ items: ownedSchema, nickname: xIdSchema, supportCode: optText(LIMITS.supportCode) });
 export const posterChangeWithdrawSchema = z.object({ items: ownedSchema });
+export const ownerCheckSchema = z.object({ items: ownedItemsSchema });
 export const codeSchema = z.string().regex(/^HS-[A-Z0-9]{6}$/);
 
 /** 管理：公開中のタイミングの内容を直す（動画はそのまま） */

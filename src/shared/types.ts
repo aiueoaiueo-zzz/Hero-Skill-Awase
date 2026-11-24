@@ -206,6 +206,11 @@ export type AdminTiming = {
   note: string | null;
   videoUrl: string | null;
   videoKey: string;
+  /**
+   * 承認待ちタブ：同じ組み合わせ・同じ攻撃方法で、すでにあるタイミング（重複に気づくため。docs/DECISIONS.md BI）。
+   * published：公開中（非公開を含む）のもの、pending：ほかの承認待ちの数
+   */
+  same?: { published: { cueType: import("./constants").CueType; timingText: string; hidden: boolean }[]; pending: number };
 };
 
 export type AdminGroup = {

@@ -6,13 +6,13 @@ import type { EntryResponse, FixSource, Hero, UploadResponse } from "../../share
 import { EntryCard } from "../components/EntryCard";
 import { Header } from "../components/Header";
 import { HeroPickButton, HeroPicker } from "../components/HeroPicker";
-import { newPoint, pointId, PointsEditor, type PointDraft } from "../components/PointsEditor";
+import { newPoint, pointId, PointsEditor, Tag, type PointDraft } from "../components/PointsEditor";
 import { X_ID_RE, normalizeXId } from "../../shared/ranking";
 import { Turnstile, type TurnstileHandle } from "../components/Turnstile";
 import { api, ApiError, useApi } from "../lib/api";
 import { useData } from "../lib/data";
 import { PROG, useBootFx } from "../lib/fx";
-import { addMy, loadNick, loadSup, saveNickSup } from "../lib/storage";
+import { addMy, loadMy, loadNick, loadSup, saveNickSup } from "../lib/storage";
 import { toast } from "../lib/ui";
 import { putWithProgress } from "../lib/video";
 import { keepScreenOn } from "../lib/wakelock";
@@ -26,6 +26,8 @@ type Draft = {
   nick: string;
   sup: string;
   fix: FixSource | null;
+  /** 修正提案のとき：元の投稿をしたのがこのブラウザか（本人なら一部の修正でよい。docs/DECISIONS.md BJ）。確認中は null */
+  fixOwner?: boolean | null;
   /** 送信の途中経過（再試行で使う） */
   upload: { ticket: string; items: { videoKey: string; url: string; headers: Record<string, string>; done: boolean }[] } | null;
 };
@@ -136,9 +138,20 @@ const ERRORS: Record<string, string> = {
   turnstile_failed: "ロボットではないことの確認に失敗しました。もう一度お試しください",
   video_not_accepting: "現在、動画の受付を停止しています",
   fix_target_not_found: "修正の対象が見つかりません（すでに変更された可能性があります）",
+  fix_needs_full: "タイミングと動画の両方を新しくしてください",
   upload_expired: "アップロードの有効期限が切れました。もう一度お試しください",
   attack_not_allowed: "この組み合わせでは合わせられない攻撃方法が含まれています。攻撃方法を選び直してください",
 };
+
+/**
+ * ほかの人の投稿の修正：修正前の内容（タイミング・備考・動画）は出さず、空の状態から入力する。
+ * キャラ・攻撃方法・目印は元のまま固定（docs/DECISIONS.md BJ）
+ */
+const asOthersFix = (d: Draft): Draft => ({
+  ...d,
+  fixOwner: false,
+  points: d.points.map((p) => ({ ...p, timingText: "", note: "", existing: null })),
+});
 
 /** 4. 投稿フォーム */
 export function Submit() {
@@ -183,6 +196,7 @@ export function Submit() {
         attackerId: f.attacker.id,
         targetId: f.target.id,
         fix: f,
+        fixOwner: null,
         points: [
           { id: pointId(), attackType: f.attackType, cueType: f.cueType, timingText: f.timingText, note: f.note ?? "", existing: { key: f.videoKey, url: f.videoUrl } },
         ],
@@ -195,6 +209,18 @@ export function Submit() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [draft, restored, fixId, fixRes.data, heroes, sp]);
 
+  // 修正提案：元の投稿をしたのがこのブラウザか確かめる（本人なら一部の修正でよい。docs/DECISIONS.md BJ）
+  const needOwner = !!draft?.fix && draft.fixOwner == null;
+  useEffect(() => {
+    if (!needOwner || !draft?.fix) return;
+    const mine = loadMy();
+    if (!mine.length) return setDraft((d) => asOthersFix(d));
+    api<{ owner: boolean }>(`/api/timings/${encodeURIComponent(draft.fix.id)}/owner`, { method: "POST", body: JSON.stringify({ items: mine.slice(0, 200) }) }).then(
+      (r) => setDraft((d) => (r.owner ? { ...d, fixOwner: true } : asOthersFix(d))),
+      () => setDraft((d) => asOthersFix(d)),
+    );
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [needOwner]);
   useBootFx(!!draft || !!fixRes.error);
   if (fixRes.error)
     return (
@@ -204,6 +230,7 @@ export function Submit() {
       </>
     );
   if (!draft) return <Header title={fixId ? "修正を提案" : "タイミングを投稿"} sub="ログイン不要・承認後に公開されます" prog={PROG.step1} />;
+  if (draft.fix && draft.fixOwner == null) return <Header title="修正を提案" sub="ログイン不要・承認後に公開されます" prog={PROG.step1} />;
   return draft.step === "preview" ? (
     <Preview draft={draft} setDraft={setDraft} heroes={heroes} onDone={clearDraft} />
   ) : (
@@ -241,6 +268,13 @@ function Edit({ draft, setDraft, heroes }: { draft: Draft; setDraft: SetDraft; h
     if (draft.points.some((p) => p.converting != null)) return toast("動画を軽くしています。完了までお待ちください");
     const nov = draft.points.findIndex((p) => !p.file && !p.existing);
     if (nov >= 0) return toast(accepting ? `タイミング${nov + 1}の動画を選択してください` : "現在、動画の受付を停止しています");
+    // ほかの人の投稿の修正は、合わせるタイミングと動画の両方を新しくする（docs/DECISIONS.md BJ）
+    if (fix && !draft.fixOwner) {
+      const p = draft.points[0];
+      const norm = (s: string) => s.replace(/\s+/g, "");
+      if (norm(p.timingText) === norm(fix.timingText)) return toast("合わせるタイミングを書き直してください");
+      if (!p.file) return toast("動画を新しく選んでください");
+    }
     const xid = normalizeXId(draft.nick);
     if (xid && !X_ID_RE.test(xid)) return toast("X の ID は英数字と _ の 15 文字までで入力してください");
     if (chars(draft.sup) > LIMITS.supportCode) return toast("応援コードは20文字以内です");
@@ -252,20 +286,19 @@ function Edit({ draft, setDraft, heroes }: { draft: Draft; setDraft: SetDraft; h
     <>
       <Header title={fix ? "修正を提案" : "タイミングを投稿"} sub="ログイン不要・承認後に公開されます" back={back} prog={PROG.step1} />
       <div className="f">
-        {fix && (
-          <div className="demo">
-            公開中のタイミングの修正案として申請します。攻撃方法と合わせる目印は変更できません。合わせるタイミング・備考・動画を修正してください。
-          </div>
-        )}
         {!accepting && <div className="demo">現在、動画の受付を停止しています（保存容量の上限）。しばらくしてからお試しください。</div>}
         <label className="h">
-          ① 攻撃する側（自分）のキャラ<em>必須</em>
+          ① 攻撃する側（自分）のキャラ{fix ? <Tag ok={false} /> : <em>必須</em>}
         </label>
-        <HeroPickButton hero={A} onClick={fix ? undefined : () => setPicker("a")} />
+        <div className={fix ? "lockg" : ""}>
+          <HeroPickButton hero={A} onClick={fix ? undefined : () => setPicker("a")} />
+        </div>
         <label className="h">
-          ② HSを使う側（相手）のキャラ<em>必須</em>
+          ② HSを使う側（相手）のキャラ{fix ? <Tag ok={false} /> : <em>必須</em>}
         </label>
-        <HeroPickButton hero={T} onClick={fix ? undefined : () => setPicker("t")} />
+        <div className={fix ? "lockg" : ""}>
+          <HeroPickButton hero={T} onClick={fix ? undefined : () => setPicker("t")} />
+        </div>
         {!fix && (
           <div className="hint" style={{ margin: "14px 0 8px" }}>
             合わせどころが複数ある場合は「＋ タイミングを追加」で増やせます。動画（必須）と備考はタイミングごとに付けます。
@@ -275,7 +308,7 @@ function Edit({ draft, setDraft, heroes }: { draft: Draft; setDraft: SetDraft; h
         <PointsEditor
           points={draft.points}
           update={(fn) => setDraft((d) => ({ ...d, points: fn(d.points), upload: null }))}
-          opts={{ upload: true, locked: !!fix, accepting, blocked }}
+          opts={{ upload: true, locked: !!fix, fixTags: !!fix, accepting, blocked }}
         />
         <label className="h" htmlFor="f-nick">
           X の ID（任意）
@@ -394,6 +427,7 @@ function Preview({ draft, setDraft, heroes, onDone }: { draft: Draft; setDraft: 
           nickname: normalizeXId(draft.nick) || null,
           supportCode: draft.sup,
           replacesTimingId: draft.fix?.id ?? null,
+          ...(draft.fix ? { ownerItems: loadMy().slice(0, 200) } : {}),
           timings: draft.points.map((p, i) => ({
             attackType: p.attackType,
             cueType: p.cueType,
