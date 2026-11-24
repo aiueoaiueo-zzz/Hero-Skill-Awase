@@ -768,3 +768,10 @@ img.av{object-fit:cover;background:#ddd}
 .same-l{list-style:none;margin:8px 0 0;padding:0}
 .same-l li{padding:6px 0;border-top:1px dotted var(--line);font-size:13px;line-height:1.5}
 .same-l .chip{margin-right:6px;font-size:11px}
+
+/* 修正提案の画面：「変更可」「変更不可」の印と、変更できない項目のグレー（docs/DECISIONS.md BJ） */
+.ftag{display:inline-block;margin-left:8px;font-size:11px;font-weight:900;padding:1px 8px;vertical-align:1px;border:1px solid}
+.ftag.ok{color:#1f7a44;border-color:#1f9d55;background:#e9f8ef}
+.ftag.ng{color:#666;border-color:#aaa;background:#eee}
+.lockg{filter:grayscale(1);opacity:.55;pointer-events:none}
+.lockg .pick,.lockg button{background:#eee!important}

@@ -6,7 +6,7 @@ import type { EntryResponse, FixSource, Hero, UploadResponse } from "../../share
 import { EntryCard } from "../components/EntryCard";
 import { Header } from "../components/Header";
 import { HeroPickButton, HeroPicker } from "../components/HeroPicker";
-import { newPoint, pointId, PointsEditor, type PointDraft } from "../components/PointsEditor";
+import { newPoint, pointId, PointsEditor, Tag, type PointDraft } from "../components/PointsEditor";
 import { X_ID_RE, normalizeXId } from "../../shared/ranking";
 import { Turnstile, type TurnstileHandle } from "../components/Turnstile";
 import { api, ApiError, useApi } from "../lib/api";
@@ -143,6 +143,16 @@ const ERRORS: Record<string, string> = {
   attack_not_allowed: "この組み合わせでは合わせられない攻撃方法が含まれています。攻撃方法を選び直してください",
 };
 
+/**
+ * ほかの人の投稿の修正：修正前の内容（タイミング・備考・動画）は出さず、空の状態から入力する。
+ * キャラ・攻撃方法・目印は元のまま固定（docs/DECISIONS.md BJ）
+ */
+const asOthersFix = (d: Draft): Draft => ({
+  ...d,
+  fixOwner: false,
+  points: d.points.map((p) => ({ ...p, timingText: "", note: "", existing: null })),
+});
+
 /** 4. 投稿フォーム */
 export function Submit() {
   const [sp] = useSearchParams();
@@ -204,10 +214,10 @@ export function Submit() {
   useEffect(() => {
     if (!needOwner || !draft?.fix) return;
     const mine = loadMy();
-    if (!mine.length) return setDraft((d) => ({ ...d, fixOwner: false }));
+    if (!mine.length) return setDraft((d) => asOthersFix(d));
     api<{ owner: boolean }>(`/api/timings/${encodeURIComponent(draft.fix.id)}/owner`, { method: "POST", body: JSON.stringify({ items: mine.slice(0, 200) }) }).then(
-      (r) => setDraft((d) => ({ ...d, fixOwner: r.owner })),
-      () => setDraft((d) => ({ ...d, fixOwner: false })),
+      (r) => setDraft((d) => (r.owner ? { ...d, fixOwner: true } : asOthersFix(d))),
+      () => setDraft((d) => asOthersFix(d)),
     );
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [needOwner]);
@@ -220,6 +230,7 @@ export function Submit() {
       </>
     );
   if (!draft) return <Header title={fixId ? "修正を提案" : "タイミングを投稿"} sub="ログイン不要・承認後に公開されます" prog={PROG.step1} />;
+  if (draft.fix && draft.fixOwner == null) return <Header title="修正を提案" sub="ログイン不要・承認後に公開されます" prog={PROG.step1} />;
   return draft.step === "preview" ? (
     <Preview draft={draft} setDraft={setDraft} heroes={heroes} onDone={clearDraft} />
   ) : (
@@ -275,25 +286,19 @@ function Edit({ draft, setDraft, heroes }: { draft: Draft; setDraft: SetDraft; h
     <>
       <Header title={fix ? "修正を提案" : "タイミングを投稿"} sub="ログイン不要・承認後に公開されます" back={back} prog={PROG.step1} />
       <div className="f">
-        {fix && (
-          <div className="demo">
-            公開中のタイミングの修正案として申請します。攻撃方法と合わせる目印は変更できません。
-            {draft.fixOwner === null
-              ? ""
-              : draft.fixOwner
-                ? "あなたの投稿なので、直したいところだけ修正できます。"
-                : "ほかの人の投稿の修正は、合わせるタイミングと動画の両方を新しくしてください（備考も必要に応じて書き直してください）。承認されると、投稿者名は提案した人になります。"}
-          </div>
-        )}
         {!accepting && <div className="demo">現在、動画の受付を停止しています（保存容量の上限）。しばらくしてからお試しください。</div>}
         <label className="h">
-          ① 攻撃する側（自分）のキャラ<em>必須</em>
+          ① 攻撃する側（自分）のキャラ{fix ? <Tag ok={false} /> : <em>必須</em>}
         </label>
-        <HeroPickButton hero={A} onClick={fix ? undefined : () => setPicker("a")} />
+        <div className={fix ? "lockg" : ""}>
+          <HeroPickButton hero={A} onClick={fix ? undefined : () => setPicker("a")} />
+        </div>
         <label className="h">
-          ② HSを使う側（相手）のキャラ<em>必須</em>
+          ② HSを使う側（相手）のキャラ{fix ? <Tag ok={false} /> : <em>必須</em>}
         </label>
-        <HeroPickButton hero={T} onClick={fix ? undefined : () => setPicker("t")} />
+        <div className={fix ? "lockg" : ""}>
+          <HeroPickButton hero={T} onClick={fix ? undefined : () => setPicker("t")} />
+        </div>
         {!fix && (
           <div className="hint" style={{ margin: "14px 0 8px" }}>
             合わせどころが複数ある場合は「＋ タイミングを追加」で増やせます。動画（必須）と備考はタイミングごとに付けます。
@@ -303,7 +308,7 @@ function Edit({ draft, setDraft, heroes }: { draft: Draft; setDraft: SetDraft; h
         <PointsEditor
           points={draft.points}
           update={(fn) => setDraft((d) => ({ ...d, points: fn(d.points), upload: null }))}
-          opts={{ upload: true, locked: !!fix, accepting, blocked }}
+          opts={{ upload: true, locked: !!fix, fixTags: !!fix, accepting, blocked }}
         />
         <label className="h" htmlFor="f-nick">
           X の ID（任意）

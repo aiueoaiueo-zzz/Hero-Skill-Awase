@@ -44,6 +44,8 @@ type Opts = {
   upload: boolean;
   /** 修正提案：攻撃方法と目印を変更できない／追加・削除なし */
   locked?: boolean;
+  /** 修正提案の画面：項目ごとに「変更可」「変更不可」の印を出し、変更できない項目をグレーにする（docs/DECISIONS.md BJ） */
+  fixTags?: boolean;
   /** 1 つだけ編集（編集して承認）：追加・削除なし */
   single?: boolean;
   /** 動画の受付中か（容量上限） */
@@ -115,9 +117,9 @@ export function PointsEditor({ points, update, opts }: { points: PointDraft[]; u
               )}
             </div>
             <label className="h" style={{ marginTop: 0 }}>
-              攻撃方法<em>必須</em>
+              攻撃方法{opts.fixTags ? <Tag ok={false} /> : <em>必須</em>}
             </label>
-            <div className="types atk">
+            <div className={`types atk ${opts.fixTags ? "lockg" : ""}`}>
               {ATTACK_TYPES.map(([k, l]) => (
                 <button
                   key={k}
@@ -133,9 +135,9 @@ export function PointsEditor({ points, update, opts }: { points: PointDraft[]; u
             </div>
             {ATTACK_NOTE[p.attackType] && <div className="hint">{ATTACK_NOTE[p.attackType]}</div>}
             <label className="h">
-              合わせる目印<em>必須</em>
+              合わせる目印{opts.fixTags ? <Tag ok={false} /> : <em>必須</em>}
             </label>
-            <div className="types">
+            <div className={`types ${opts.fixTags ? "lockg" : ""}`}>
               {CUE_TYPES.map(([k, l]) => (
                 <button key={k} type="button" className={k === p.cueType ? "on" : ""} disabled={opts.locked} onClick={() => patch(p.id, { cueType: k })}>
                   {l}
@@ -144,6 +146,7 @@ export function PointsEditor({ points, update, opts }: { points: PointDraft[]; u
             </div>
             <label className="h">
               合わせるタイミング<em>必須</em>
+              {opts.fixTags && <Tag ok />}
             </label>
             <input
               type="text"
@@ -153,7 +156,7 @@ export function PointsEditor({ points, update, opts }: { points: PointDraft[]; u
               placeholder={PLACEHOLDER[p.cueType]}
               onChange={(e) => patch(p.id, { timingText: e.target.value })}
             />
-            <label className="h">備考</label>
+            <label className="h">備考{opts.fixTags && <Tag ok />}</label>
             <textarea
               maxLength={LIMITS.note}
               style={{ minHeight: 64 }}
@@ -163,6 +166,7 @@ export function PointsEditor({ points, update, opts }: { points: PointDraft[]; u
             />
             <label className="h">
               動画{opts.upload && <em>必須</em>}
+              {opts.fixTags && <Tag ok />}
             </label>
             {/* 変換後のファイルでプレビュー（投稿される見た目のまま） */}
             {p.fileUrl ? (
@@ -244,3 +248,6 @@ export function PointsEditor({ points, update, opts }: { points: PointDraft[]; u
     </div>
   );
 }
+
+/** 修正提案の画面の「変更可」「変更不可」の印 */
+export const Tag = ({ ok }: { ok: boolean }) => <span className={`ftag ${ok ? "ok" : "ng"}`}>{ok ? "変更可" : "変更不可"}</span>;
