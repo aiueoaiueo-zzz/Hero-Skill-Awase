@@ -13,9 +13,11 @@ import { getSettings } from "../lib/settings";
 // 一般向け API：承認済み（status = 'approved'）のタイミングしか返さない（仕様 7-2）
 export const publicRoutes = new Hono<AppEnv>();
 
+// "/api" に付けたミドルウェアは /api 以下のすべて（管理画面の動画の配信も）に効くので、
+// すでに Cache-Control が付いている応答は上書きしない（docs/DECISIONS.md BH）
 publicRoutes.use("*", async (c, next) => {
   await next();
-  c.header("Cache-Control", "no-store");
+  if (!c.res.headers.has("Cache-Control")) c.header("Cache-Control", "no-store");
 });
 
 publicRoutes.get("/bootstrap", async (c) => {
