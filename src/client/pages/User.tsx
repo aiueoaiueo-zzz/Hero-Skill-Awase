@@ -135,7 +135,7 @@ export function User() {
               </button>
             )}
           </div>
-          <div className="pc-ladder">
+          <div className={`pc-ladder ${bi === BADGES.length - 1 ? "max" : ""}`}>
             <div className="ttl">
               <span>バッジ</span>
               <small>{bi === BADGES.length - 1 ? "最高ランク到達！" : bi >= 0 ? `次は「${BADGES[bi + 1].name}」（${BADGES[bi + 1].min}pt）` : `「${BADGES[0].name}」まであと少し`}</small>
