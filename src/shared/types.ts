@@ -69,7 +69,22 @@ export type Bootstrap = {
 };
 
 /** イベント（キャンペーン）。日付は日本時間の YYYY-MM-DD（両端を含む） */
-export type EventInfo = { id: string; name: string; startsOn: string; endsOn: string; goal: number | null };
+export type EventInfo = {
+  id: string;
+  name: string;
+  startsOn: string;
+  endsOn: string;
+  goal: number | null;
+  /** イベントのバッジ（docs/DECISIONS.md BM）。badgeName：バッジの名前の頭。tiers：上・中・下になるイベントの合わせポイント（以上） */
+  badgeName: string | null;
+  tiers: { low: number | null; mid: number | null; high: number | null };
+  /** バッジを確定した時刻（未確定は null）と、確定したバッジの数 */
+  finalizedAt: string | null;
+  badgeCount: number;
+};
+/** 確定したイベントのバッジ（投稿者ページ） */
+export type EventBadge = { label: string; kind: EventBadgeKind; eventName: string; endsOn: string };
+export type EventBadgeKind = "rank1" | "rank2" | "rank3" | "high" | "mid" | "low";
 /** 一般向け：開催中のイベントと進み具合（filled：イベント期間中に承認されたタイミングの数。docs/DECISIONS.md AZ） */
 export type PublicEvent = EventInfo & { filled: number };
 /** 今週のキャラのスケジュール 1 行 */
@@ -107,7 +122,9 @@ export type UserResponse = {
   rankTotal: number | null;
   rankMonth: number | null;
   /** イベント期間中のポイントと順位（イベント期間外は null） */
-  event: { name: string; points: number; rank: number | null } | null;
+  event: { name: string; points: number; rank: number | null; /** 今の段階で付くバッジ（バッジの設定があるときだけ） */ badge: { label: string; kind: EventBadgeKind } | null } | null;
+  /** 確定したイベントのバッジ（新しい順） */
+  eventBadges: EventBadge[];
   /** 今月のランキングを公開しているか */
   showMonth: boolean;
   /** ランキングがまだ始まっていない（人数が足りない） */

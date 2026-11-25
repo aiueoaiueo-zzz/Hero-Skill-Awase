@@ -104,6 +104,11 @@ export function User() {
                 <>
                   {data.event.name}：<b>{fmtPoints(data.event.points)}pt</b>
                   {data.event.rank && <>（{data.event.rank}位）</>}
+                  {data.event.badge && (
+                    <>
+                      {" "}今の段階 <span className={`evb ${data.event.badge.kind}`}>{data.event.badge.label}</span>
+                    </>
+                  )}
                 </>
               ) : (
                 <>
@@ -149,6 +154,20 @@ export function User() {
               ))}
             </div>
           </div>
+          {/* イベントで確定したバッジ（docs/DECISIONS.md BM） */}
+          {data.eventBadges.length > 0 && (
+            <>
+              <div className="sec">イベントバッジ</div>
+              <div className="pc-evb">
+                {data.eventBadges.map((b) => (
+                  <span key={b.eventName + b.endsOn} className={`evb ${b.kind}`} title={b.eventName}>
+                    {b.kind.startsWith("rank") ? "👑 " : "★ "}
+                    {b.label}
+                  </span>
+                ))}
+              </div>
+            </>
+          )}
           {heroes.length > 0 && (
             <>
               <div className="sec">マイヒーロー</div>

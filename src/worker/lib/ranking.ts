@@ -108,7 +108,7 @@ const topHero = (m: HeroCount): string | null => {
 };
 
 /** ポイントの多い順。同じポイントなら、先にそのポイントに届いた人が上 */
-function rank(users: UserScore[], key: "total" | "month" | "event"): RankRow[] {
+export function rank(users: UserScore[], key: "total" | "month" | "event"): RankRow[] {
   const at = key === "total" ? "totalAt" : key === "month" ? "monthAt" : "eventAt";
   return users
     .filter((u) => u[key] > 0)

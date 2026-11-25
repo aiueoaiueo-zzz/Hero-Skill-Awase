@@ -33,6 +33,20 @@ export const badgeFor = (points: number): string | null => {
   return b;
 };
 
+/** イベントのバッジ（docs/DECISIONS.md BM）：1〜3 位は順位のバッジ、それ以外はイベントの合わせポイントで上・中・下 */
+export type Tiers = { low: number | null; mid: number | null; high: number | null };
+export const EVENT_TIER_LABEL = { high: "上", mid: "中", low: "下" } as const;
+export function eventBadgeKind(rank: number | null, points: number, tiers: Tiers): "rank1" | "rank2" | "rank3" | "high" | "mid" | "low" | null {
+  if (points <= 0) return null;
+  if (rank === 1 || rank === 2 || rank === 3) return `rank${rank}`;
+  if (tiers.high != null && points >= tiers.high) return "high";
+  if (tiers.mid != null && points >= tiers.mid) return "mid";
+  if (tiers.low != null && points >= tiers.low) return "low";
+  return null;
+}
+export const eventBadgeLabel = (name: string, kind: "rank1" | "rank2" | "rank3" | "high" | "mid" | "low") =>
+  kind === "rank1" || kind === "rank2" || kind === "rank3" ? `${name}${kind.slice(4)}位` : `${name} ${EVENT_TIER_LABEL[kind]}`;
+
 /** ポイントの表示（0.5 刻み） */
 export const fmtPoints = (n: number) => (Number.isInteger(n) ? String(n) : n.toFixed(1));
 

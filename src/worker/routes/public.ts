@@ -1,7 +1,8 @@
 import { currentEvent } from "../lib/events";
+import { userEventBadges } from "../lib/event-badges";
 import { Hono } from "hono";
 import { PRIVATE_SETTING_KEYS } from "../../shared/constants";
-import { badgeFor, isXId, normalizeXId } from "../../shared/ranking";
+import { badgeFor, eventBadgeKind, eventBadgeLabel, isXId, normalizeXId, type Tiers } from "../../shared/ranking";
 import type { Bootstrap, PairResponse, PublicTiming, RankingResponse, TargetsResponse, UserResponse, UserTiming } from "../../shared/types";
 import type { AppEnv } from "../env";
 import { heroBySlug, listHeroes } from "../lib/heroes";
@@ -107,12 +108,19 @@ publicRoutes.get("/ranking", async (c) => {
   return c.json<RankingResponse>(r.view);
 });
 
+/** イベント期間中の「今の段階」で付くバッジ（バッジの設定がないイベントは null） */
+const nowBadge = (ev: { badgeName: string | null; tiers: Tiers }, points: number, rank: number | null) => {
+  if (!ev.badgeName) return null;
+  const kind = eventBadgeKind(rank, points, ev.tiers);
+  return kind ? { label: eventBadgeLabel(ev.badgeName, kind), kind } : null;
+};
+
 /** 投稿者のページ：その人のポイント・バッジ・順位と、投稿・修正した公開中の合わせ */
 publicRoutes.get("/users/:xid", async (c) => {
   const xid = normalizeXId(c.req.param("xid"));
   if (!isXId(xid)) return c.json({ error: "not_found" }, 404);
   const db = c.env.DB;
-  const [r, posts, fixes, heroes, codes] = await Promise.all([
+  const [r, posts, fixes, heroes, codes, eventBadges] = await Promise.all([
     rankingSummary(c.env),
     db
       .prepare(
@@ -142,6 +150,7 @@ publicRoutes.get("/users/:xid", async (c) => {
       )
       .bind(xid)
       .all<{ code: string }>(),
+    userEventBadges(c.env, xid),
   ]);
   const byId = new Map(heroes.map((h) => [h.id, h]));
   const timings: UserTiming[] = [
@@ -174,7 +183,8 @@ publicRoutes.get("/users/:xid", async (c) => {
     rankTotal: r.view.total ? (r.total.find((x) => x.xId.toLowerCase() === k)?.rank ?? null) : null,
     rankMonth: r.view.month ? (r.month.find((x) => x.xId.toLowerCase() === k)?.rank ?? null) : null,
     rankingActive: active,
-    event: r.event ? { name: r.event.info.name, points: u?.event ?? 0, rank: evRank } : null,
+    event: r.event ? { name: r.event.info.name, points: u?.event ?? 0, rank: evRank, badge: nowBadge(r.event.info, u?.event ?? 0, excluded ? null : (r.event.rows.find((x) => x.xId.toLowerCase() === k)?.rank ?? null)) } : null,
+    eventBadges,
     showMonth: r.show.month,
     excluded,
     // 複数の応援コードが見つかったときは出さない（どれが本人のものか分からないため）

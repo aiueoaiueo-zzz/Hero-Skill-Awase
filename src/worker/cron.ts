@@ -1,4 +1,5 @@
 import type { Env } from "./env";
+import { finalizeEndedEvents } from "./lib/event-badges";
 import { nowIso } from "./lib/ids";
 import { deleteMedia, recordStmt } from "./lib/storage";
 
@@ -15,6 +16,7 @@ export type MaintenanceReport = {
   ledgerFixed: number;
   expiredPending: number;
   totalBytes: number;
+  eventsFinalized: number;
 };
 
 async function listAll(bucket: R2Bucket) {
@@ -94,8 +96,11 @@ export async function runMaintenance(env: Env, now = Date.now()): Promise<Mainte
   // 6. 対応済みにしてから 90 日たったお問い合わせを削除する
   await db.prepare("DELETE FROM contacts WHERE status = 'done' AND done_at < ?").bind(new Date(now - 90 * 24 * HOUR).toISOString()).run();
 
+  // 終わったイベントのバッジを確定する（docs/DECISIONS.md BM）
+  const eventsFinalized = await finalizeEndedEvents(env, now);
+
   const total = await db.prepare("SELECT COALESCE(SUM(size), 0) AS n FROM media_objects").first<{ n: number }>();
-  const report: MaintenanceReport = { r2Objects: objects.length, deleted: garbage, ledgerFixed: fixes.length, expiredPending, totalBytes: total?.n ?? 0 };
+  const report: MaintenanceReport = { r2Objects: objects.length, deleted: garbage, ledgerFixed: fixes.length, expiredPending, totalBytes: total?.n ?? 0, eventsFinalized };
 
   // 最後に動いた日時と結果を記録する（データが 0 件でも、動いたことを確認できるように）
   await db

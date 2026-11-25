@@ -184,14 +184,28 @@ export const posterSchema = z.object({ nickname: xIdSchema });
 
 /** イベント・今週のキャラ（docs/DECISIONS.md AL）。日付は日本時間の YYYY-MM-DD */
 const dateSchema = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "日付は YYYY-MM-DD で入力してください");
+/** バッジの段階になるポイント（0.5 刻み。空は使わない） */
+const tierSchema = z.number().min(0.5).max(100000).multipleOf(0.5).nullable().optional();
 export const eventSchema = z
   .object({
     name: z.string().trim().min(1, "イベント名を入力してください").max(40),
     startsOn: dateSchema,
     endsOn: dateSchema,
     goal: z.number().int().min(1).max(100000).nullable().optional(),
+    // イベントのバッジ（docs/DECISIONS.md BM）。名前が空ならバッジは付けない
+    badgeName: z.string().trim().max(20).nullable().optional(),
+    tierLow: tierSchema,
+    tierMid: tierSchema,
+    tierHigh: tierSchema,
   })
-  .refine((v) => v.endsOn >= v.startsOn, { message: "終了日は開始日以降にしてください" });
+  .refine((v) => v.endsOn >= v.startsOn, { message: "終了日は開始日以降にしてください" })
+  .refine(
+    (v) => {
+      const t = [v.tierLow, v.tierMid, v.tierHigh].filter((x): x is number => x != null);
+      return t.every((x, i) => i === 0 || x > t[i - 1]);
+    },
+    { message: "バッジのポイントは 下 ＜ 中 ＜ 上 にしてください" },
+  );
 export const featuredSchema = z
   .object({ heroId: z.string().min(1), startsOn: dateSchema, endsOn: dateSchema })
   .refine((v) => v.endsOn >= v.startsOn, { message: "終了日は開始日以降にしてください" });
