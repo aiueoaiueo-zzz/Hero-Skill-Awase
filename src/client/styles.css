@@ -491,15 +491,7 @@ a.nick{color:#000;text-decoration:underline;text-underline-offset:2px}
 .rankbox .rb-bonus b{display:block;color:#c94f00;font-size:12px}
 .card{position:relative}
 .bonusmark{position:absolute;top:2px;left:2px;background:var(--accent);color:#000;font-size:9px;font-weight:800;padding:1px 4px;line-height:1.4;z-index:1}
-.userbox .ub-top{display:flex;align-items:center;justify-content:space-between;gap:8px}
-.userbox .ub-top a.sbtn{text-decoration:none;color:#000;display:inline-flex;align-items:center}
-.ub-stats{display:flex;gap:10px;margin:12px 0 0}
-.ub-stats>div{flex:1;border:1px solid var(--line);background:#fff;padding:8px 10px}
-.ub-stats dt{font-size:11px;color:var(--sub)}
-.ub-stats dd{margin:2px 0 0;font-family:"Chakra Petch",sans-serif;font-weight:700;font-size:20px;color:#000}
-.ub-stats dd small{font-family:"Zen Kaku Gothic New",sans-serif;font-size:12px;font-weight:700;margin-left:4px}
 a.entry.ulink{display:block;text-decoration:none;color:inherit}
-.userbox .ub-code{display:flex;align-items:center;gap:8px;margin-top:12px;font-size:12.5px;color:#000}
 
 /* 管理：キャラ管理（キャラ名の行をタップで開閉し、開くと編集カード） */
 .hrow{margin-bottom:6px}
@@ -775,3 +767,53 @@ img.av{object-fit:cover;background:#ddd}
 .ftag.ng{color:#666;border-color:#aaa;background:#eee}
 .lockg{filter:grayscale(1);opacity:.55;pointer-events:none}
 .lockg .pick,.lockg button{background:#eee!important}
+
+/* 投稿者のページ：名刺のようなプロフィールカード（docs/DECISIONS.md BK） */
+.pcard{margin:4px 0 16px;background:#ff6a00;border:1.5px solid #000;box-shadow:4px 4px 0 #000;position:relative;overflow:hidden;color:#fff}
+.pcard::after{content:"";position:absolute;right:-50px;top:-60px;width:220px;height:220px;border-radius:50%;pointer-events:none;
+  background:radial-gradient(rgba(255,255,255,.38) 1.7px,transparent 2.1px) 0 0/8px 8px;-webkit-mask:radial-gradient(circle,#000 25%,transparent 68%);mask:radial-gradient(circle,#000 25%,transparent 68%)}
+.pcard::before{content:"";position:absolute;left:-40px;bottom:40px;width:170px;height:170px;border-radius:50%;pointer-events:none;
+  background:radial-gradient(rgba(255,255,255,.3) 1.5px,transparent 1.9px) 0 0/8px 8px;-webkit-mask:radial-gradient(circle,#000 20%,transparent 66%);mask:radial-gradient(circle,#000 20%,transparent 66%)}
+.pc-top{position:relative;z-index:1;display:flex;align-items:center;gap:16px;padding:20px 18px 26px}
+.pc-ic{width:104px;height:104px;flex:none;border:1.5px solid #000;background:#fff;box-shadow:3px 3px 0 #000;overflow:hidden}
+.pc-ic .av{width:100%;height:100%;max-width:none;margin:0;border:0;border-radius:0;font-size:22px}
+.pc-nm{flex:1;min-width:0}
+.pc-lbl{font-family:"Chakra Petch",sans-serif;font-weight:700;font-size:10px;letter-spacing:.2em;opacity:.85}
+.pc-id{font-family:"Chakra Petch",sans-serif;font-weight:700;font-size:34px;line-height:1.15;white-space:nowrap;width:max-content;color:#fff;-webkit-text-stroke:3px #000;paint-order:stroke fill;text-shadow:2px 2px 0 #000}
+.pc-bdg{display:inline-flex;align-items:center;gap:6px;margin-top:8px;background:#000;color:#ffd84a;font-size:12.5px;font-weight:900;padding:3px 10px 3px 4px}
+.pc-bdg i{font-style:normal;background:#ffd84a;color:#000;width:18px;height:18px;display:grid;place-items:center;font-size:11px}
+.pc-bdg.none{color:#fff;padding:3px 10px}
+.pc-since{margin-top:9px;font-family:"Chakra Petch",sans-serif;font-weight:700;font-size:11px;letter-spacing:.08em;opacity:.9;border-top:1px dashed rgba(255,255,255,.6);padding-top:6px}
+.pc-no{position:absolute;right:12px;bottom:8px;font-family:"Chakra Petch",sans-serif;font-weight:700;font-size:9px;letter-spacing:.2em;opacity:.7}
+.pc-stats{position:relative;z-index:1;display:grid;grid-template-columns:repeat(3,1fr);background:#fff;color:#000;border-top:1.5px solid #000}
+.pc-stats>div{padding:10px 6px 9px;text-align:center;position:relative}
+.pc-stats>div+div::before{content:"";position:absolute;left:0;top:18%;bottom:18%;width:1px;background:#ddd}
+.pc-stats b{display:block;font-family:"Chakra Petch",sans-serif;font-weight:700;font-size:23px;line-height:1.1}
+.pc-stats b small{font-size:12px;margin-left:1px}
+.pc-stats .mid b{color:#ff6a00}
+.pc-stats span{font-size:10px;color:#777}
+.pc-sub{margin:-6px 0 14px;font-size:12px;color:#555;text-align:right}
+.pc-sub b{color:#000}
+.pc-acts{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:14px}
+.pc-btn{display:flex;align-items:center;justify-content:center;gap:5px;font-size:12.5px;font-weight:900;border:1.5px solid #000;box-shadow:2px 2px 0 #000;background:#fff;color:#000;padding:10px 6px;text-decoration:none;cursor:pointer;font-family:inherit}
+.pc-btn.dark{background:#000;color:#fff}
+.pc-btn.code{grid-column:1/-1;color:#c94f00}
+.pc-btn:active{transform:translate(2px,2px);box-shadow:none}
+.pc-ladder{background:#fff;border:1px solid #ddd;padding:12px 12px 10px;margin-bottom:4px}
+.pc-ladder .ttl{font-size:12px;margin-bottom:8px;display:flex;justify-content:space-between;gap:8px;font-weight:700}
+.pc-ladder .ttl small{color:#ff6a00;font-size:11px}
+.pc-ladder .steps{display:flex;gap:3px}
+.pc-ladder .steps div{flex:1;text-align:center;font-size:9.5px;color:#999}
+.pc-ladder .steps i{display:block;height:6px;background:#eee;margin-bottom:5px}
+.pc-ladder .steps .on i{background:#ff6a00}.pc-ladder .steps .on{color:#333}
+.pc-ladder .steps .now i{background:#000}.pc-ladder .steps .now{color:#000;font-weight:900}
+.pc-fav{display:flex;gap:10px}
+.pc-fav>div{flex:1;min-width:0;background:#fff;border:1px solid #ddd;border-left:4px solid var(--accent);padding:8px;display:flex;gap:10px;align-items:center;font-size:12px;font-weight:700}
+.pc-fav .av{width:38px;height:38px;border:1px solid #000;flex:none}
+.pc-fav b{display:block;font-family:"Chakra Petch",sans-serif;font-size:17px;line-height:1.1}
+.pc-fav b small{font-size:11px;font-family:"Zen Kaku Gothic New",sans-serif}
+.pc-mu{display:flex;align-items:center;gap:6px;font-size:13px}
+.pc-mu .av{width:28px;height:28px;border:1px solid #000;flex:none;font-size:9px}
+.pc-mu .ar{color:#ff6a00;font-size:11px;margin:0 2px}
+.pc-mu .dt{margin-left:auto;font-size:11px;color:#999;white-space:nowrap}
+.pc-meta{margin-top:7px;display:flex;gap:5px;flex-wrap:wrap}

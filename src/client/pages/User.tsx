@@ -1,128 +1,191 @@
+import { useLayoutEffect, useRef } from "react";
 import { Link, useParams } from "react-router";
 import { ATTACK_LABEL, CUE_LABEL } from "../../shared/constants";
-import { fmtPoints } from "../../shared/ranking";
-import type { UserResponse } from "../../shared/types";
+import { BADGES, fmtPoints } from "../../shared/ranking";
+import type { Hero, UserResponse } from "../../shared/types";
+import { Avatar } from "../components/Avatar";
 import { Header } from "../components/Header";
-import { SupportCodeButton } from "../components/SupportCode";
 import { useApi } from "../lib/api";
+import { useData } from "../lib/data";
 import { PROG, useBootFx } from "../lib/fx";
-import { fmtDate } from "../lib/ui";
+import { openShare } from "../lib/share";
+import { copyText, fmtDate } from "../lib/ui";
 
-/** 投稿者のページ（バッジ・合わせポイント・順位と、その人の公開中の合わせ） */
+/** 投稿者のページ：名刺のようなプロフィールカード・バッジ・マイヒーローと、その人の公開中の合わせ（docs/DECISIONS.md BK） */
 export function User() {
   const { xid = "" } = useParams();
-  const { data, error } = useApi<UserResponse>(
-    `/api/users/${encodeURIComponent(xid)}`,
-  );
+  const { data, error } = useApi<UserResponse>(`/api/users/${encodeURIComponent(xid)}`);
+  const { publicAppUrl } = useData();
   useBootFx(!!data || !!error);
+
+  // マイヒーロー：攻撃側に選んだ回数が多い順（同じ数なら新しく使ったほう）
+  const heroes: { h: Hero; n: number; at: string }[] = [];
+  for (const t of data?.timings ?? []) {
+    const e = heroes.find((x) => x.h.id === t.attacker.id);
+    if (e) {
+      e.n++;
+      if (t.at > e.at) e.at = t.at;
+    } else heroes.push({ h: t.attacker, n: 1, at: t.at });
+  }
+  heroes.sort((a, b) => b.n - a.n || (a.at < b.at ? 1 : -1));
+  const posts = (data?.timings ?? []).filter((t) => t.kind === "post").length;
+  const fixes = (data?.timings.length ?? 0) - posts;
+  const since = (data?.timings ?? []).map((t) => t.at).sort()[0];
+  const bi = data?.badge ? BADGES.findIndex((b) => b.name === data.badge) : -1;
+  const pageUrl = `${publicAppUrl.replace(/\/+$/, "")}/u/${encodeURIComponent(data?.xId ?? xid)}`;
+
+  // 長い X の ID は、カードからはみ出さない大きさまで縮める
+  const idRef = useRef<HTMLDivElement>(null);
+  useLayoutEffect(() => {
+    const e = idRef.current;
+    if (!e) return;
+    e.style.fontSize = "";
+    const w = e.parentElement!.clientWidth - 8;
+    let f = parseFloat(getComputedStyle(e).fontSize);
+    while (e.scrollWidth > w && f > 15) e.style.fontSize = `${--f}px`;
+  }, [data]);
+
   return (
     <>
-      <Header
-        title={`@${data?.xId ?? xid}`}
-        sub="投稿者のページ"
-        back="/ranking"
-        prog={PROG.other}
-      />
-      {error && (
-        <div className="empty">
-          {error.status === 404
-            ? "この投稿者の公開中の合わせはありません"
-            : "読み込みに失敗しました"}
-        </div>
-      )}
+      <Header title={`@${data?.xId ?? xid}`} sub="投稿者のページ" back="/ranking" prog={PROG.other} />
+      {error && <div className="empty">{error.status === 404 ? "この投稿者の公開中の合わせはありません" : "読み込みに失敗しました"}</div>}
       {data && (
         <>
-          <div className="box userbox">
-            <div className="ub-top">
-              {data.badge ? (
-                <span className="badge big">{data.badge}</span>
-              ) : (
-                <span className="sub">バッジなし</span>
-              )}
-              <a
-                className="sbtn"
-                href={`https://x.com/${data.xId}`}
-                target="_blank"
-                rel="noopener noreferrer"
-              >
-                X のプロフィール ↗
-              </a>
+          <div className="pcard">
+            <div className="pc-top">
+              <div className="pc-ic">{heroes[0] ? <Avatar hero={heroes[0].h} /> : <div className="av">?</div>}</div>
+              <div className="pc-nm">
+                <div className="pc-lbl">HS AWASE PLAYER</div>
+                <div className="pc-id" ref={idRef}>
+                  @{data.xId}
+                </div>
+                {data.badge ? (
+                  <div className="pc-bdg">
+                    <i>★</i>
+                    {data.badge}
+                  </div>
+                ) : (
+                  <div className="pc-bdg none">バッジなし</div>
+                )}
+                {since && <div className="pc-since">SINCE {since.slice(0, 10).replace(/-/g, ".")}</div>}
+              </div>
+              <span className="pc-no">HIROAPP PLAYER CARD</span>
             </div>
-            {/* ランキングの対象外の人も、バッジと合わせポイントは出す（順位は出ない） */}
-            <dl className="ub-stats">
+            {/* ランキングの対象外の人も、合わせポイントと件数は出す（順位は「−」） */}
+            <div className="pc-stats">
               <div>
-                <dt>累計</dt>
-                <dd>
-                  {fmtPoints(data.total)}pt
-                  {data.rankTotal && <small>（{data.rankTotal}位）</small>}
-                </dd>
+                <b>
+                  {fmtPoints(data.total)}
+                  <small>pt</small>
+                </b>
+                <span>合わせポイント</span>
               </div>
-              {data.event && (
-                <div>
-                  <dt>{data.event.name}</dt>
-                  <dd>
-                    {fmtPoints(data.event.points)}pt
-                    {data.event.rank && <small>（{data.event.rank}位）</small>}
-                  </dd>
-                </div>
+              <div className="mid">
+                <b>
+                  {data.rankTotal ?? "−"}
+                  {data.rankTotal && <small>位</small>}
+                </b>
+                <span>累計ランキング</span>
+              </div>
+              <div>
+                <b>
+                  {data.timings.length}
+                  <small>件</small>
+                </b>
+                <span>
+                  投稿{posts}・修正{fixes}
+                </span>
+              </div>
+            </div>
+          </div>
+          {(data.event || (data.showMonth && data.rankMonth)) && (
+            <div className="pc-sub">
+              {data.event ? (
+                <>
+                  {data.event.name}：<b>{fmtPoints(data.event.points)}pt</b>
+                  {data.event.rank && <>（{data.event.rank}位）</>}
+                </>
+              ) : (
+                <>
+                  今月：<b>{fmtPoints(data.month)}pt</b>（{data.rankMonth}位）
+                </>
               )}
-              {data.showMonth && !data.event && (
-                <div>
-                  <dt>今月</dt>
-                  <dd>
-                    {fmtPoints(data.month)}pt
-                    {data.rankMonth && <small>（{data.rankMonth}位）</small>}
-                  </dd>
-                </div>
-              )}
-            </dl>
+            </div>
+          )}
+          <div className="pc-acts">
+            <a className="pc-btn" href={`https://x.com/${data.xId}`} target="_blank" rel="noopener noreferrer">
+              𝕏 プロフィール ↗
+            </a>
+            <button
+              type="button"
+              className="pc-btn dark"
+              onClick={() =>
+                openShare({
+                  title: `#${data.xId} の投稿者ページ｜ヒロアプ`,
+                  text: `#${data.xId} の HS合わせ\n合わせポイント ${fmtPoints(data.total)}pt${data.rankTotal ? `・累計 ${data.rankTotal}位` : ""}${data.badge ? `・${data.badge}` : ""}\n\n#ヒロアプ #HS合わせ #コンパス`,
+                  url: pageUrl,
+                })
+              }
+            >
+              𝕏 このページを共有
+            </button>
             {data.supportCode && (
-              <div className="ub-code">
-                <SupportCodeButton code={data.supportCode} />
-              </div>
+              <button type="button" className="pc-btn code" onClick={() => copyText(data.supportCode!, "応援コードをコピーしました")}>
+                応援コード {data.supportCode} 📋
+              </button>
             )}
           </div>
+          <div className="pc-ladder">
+            <div className="ttl">
+              <span>バッジ</span>
+              <small>{bi === BADGES.length - 1 ? "最高ランク到達！" : bi >= 0 ? `次は「${BADGES[bi + 1].name}」（${BADGES[bi + 1].min}pt）` : `「${BADGES[0].name}」まであと少し`}</small>
+            </div>
+            <div className="steps">
+              {BADGES.map((b, i) => (
+                <div key={b.name} className={`${i <= bi ? "on" : ""} ${i === bi ? "now" : ""}`}>
+                  <i />
+                  {b.name}
+                </div>
+              ))}
+            </div>
+          </div>
+          {heroes.length > 0 && (
+            <>
+              <div className="sec">マイヒーロー</div>
+              <div className="pc-fav">
+                {heroes.slice(0, 2).map((f) => (
+                  <div key={f.h.id}>
+                    <Avatar hero={f.h} />
+                    <span>
+                      {f.h.name}
+                      <b>
+                        {f.n}
+                        <small>件</small>
+                      </b>
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </>
+          )}
           <div className="sec">公開中の合わせ（{data.timings.length} 件）</div>
           {data.timings.map((t) => (
-            <Link
-              key={t.kind + t.id}
-              className="entry ulink"
-              to={`/h/${t.attacker.slug}/${t.target.slug}#t-${t.id}`}
-            >
-              <div
-                style={{
-                  display: "flex",
-                  gap: 6,
-                  alignItems: "center",
-                  flexWrap: "wrap",
-                }}
-              >
-                <span
-                  className={`chip ${t.kind === "fix" ? "st-merged" : "st-approved"}`}
-                >
-                  {t.kind === "fix" ? "修正" : "投稿"}
-                </span>
-                <b style={{ fontSize: 13 }}>
-                  {t.attacker.name} → {t.target.name}
-                </b>
-                <span
-                  style={{
-                    marginLeft: "auto",
-                    fontSize: 11.5,
-                    color: "var(--sub)",
-                  }}
-                >
-                  {fmtDate(t.at)}
-                </span>
+            <Link key={t.kind + t.id} className="entry ulink" to={`/h/${t.attacker.slug}/${t.target.slug}#t-${t.id}`}>
+              <div className="pc-mu">
+                <Avatar hero={t.attacker} />
+                <b>{t.attacker.name}</b>
+                <span className="ar">▶</span>
+                <Avatar hero={t.target} />
+                <b>{t.target.name}</b>
+                <span className="dt">{fmtDate(t.at)}</span>
               </div>
-              <div className="tim" style={{ marginTop: 6 }}>
+              <div className="tim" style={{ marginTop: 8 }}>
                 {t.timingText}
               </div>
-              <div
-                style={{ fontSize: 11.5, color: "var(--sub)", marginTop: 4 }}
-              >
-                攻撃方法：{ATTACK_LABEL[t.attackType]}／目印：
-                {CUE_LABEL[t.cueType]}
+              <div className="pc-meta">
+                <span className="chip atk">⚔ {ATTACK_LABEL[t.attackType]}</span>
+                <span className="chip">目印：{CUE_LABEL[t.cueType]}</span>
+                {t.kind === "fix" && <span className="chip st-merged">修正</span>}
               </div>
             </Link>
           ))}
