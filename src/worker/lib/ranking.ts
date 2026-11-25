@@ -1,4 +1,4 @@
-import { POINTS, RANKING_MIN_USERS, RANKING_TOP, badgeFor, isXId, jstMonthStart, normalizeXId } from "../../shared/ranking";
+import { FEATURED_BONUS, POINTS, RANKING_MIN_USERS, RANKING_TOP, badgeFor, isXId, jstMonthStart, normalizeXId } from "../../shared/ranking";
 import type { RankingResponse } from "../../shared/types";
 import type { Env } from "../env";
 import { currentEvent, todayJst } from "./events";
@@ -30,18 +30,18 @@ async function excludedIds(env: Env) {
 /** 全員のポイント（対象外の ID も含む。バッジは全員に付け、ランキングでだけ対象外の ID を除く） */
 export async function computeScores(env: Env, now = Date.now(), win: Window | null = null) {
   const db = env.DB;
-  const [excluded, posts, fixes] = await Promise.all([
+  const [excluded, posts, fixes, featured] = await Promise.all([
     excludedIds(env),
     // 1. 公開中のタイミング（投稿した人に 1、修正提案で置き換えられたものは 0.5）
     db
       .prepare(
-        `SELECT t.id, s.nickname AS x, t.reviewed_at AS at, t.attacker_id AS a, t.target_id AS t,
+        `SELECT t.id, s.nickname AS x, t.reviewed_at AS at, s.created_at AS posted, t.attacker_id AS a, t.target_id AS t,
                 EXISTS (SELECT 1 FROM submissions fs JOIN timings f ON f.submission_id = fs.id WHERE fs.replaces_timing_id = t.id AND f.status = 'merged') AS fixed
            FROM timings t JOIN submissions s ON s.id = t.submission_id
           WHERE t.status = 'approved' AND t.hidden = 0 AND t.reviewed_at IS NOT NULL
           ORDER BY t.reviewed_at, t.position, t.id`,
       )
-      .all<{ id: string; x: string | null; at: string; a: string; t: string; fixed: number }>(),
+      .all<{ id: string; x: string | null; at: string; posted: string; a: string; t: string; fixed: number }>(),
     // 2. 承認された修正提案（修正した人に 0.5。元のタイミングが公開中のものだけ）
     db
       .prepare(
@@ -50,10 +50,19 @@ export async function computeScores(env: Env, now = Date.now(), win: Window | nu
           WHERE f.status = 'merged' AND t.status = 'approved' AND t.hidden = 0 AND f.reviewed_at IS NOT NULL`,
       )
       .all<{ x: string | null; at: string }>(),
+    // 3. 今週のキャラ（イベントのポイントの加点に使う。イベントが無いときは読まない）
+    win
+      ? db.prepare("SELECT hero_id AS h, starts_on AS s, ends_on AS e FROM featured_heroes").all<{ h: string; s: string; e: string }>()
+      : Promise.resolve({ results: [] as { h: string; s: string; e: string }[] }),
   ]);
+  // 投稿した日（日本時間）に、攻撃側か相手側のキャラが今週のキャラだったか
+  const isFeatured = (posted: string, a: string, t: string) => {
+    const day = new Date(Date.parse(posted) + JST).toISOString().slice(0, 10);
+    return featured.results.some((f) => (f.h === a || f.h === t) && f.s <= day && day <= f.e);
+  };
   const monthStart = jstMonthStart(now);
   const users = new Map<string, UserScore>();
-  const add = (raw: string | null, at: string, pt: number, hero?: string) => {
+  const add = (raw: string | null, at: string, pt: number, hero?: string, eventBonus = 0) => {
     // 古い投稿で @ 付きのまま保存された ID も同じ人として数える
     const x = normalizeXId(raw);
     if (!isXId(x)) return;
@@ -71,7 +80,7 @@ export async function computeScores(env: Env, now = Date.now(), win: Window | nu
     }
     // イベント期間中に承認されたもの（ポイントの付け方は累計と同じ）
     if (win && Date.parse(at) >= win.start && Date.parse(at) < win.end) {
-      u.event += pt;
+      u.event += pt + eventBonus;
       count(u.heroes.event);
       if (at > u.eventAt) u.eventAt = at;
     }
@@ -83,7 +92,7 @@ export async function computeScores(env: Env, now = Date.now(), win: Window | nu
     const key = `${p.a}|${p.t}`;
     const first = !seen.has(key);
     seen.add(key);
-    add(p.x, p.at, (p.fixed ? POINTS.postFixed : POINTS.post) + (first ? POINTS.firstPair : 0), p.a);
+    add(p.x, p.at, (p.fixed ? POINTS.postFixed : POINTS.post) + (first ? POINTS.firstPair : 0), p.a, isFeatured(p.posted, p.a, p.t) ? FEATURED_BONUS : 0);
   }
   for (const f of fixes.results) add(f.x, f.at, POINTS.fix);
   return { users, excluded };

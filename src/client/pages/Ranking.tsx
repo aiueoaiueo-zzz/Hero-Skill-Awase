@@ -1,5 +1,5 @@
 import { useNavigate } from "react-router";
-import { BADGES } from "../../shared/ranking";
+import { BADGES, FEATURED_BONUS } from "../../shared/ranking";
 import type { RankingResponse } from "../../shared/types";
 import { Header } from "../components/Header";
 import { NotYet, Podium } from "../components/RankBits";
@@ -54,6 +54,7 @@ export function Ranking() {
             <p className="bt">ランキング参加にあたっての注意事項</p>
             <ul>
               <li>X の ID はご自身のもののみ入力してください</li>
+              {data.mode === "event" && <li>イベント期間中は、今週のキャラが関わる合わせ（その週に投稿したもの）が承認されると、イベントのポイントが {FEATURED_BONUS}pt 増えます</li>}
               <li>投稿する動画は、ご自身で撮影したもの、または撮影者（友人・知人）の許可を得たもののみにしてください</li>
             </ul>
           </div>

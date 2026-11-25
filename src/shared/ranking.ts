@@ -16,6 +16,8 @@ export const RANKING_TOP = 10;
 
 /** ポイント（firstPair：まだ投稿がなかった組み合わせで最初に承認された投稿に、通常の分に加えて） */
 export const POINTS = { post: 1, postFixed: 0.5, fix: 0.5, firstPair: 0.5 } as const;
+/** イベントのポイントだけに足す：今週のキャラが攻撃側か相手側にいる合わせを、そのキャラの週に投稿して、イベント期間中に承認されたもの */
+export const FEATURED_BONUS = 0.5;
 
 /** バッジ（累計ポイントで決まる。下から順に） */
 export const BADGES = [
