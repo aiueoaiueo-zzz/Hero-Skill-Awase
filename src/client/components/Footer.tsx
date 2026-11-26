@@ -23,7 +23,9 @@ export function Footer() {
         ))}
       </ul>
       <nav className="flinks">
-        <Link to="/ranking">ランキング</Link>
+        {/* ランキングは画面の上から行けるので、フッターには置かない（docs/DECISIONS.md BR） */}
+        <Link to="/status">審査状況</Link>
+        <Link to="/operator">運営者情報</Link>
         <Link to="/terms">注意事項・プライバシー</Link>
         <Link to="/contact">お問い合わせ・ご要望</Link>
       </nav>
