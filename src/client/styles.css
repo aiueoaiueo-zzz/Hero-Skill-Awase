@@ -846,3 +846,5 @@ img.av{object-fit:cover;background:#ddd}
 .evdates.ev3{grid-template-columns:repeat(3,1fr)}
 /* イベント期間中の合わせ賞のゲージ（docs/DECISIONS.md BN） */
 .pc-ladder.ev .steps div{font-size:10.5px}
+.pc-ladder.ev .ttl{align-items:baseline;flex-wrap:wrap}
+.pc-ladder.ev .ttl span{min-width:0}

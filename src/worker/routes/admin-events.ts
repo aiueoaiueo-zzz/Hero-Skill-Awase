@@ -41,6 +41,9 @@ adminEventRoutes.post("/:id/finalize", async (c) => {
 });
 
 adminEventRoutes.delete("/:id", async (c) => {
+  // バッジを配ったイベントは消さない（event_badges が一緒に消え、もらった人のバッジがなくなるため。docs/DECISIONS.md BM）
+  const has = await c.env.DB.prepare("SELECT 1 FROM event_badges WHERE event_id = ? LIMIT 1").bind(c.req.param("id")).first();
+  if (has) return c.json({ error: "has_badges" }, 409);
   await c.env.DB.prepare("DELETE FROM events WHERE id = ?").bind(c.req.param("id")).run();
   return c.json(await listEvents(c.env));
 });

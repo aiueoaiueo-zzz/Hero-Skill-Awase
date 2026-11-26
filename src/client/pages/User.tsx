@@ -39,7 +39,8 @@ export function User() {
     ? (["low", "mid", "high"] as const).filter((k) => ev.tiers[k] != null).map((k) => ({ kind: k, name: EVENT_TIER_LABEL[k], min: ev.tiers[k]!, stars: EVENT_TIER_STARS[k] }))
     : [];
   const ei = ev ? evTiers.reduce((n, t, i) => (ev.points >= t.min ? i : n), -1) : -1;
-  const evRankNow = ev?.badge?.kind.startsWith("rank") ? Number(ev.badge.kind.slice(4)) : null;
+  // 「今は ○位！」は、名刺の順位と同じく、イベントランキングが公開されているときだけ
+  const evRankNow = ev?.rank && ev.rank <= 3 ? ev.rank : null;
   const pageUrl = `${publicAppUrl.replace(/\/+$/, "")}/u/${encodeURIComponent(data?.xId ?? xid)}`;
 
   // 長い X の ID は、カードからはみ出さない大きさまで縮める
@@ -138,7 +139,7 @@ export function User() {
           {ev && evTiers.length > 0 ? (
             <div className={`pc-ladder ev ${ei === evTiers.length - 1 ? "max" : ""}`}>
               <div className="ttl">
-                <span>イベントバッジ</span>
+                <span>{ev.name}</span>
                 <small>
                   {evRankNow
                     ? `今は ${evRankNow}位！ 上位 3人は特別なバッジ`

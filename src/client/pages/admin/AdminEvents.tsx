@@ -23,6 +23,7 @@ const stateOf = (s: string, e: string) => {
   return t < s ? { label: "予定", cls: "plan" } : t > e ? { label: "終了", cls: "done" } : { label: "表示中", cls: "live" };
 };
 const errText = (e: unknown) =>
+  e instanceof ApiError && e.status === 409 ? "バッジを配ったイベントは削除できません（もらった人のバッジが消えるため）" :
   e instanceof ApiError ? (e.status === 400 ? "入力内容を確認してください（日付・終了日は開始日以降）" : "保存できませんでした") : "保存できませんでした";
 
 /** 管理：イベント（期間・目標）と今週のキャラのスケジュール（docs/DECISIONS.md AL） */
