@@ -140,7 +140,7 @@ export async function rankingSummary(env: Env, now = Date.now()) {
     show: { total: show.total, month: show.month },
     total: !eventMode && show.total ? top(total) : null,
     month: !eventMode && show.month ? top(month) : null,
-    event: eventMode && event ? { name: event.name, startsOn: event.startsOn, endsOn: event.endsOn, rows: top(ev) } : null,
+    event: eventMode && event ? { name: event.name, startsOn: event.startsOn, endsOn: event.endsOn, rows: top(ev), badgeName: event.badgeName, tiers: event.tiers } : null,
   };
   return { total, month, event: eventMode && event ? { info: event, rows: ev } : null, show, users, excluded, view };
 }

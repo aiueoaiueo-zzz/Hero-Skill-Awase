@@ -21,10 +21,11 @@ export function EventBox() {
     <section className="evbox" aria-label="開催中のイベント">
       {event && (
         <div className="evtop">
-          <span className="evlive">
-            開催中<small>〜{md(event.endsOn)}</small>
-          </span>
+          <span className="evlive">開催中</span>
           <b className="evname">{event.name}</b>
+          <span className="evdate">
+            {md(event.startsOn)}〜{md(event.endsOn)}
+          </span>
         </div>
       )}
       {event && (

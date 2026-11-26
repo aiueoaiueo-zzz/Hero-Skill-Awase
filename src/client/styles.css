@@ -871,3 +871,10 @@ img.av{object-fit:cover;background:#ddd}
 .evhint{font-size:11px;line-height:1.4}
 .evlive small{font-size:10px;font-weight:700;margin-left:5px;opacity:.95}
 .evhint{font-size:10.5px;letter-spacing:-.01em}
+/* 開催中の札の横に名前、その下に期間。今週のキャラはアイコンを少し大きく、期間は右寄せ */
+.evtop .evdate{flex-basis:100%;margin-left:0;font-size:11.5px}
+.evhero .av{width:40px;height:40px;font-size:11px}
+.evhero span{flex:1;justify-content:space-between}
+.evhero small{margin-left:auto;text-align:right}
+.badges li .evb{min-width:162px;justify-content:center;margin-right:8px;box-shadow:2px 2px 0 #000}
+.badges li:has(.evb){display:flex;align-items:center;margin-bottom:6px}

@@ -110,7 +110,15 @@ export type RankingResponse = {
   total: RankRow[] | null;
   month: RankRow[] | null;
   /** イベント期間中だけ（rows は人数が足りないうちは null） */
-  event: { name: string; startsOn: string; endsOn: string; rows: RankRow[] | null } | null;
+  event: {
+    name: string;
+    startsOn: string;
+    endsOn: string;
+    rows: RankRow[] | null;
+    /** 合わせ賞（バッジの種類の説明用。バッジの名前がないイベントは null） */
+    badgeName: string | null;
+    tiers: { low: number | null; mid: number | null; high: number | null };
+  } | null;
 };
 export type UserTiming = {
   id: string;
