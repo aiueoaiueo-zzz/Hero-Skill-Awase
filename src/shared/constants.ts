@@ -75,7 +75,7 @@ export type ContactKind = (typeof CONTACT_KINDS)[number][0];
 export const CONTACT_KIND_LABEL = Object.fromEntries(CONTACT_KINDS) as Record<ContactKind, string>;
 export const CONTACT_LIMITS = { ref: 300, bodyMin: 5, body: 2000, replyTo: 200 } as const;
 
-export const SETTING_KEYS = ["owner_support_code", "notices", "about", "terms", "ranking_excluded", "ranking_show_total", "ranking_show_month", "ranking_show_event"] as const;
+export const SETTING_KEYS = ["owner_support_code", "notices", "about", "terms", "operator_name", "operator_x", "operator", "ranking_excluded", "ranking_show_total", "ranking_show_month", "ranking_show_event"] as const;
 /** 一般向けには返さない設定 */
 export const PRIVATE_SETTING_KEYS: readonly SettingKey[] = ["ranking_excluded"];
 export type SettingKey = (typeof SETTING_KEYS)[number];
@@ -87,6 +87,14 @@ export const DEFAULT_NOTICES = [
 ].join("\n");
 
 /** 「注意事項・プライバシー」のページ（/terms） */
+/** 運営者情報のページの本文（docs/DECISIONS.md BR） */
+export const DEFAULT_OPERATOR = `## このアプリについて
+- 「#コンパス 戦闘摂理解析システム」の**非公式のファンメイドツール**です。公式とは一切関係ありません。
+- 個人で運営しています。収益を目的としておらず、広告や有料の機能はありません。
+
+## ご連絡
+- 不具合のご報告・ご要望・投稿の削除の依頼・権利者の方からのご連絡は、「お問い合わせ」からお送りください。`;
+
 export const DEFAULT_TERMS = `HS合わせ投稿Webアプリ（ヒロアプ）（以下「本アプリ」）をご利用いただく前に、以下をお読みください。
 
 ## 本アプリについて
@@ -172,6 +180,9 @@ export const DEFAULT_SETTINGS: Record<SettingKey, string> = {
   notices: DEFAULT_NOTICES,
   about: DEFAULT_ABOUT,
   terms: DEFAULT_TERMS,
+  operator_name: "お芋",
+  operator_x: "HELLO_OIMO_",
+  operator: DEFAULT_OPERATOR,
   ranking_excluded: "",
   // ランキングの公開・非公開（"1"：公開／"0"：非公開。docs/DECISIONS.md AM）
   ranking_show_total: "1",
