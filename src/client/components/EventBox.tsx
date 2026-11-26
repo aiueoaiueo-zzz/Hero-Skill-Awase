@@ -15,20 +15,31 @@ export function EventBox() {
   const feat = featured.map((f) => ({ ...f, hero: heroes.find((h) => h.id === f.heroId) })).filter((f) => f.hero);
   if (!event && !feat.length) return null;
   const pct = event?.goal ? Math.min(100, Math.round((event.filled / event.goal) * 100)) : null;
+  // 目標に届いたら「目標達成！」。そのあとも集まった数は増えていく（docs/DECISIONS.md BP）
+  const done = !!event?.goal && event.filled >= event.goal;
   return (
     <section className="evbox" aria-label="開催中のイベント">
       {event && (
         <div className="evtop">
           <span className="evlive">開催中</span>
           <b className="evname">{event.name}</b>
-          <span className="evdate">〜{md(event.endsOn)}</span>
+          <span className="evdate">
+            {md(event.startsOn)}〜{md(event.endsOn)}
+          </span>
         </div>
       )}
       {event && (
-        <div className="evprog">
+        <div className={`evprog ${done ? "done" : ""}`}>
           <div className="evnum">
             イベント中に集まったタイミング <b>{event.filled}</b>
-            {event.goal ? <> / 目標 {event.goal}</> : ""}
+            {event.goal ? (
+              <span className="evgoal">
+                {" "}/ 目標 {event.goal}
+                {done && <span className="evdone">目標達成！</span>}
+              </span>
+            ) : (
+              ""
+            )}
           </div>
           {pct !== null && (
             <div className="evbar" role="progressbar" aria-valuenow={pct} aria-valuemin={0} aria-valuemax={100}>
@@ -39,8 +50,8 @@ export function EventBox() {
       )}
       {feat.length > 0 && (
         <div className="evfeat">
-          <span className="evlabel">今週のキャラ</span>
           <div className="evheroes">
+            <span className="evlabel">今週のキャラ</span>
             {feat.map((f) => (
               <button key={f.heroId} className="evhero" onClick={() => nav(`/h/${f.hero!.slug}`)}>
                 <Avatar hero={f.hero} />

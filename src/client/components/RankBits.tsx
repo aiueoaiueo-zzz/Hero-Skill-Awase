@@ -3,6 +3,7 @@ import { fmtPoints } from "../../shared/ranking";
 import type { Hero, RankRow } from "../../shared/types";
 import { useData } from "../lib/data";
 import { Avatar } from "./Avatar";
+import { EventBadge } from "./EventBadge";
 
 /** ランキングの一覧（順位・キャラのアイコン・@ID・バッジ・合わせポイント）。アイコンは表彰台と同じ（docs/DECISIONS.md AY・BF） */
 export function RankList({ rows }: { rows: RankRow[] }) {
@@ -16,7 +17,7 @@ export function RankList({ rows }: { rows: RankRow[] }) {
           <Link className="who" to={`/u/${r.xId}`} onClick={(e) => e.stopPropagation()}>
             @{r.xId}
           </Link>
-          {r.badge && <span className="badge">{r.badge}</span>}
+          {r.badge && (r.badgeKind ? <EventBadge label={r.badge} kind={r.badgeKind} /> : <span className="badge">{r.badge}</span>)}
           <span className="pt">{fmtPoints(r.points)}pt</span>
         </li>
       ))}
@@ -42,7 +43,7 @@ export function Podium({ rows }: { rows: RankRow[] }) {
         <span className="crown">{k === 1 ? "👑" : ""}</span>
         <span className="pav">{h ? <Avatar hero={h} /> : <b>{r.xId[0]?.toUpperCase()}</b>}</span>
         <span className="pid">@{r.xId}</span>
-        {r.badge && <span className="badge">{r.badge}</span>}
+        {r.badge && (r.badgeKind ? <EventBadge label={r.badge} kind={r.badgeKind} /> : <span className="badge">{r.badge}</span>)}
         <span className="ppt">{fmtPoints(r.points)}pt</span>
         <span className="step">{k}</span>
       </Link>

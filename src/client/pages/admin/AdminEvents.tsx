@@ -23,6 +23,7 @@ const stateOf = (s: string, e: string) => {
   return t < s ? { label: "予定", cls: "plan" } : t > e ? { label: "終了", cls: "done" } : { label: "表示中", cls: "live" };
 };
 const errText = (e: unknown) =>
+  e instanceof ApiError && e.status === 409 ? "バッジを配ったイベントは削除できません（もらった人のバッジが消えるため）" :
   e instanceof ApiError ? (e.status === 400 ? "入力内容を確認してください（日付・終了日は開始日以降）" : "保存できませんでした") : "保存できませんでした";
 
 /** 管理：イベント（期間・目標）と今週のキャラのスケジュール（docs/DECISIONS.md AL） */
@@ -53,6 +54,33 @@ export function AdminEvents() {
   const [es, setEs] = useState(today());
   const [ee, setEe] = useState(addDays(today(), 27));
   const [goal, setGoal] = useState("");
+  // イベントのバッジ（docs/DECISIONS.md BM）
+  const [bn, setBn] = useState("");
+  const [tl, setTl] = useState("");
+  const [tm, setTm] = useState("");
+  const [th, setTh] = useState("");
+  // 編集中のイベント（null なら追加）
+  const [editId, setEditId] = useState<string | null>(null);
+  const num = (s: string) => (s.trim() ? Number(s) : null);
+  const startEdit = (e: EventInfo) => {
+    setEditId(e.id);
+    setName(e.name);
+    setEs(e.startsOn);
+    setEe(e.endsOn);
+    setGoal(e.goal ? String(e.goal) : "");
+    setBn(e.badgeName ?? "");
+    setTl(e.tiers.low != null ? String(e.tiers.low) : "");
+    setTm(e.tiers.mid != null ? String(e.tiers.mid) : "");
+    setTh(e.tiers.high != null ? String(e.tiers.high) : "");
+    setTimeout(() => document.getElementById("ev-form")?.scrollIntoView({ behavior: "smooth", block: "center" }), 0);
+  };
+  const saveEvent = async () => {
+    const body = JSON.stringify({ name, startsOn: es, endsOn: ee, goal: num(goal), badgeName: bn.trim() || null, tierLow: num(tl), tierMid: num(tm), tierHigh: num(th) });
+    const ok = editId
+      ? await run(() => api<Data>(`/api/admin/events/${editId}`, { method: "PUT", body }), "保存しました")
+      : await run(() => api<Data>("/api/admin/events", { method: "POST", body }), "イベントを追加しました");
+    if (ok) setEditId(null);
+  };
   // 今週のキャラの追加（1 週間ずつ。直前の予定の翌日から始まるように初期値を入れる）
   const nextStart = data?.featured.length ? addDays(data.featured[data.featured.length - 1].endsOn, 1) : today();
   const [fh, setFh] = useState("");
@@ -80,6 +108,7 @@ export function AdminEvents() {
               <li>イベントの期間中は、トップに「開催中」の枠と進み具合（投稿がある組み合わせの数 / 目標）が出ます。期間の前後は何も出ません。</li>
               <li>今週のキャラは、期間中だけトップに表示され、キャラ選択のカードに「今週」の印が付きます。1 週間ずつ、先の分まで予約しておけます。</li>
               <li>日付は日本時間。開始日の 0 時から、終了日の 23 時 59 分まで表示されます。</li>
+              <li>バッジの名前を入れると、ナイス・グッド・ベスト合わせ賞は期間中に達成したらすぐ投稿者のページに出ます。1〜3位のバッジは、イベント終了の翌日に確定します（「確定し直す」で付け直せます）。</li>
             </ul>
           </details>
 
@@ -96,14 +125,31 @@ export function AdminEvents() {
                     {md(e.startsOn)} 〜 {md(e.endsOn)}
                     {e.goal ? `・目標 ${e.goal} タイミング` : ""}
                   </span>
+                  <span>
+                    {e.badgeName
+                      ? `バッジ：${e.badgeName}（1〜3位／ベスト ${e.tiers.high ?? "−"}pt・グッド ${e.tiers.mid ?? "−"}pt・ナイス ${e.tiers.low ?? "−"}pt〜）`
+                      : "バッジなし"}
+                    {e.finalizedAt && `・確定済み（${e.badgeCount}人）`}
+                  </span>
                 </div>
+                {st.cls === "done" && e.badgeName && (
+                  <ArmedButton
+                    className="sbtn"
+                    label={e.finalizedAt ? "確定し直す" : "バッジを確定"}
+                    armedLabel="実行"
+                    onConfirm={() => run(() => api<Data>(`/api/admin/events/${e.id}/finalize`, { method: "POST" }), "バッジを確定しました")}
+                  />
+                )}
+                <button className="sbtn" onClick={() => startEdit(e)}>
+                  編集
+                </button>
                 <ArmedButton className="sbtn danger" label="削除" armedLabel="確定" onConfirm={() => run(() => api<Data>(`/api/admin/events/${e.id}`, { method: "DELETE" }), "削除しました")} />
               </div>
             );
           })}
-          <div className="box evform">
+          <div className="box evform" id="ev-form">
             <p>
-              <b>イベントを追加</b>
+              <b>{editId ? "イベントを編集" : "イベントを追加"}</b>
             </p>
             <label>
               名前
@@ -123,17 +169,31 @@ export function AdminEvents() {
               目標のタイミング数（任意。イベント期間中に承認されたタイミングの数）
               <input className="inp" id="ev-goal" type="number" inputMode="numeric" min={1} placeholder="例：50" value={goal} onChange={(e) => setGoal(e.target.value)} />
             </label>
+            <label>
+              バッジの名前（任意。空ならバッジなし）
+              <input className="inp" id="ev-badge" maxLength={20} placeholder="例：リリース記念イベント" value={bn} onChange={(e) => setBn(e.target.value)} />
+            </label>
+            <p className="evnote">
+              合わせ賞：イベントの合わせポイントで「{bn.trim() || "（名前）"} ナイス合わせ賞」「グッド合わせ賞」「ベスト合わせ賞」（空の段階は付けません。目安：1・5・15pt）。達成したらすぐもらえます。順位のバッジ：1〜3位に「{bn.trim() || "（名前）"}1位」など。イベントが終わった翌日の自動処理で確定します。どちらも投稿者のページに残ります。
+            </p>
+            <div className="evdates ev3">
+              {(
+                [
+                  ["ナイス", tl, setTl, "ev-tl"],
+                  ["グッド", tm, setTm, "ev-tm"],
+                  ["ベスト", th, setTh, "ev-th"],
+                ] as const
+              ).map(([lb, v, set, id]) => (
+                <label key={id}>
+                  {lb}（pt 以上）
+                  <input className="inp" id={id} type="number" inputMode="decimal" min={0.5} step={0.5} value={v} onChange={(e) => set(e.target.value)} />
+                </label>
+              ))}
+            </div>
             <div className="btns">
-              <button
-                className="primary"
-                onClick={() =>
-                  run(
-                    () => api<Data>("/api/admin/events", { method: "POST", body: JSON.stringify({ name, startsOn: es, endsOn: ee, goal: goal ? Number(goal) : null }) }),
-                    "イベントを追加しました",
-                  )
-                }
-              >
-                追加
+              {editId && <button onClick={() => setEditId(null)}>やめる</button>}
+              <button className="primary" onClick={saveEvent}>
+                {editId ? "保存" : "追加"}
               </button>
             </div>
           </div>

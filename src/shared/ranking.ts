@@ -16,6 +16,8 @@ export const RANKING_TOP = 10;
 
 /** ポイント（firstPair：まだ投稿がなかった組み合わせで最初に承認された投稿に、通常の分に加えて） */
 export const POINTS = { post: 1, postFixed: 0.5, fix: 0.5, firstPair: 0.5 } as const;
+/** イベントのポイントだけに足す：今週のキャラが攻撃側か相手側にいる合わせを、そのキャラの週に投稿して、イベント期間中に承認されたもの */
+export const FEATURED_BONUS = 0.5;
 
 /** バッジ（累計ポイントで決まる。下から順に） */
 export const BADGES = [
@@ -30,6 +32,22 @@ export const badgeFor = (points: number): string | null => {
   for (const x of BADGES) if (points >= x.min) b = x.name;
   return b;
 };
+
+/** イベントのバッジ（docs/DECISIONS.md BM）：1〜3 位は順位のバッジ、それ以外はイベントの合わせポイントでベスト・グッド・ナイス合わせ賞 */
+export type Tiers = { low: number | null; mid: number | null; high: number | null };
+export const EVENT_TIER_LABEL = { high: "ベスト合わせ賞", mid: "グッド合わせ賞", low: "ナイス合わせ賞" } as const;
+/** 賞の★の数 */
+export const EVENT_TIER_STARS = { high: 3, mid: 2, low: 1 } as const;
+export function eventBadgeKind(rank: number | null, points: number, tiers: Tiers): "rank1" | "rank2" | "rank3" | "high" | "mid" | "low" | null {
+  if (points <= 0) return null;
+  if (rank === 1 || rank === 2 || rank === 3) return `rank${rank}`;
+  if (tiers.high != null && points >= tiers.high) return "high";
+  if (tiers.mid != null && points >= tiers.mid) return "mid";
+  if (tiers.low != null && points >= tiers.low) return "low";
+  return null;
+}
+export const eventBadgeLabel = (name: string, kind: "rank1" | "rank2" | "rank3" | "high" | "mid" | "low") =>
+  kind === "rank1" || kind === "rank2" || kind === "rank3" ? `${name}${kind.slice(4)}位` : `${name} ${EVENT_TIER_LABEL[kind]}`;
 
 /** ポイントの表示（0.5 刻み） */
 export const fmtPoints = (n: number) => (Number.isInteger(n) ? String(n) : n.toFixed(1));

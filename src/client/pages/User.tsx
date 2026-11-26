@@ -1,9 +1,10 @@
 import { useLayoutEffect, useRef } from "react";
 import { Link, useParams } from "react-router";
 import { ATTACK_LABEL, CUE_LABEL } from "../../shared/constants";
-import { BADGES, fmtPoints } from "../../shared/ranking";
+import { BADGES, EVENT_TIER_LABEL, EVENT_TIER_STARS, fmtPoints } from "../../shared/ranking";
 import type { Hero, UserResponse } from "../../shared/types";
 import { Avatar } from "../components/Avatar";
+import { EventBadge } from "../components/EventBadge";
 import { Header } from "../components/Header";
 import { useApi } from "../lib/api";
 import { useData } from "../lib/data";
@@ -32,6 +33,12 @@ export function User() {
   const fixes = (data?.timings.length ?? 0) - posts;
   const since = (data?.timings ?? []).map((t) => t.at).sort()[0];
   const bi = data?.badge ? BADGES.findIndex((b) => b.name === data.badge) : -1;
+  // イベント期間中は、ポイント・順位・バッジのゲージをイベントのものに切り替える（docs/DECISIONS.md BN）
+  const ev = data?.event ?? null;
+  const evTiers = ev?.badgeName
+    ? (["low", "mid", "high"] as const).filter((k) => ev.tiers[k] != null).map((k) => ({ kind: k, name: EVENT_TIER_LABEL[k], min: ev.tiers[k]!, stars: EVENT_TIER_STARS[k] }))
+    : [];
+  const ei = ev ? evTiers.reduce((n, t, i) => (ev.points >= t.min ? i : n), -1) : -1;
   const pageUrl = `${publicAppUrl.replace(/\/+$/, "")}/u/${encodeURIComponent(data?.xId ?? xid)}`;
 
   // 長い X の ID は、カードからはみ出さない大きさまで縮める
@@ -75,17 +82,17 @@ export function User() {
             <div className="pc-stats">
               <div>
                 <b>
-                  {fmtPoints(data.total)}
+                  {fmtPoints(ev ? ev.points : data.total)}
                   <small>pt</small>
                 </b>
-                <span>合わせポイント</span>
+                <span>{ev ? "イベントポイント" : "合わせポイント"}</span>
               </div>
               <div className="mid">
                 <b>
-                  {data.rankTotal ?? "−"}
-                  {data.rankTotal && <small>位</small>}
+                  {(ev ? ev.rank : data.rankTotal) ?? "−"}
+                  {(ev ? ev.rank : data.rankTotal) && <small>位</small>}
                 </b>
-                <span>累計ランキング</span>
+                <span>{ev ? "イベントランキング" : "累計ランキング"}</span>
               </div>
               <div>
                 <b>
@@ -98,18 +105,10 @@ export function User() {
               </div>
             </div>
           </div>
-          {(data.event || (data.showMonth && data.rankMonth)) && (
+          {/* 今月の行は期間外だけ（イベント期間中は名刺の数字がイベントのものになる。docs/DECISIONS.md BN） */}
+          {!data.event && data.showMonth && data.rankMonth && (
             <div className="pc-sub">
-              {data.event ? (
-                <>
-                  {data.event.name}：<b>{fmtPoints(data.event.points)}pt</b>
-                  {data.event.rank && <>（{data.event.rank}位）</>}
-                </>
-              ) : (
-                <>
-                  今月：<b>{fmtPoints(data.month)}pt</b>（{data.rankMonth}位）
-                </>
-              )}
+              今月：<b>{fmtPoints(data.month)}pt</b>（{data.rankMonth}位）
             </div>
           )}
           <div className="pc-acts">
@@ -122,7 +121,16 @@ export function User() {
               onClick={() =>
                 openShare({
                   title: `#${data.xId} の投稿者ページ｜ヒロアプ`,
-                  text: `#${data.xId} の HS合わせ\n合わせポイント ${fmtPoints(data.total)}pt${data.rankTotal ? `・累計 ${data.rankTotal}位` : ""}${data.badge ? `・${data.badge}` : ""}\n\n#ヒロアプ #HS合わせ #コンパス`,
+                  // 自慢・紹介の文（ポイントや順位は入れない。docs/DECISIONS.md BN）
+                  text: [
+                    `#${data.xId} の HS合わせ投稿者ページ✨`,
+                    `これまでに ${data.timings.length}件の合わせを投稿！`,
+                    heroes[0] ? `マイヒーロー：${heroes[0].h.name}` : "",
+                    data.eventBadges[0] ? `🏅 ${data.eventBadges[0].label}` : "",
+                    ev && ev.points > 0 ? `🎉 ${ev.name}に参加中！` : "",
+                  ]
+                    .filter(Boolean)
+                    .join("\n") + "\n\n#ヒロアプ #HS合わせ #コンパス",
                   url: pageUrl,
                 })
               }
@@ -135,6 +143,26 @@ export function User() {
               </button>
             )}
           </div>
+          {ev && evTiers.length > 0 ? (
+            <div className={`pc-ladder ev ${ei === evTiers.length - 1 ? "max" : ""}`}>
+              <div className="ttl">
+                <span>{ev.name}</span>
+                <small>
+                  {ei === evTiers.length - 1
+                      ? `「${evTiers[ei].name}」到達！`
+                      : `次は「${evTiers[ei + 1].name}」`}
+                </small>
+              </div>
+              <div className="steps">
+                {evTiers.map((t, i) => (
+                  <div key={t.kind} className={`${i <= ei ? "on" : ""} ${i === ei ? "now" : ""}`}>
+                    <i />
+                    {"★".repeat(t.stars)} {t.name}
+                  </div>
+                ))}
+              </div>
+            </div>
+          ) : (
           <div className={`pc-ladder ${bi === BADGES.length - 1 ? "max" : ""}`}>
             <div className="ttl">
               <span>バッジ</span>
@@ -149,6 +177,18 @@ export function User() {
               ))}
             </div>
           </div>
+          )}
+          {/* イベントで確定したバッジ（docs/DECISIONS.md BM） */}
+          {data.eventBadges.length > 0 && (
+            <>
+              <div className="sec">獲得したイベントバッジ</div>
+              <div className="pc-evb">
+                {data.eventBadges.map((b) => (
+                  <EventBadge key={b.eventName + b.endsOn} label={b.label} kind={b.kind} title={b.eventName} />
+                ))}
+              </div>
+            </>
+          )}
           {heroes.length > 0 && (
             <>
               <div className="sec">マイヒーロー</div>

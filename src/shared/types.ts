@@ -69,14 +69,37 @@ export type Bootstrap = {
 };
 
 /** イベント（キャンペーン）。日付は日本時間の YYYY-MM-DD（両端を含む） */
-export type EventInfo = { id: string; name: string; startsOn: string; endsOn: string; goal: number | null };
+export type EventInfo = {
+  id: string;
+  name: string;
+  startsOn: string;
+  endsOn: string;
+  goal: number | null;
+  /** イベントのバッジ（docs/DECISIONS.md BM）。badgeName：バッジの名前の頭。tiers：ナイス（low）・グッド（mid）・ベスト（high）合わせ賞になるイベントの合わせポイント（以上） */
+  badgeName: string | null;
+  tiers: { low: number | null; mid: number | null; high: number | null };
+  /** バッジを確定した時刻（未確定は null）と、確定したバッジの数 */
+  finalizedAt: string | null;
+  badgeCount: number;
+};
+/** 確定したイベントのバッジ（投稿者ページ） */
+export type EventBadge = { label: string; kind: EventBadgeKind; eventName: string; endsOn: string };
+export type EventBadgeKind = "rank1" | "rank2" | "rank3" | "high" | "mid" | "low";
 /** 一般向け：開催中のイベントと進み具合（filled：イベント期間中に承認されたタイミングの数。docs/DECISIONS.md AZ） */
 export type PublicEvent = EventInfo & { filled: number };
 /** 今週のキャラのスケジュール 1 行 */
 export type FeaturedHero = { id: string; heroId: string; startsOn: string; endsOn: string };
 
 /** hero：その期間の集計対象の投稿で、攻撃側にいちばん多く選んだキャラの ID（同じ数ならあとで承認されたほう。docs/DECISIONS.md AY） */
-export type RankRow = { rank: number; xId: string; points: number; badge: string | null; hero: string | null };
+export type RankRow = {
+  rank: number;
+  xId: string;
+  points: number;
+  badge: string | null;
+  hero: string | null;
+  /** イベントランキングだけ：合わせ賞の段階（badge は賞の名前。docs/DECISIONS.md BM） */
+  badgeKind?: "high" | "mid" | "low";
+};
 export type RankingResponse = {
   minUsers: number;
   /** "event"：イベント期間中（イベントランキングだけ）／"normal"：それ以外（公開にしたものだけ） */
@@ -87,7 +110,15 @@ export type RankingResponse = {
   total: RankRow[] | null;
   month: RankRow[] | null;
   /** イベント期間中だけ（rows は人数が足りないうちは null） */
-  event: { name: string; startsOn: string; endsOn: string; rows: RankRow[] | null } | null;
+  event: {
+    name: string;
+    startsOn: string;
+    endsOn: string;
+    rows: RankRow[] | null;
+    /** 合わせ賞（バッジの種類の説明用。バッジの名前がないイベントは null） */
+    badgeName: string | null;
+    tiers: { low: number | null; mid: number | null; high: number | null };
+  } | null;
 };
 export type UserTiming = {
   id: string;
@@ -107,7 +138,18 @@ export type UserResponse = {
   rankTotal: number | null;
   rankMonth: number | null;
   /** イベント期間中のポイントと順位（イベント期間外は null） */
-  event: { name: string; points: number; rank: number | null } | null;
+  event: {
+    name: string;
+    points: number;
+    rank: number | null;
+    /** 今の段階で付くバッジ（バッジの設定があるときだけ） */
+    badge: { label: string; kind: EventBadgeKind } | null;
+    /** 合わせ賞の段階（投稿者ページのゲージ用。docs/DECISIONS.md BN） */
+    badgeName: string | null;
+    tiers: { low: number | null; mid: number | null; high: number | null };
+  } | null;
+  /** 確定したイベントのバッジ（新しい順） */
+  eventBadges: EventBadge[];
   /** 今月のランキングを公開しているか */
   showMonth: boolean;
   /** ランキングがまだ始まっていない（人数が足りない） */
