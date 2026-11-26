@@ -32,8 +32,14 @@ export function EventBox() {
         <div className={`evprog ${done ? "done" : ""}`}>
           <div className="evnum">
             イベント中に集まったタイミング <b>{event.filled}</b>
-            {event.goal ? <> / 目標 {event.goal}</> : ""}
-            {done && <span className="evdone">目標達成！</span>}
+            {event.goal ? (
+              <span className="evgoal">
+                {" "}/ 目標 {event.goal}
+                {done && <span className="evdone">目標達成！</span>}
+              </span>
+            ) : (
+              ""
+            )}
           </div>
           {pct !== null && (
             <div className="evbar" role="progressbar" aria-valuenow={pct} aria-valuemin={0} aria-valuemax={100}>
