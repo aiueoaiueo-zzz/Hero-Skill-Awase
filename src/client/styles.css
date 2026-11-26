@@ -878,3 +878,11 @@ img.av{object-fit:cover;background:#ddd}
 .evhero small{margin-left:auto;text-align:right}
 .badges li .evb{min-width:162px;justify-content:center;margin-right:8px;box-shadow:2px 2px 0 #000}
 .badges li:has(.evb){display:flex;align-items:center;margin-bottom:6px}
+/* 「目標達成！」は「目標 50」のすぐ横に、斜めに貼ったシールのように（行を折り返させない） */
+.evprog .evnum{white-space:nowrap;font-size:11.5px}
+.evdone{margin-left:7px;font-size:10.5px;padding:1px 6px;transform:rotate(8deg) translateY(-1px);box-shadow:2px 2px 0 #000;vertical-align:2px}
+.evgoal{position:relative}
+/* 幅が狭いスマホでは、「目標 50」の右上に重ねて貼る（数字の行を折り返さない） */
+@media (max-width:390px){
+  .evdone{position:absolute;right:-16px;left:auto;bottom:128%;margin-left:0;transform:rotate(8deg);white-space:nowrap}
+}
