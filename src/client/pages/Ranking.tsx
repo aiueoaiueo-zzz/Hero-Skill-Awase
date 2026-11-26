@@ -1,5 +1,6 @@
 import { useNavigate } from "react-router";
-import { BADGES, FEATURED_BONUS } from "../../shared/ranking";
+import { BADGES, EVENT_TIER_LABEL, FEATURED_BONUS, fmtPoints } from "../../shared/ranking";
+import { EventBadge } from "../components/EventBadge";
 import type { RankingResponse } from "../../shared/types";
 import { Header } from "../components/Header";
 import { NotYet, Podium } from "../components/RankBits";
@@ -16,6 +17,9 @@ const md = (d: string) => {
 export function Ranking() {
   const nav = useNavigate();
   const { data, error } = useApi<RankingResponse>("/api/ranking");
+  // イベント期間中で合わせ賞の設定があるときの段階（下から）
+  const ev = data?.mode === "event" ? data.event : null;
+  const evTiers = ev?.badgeName ? (["low", "mid", "high"] as const).filter((k) => ev.tiers[k] != null).map((k) => ({ kind: k, min: ev.tiers[k]! })) : [];
   useBootFx(!!data || !!error);
   return (
     <>
@@ -63,13 +67,24 @@ export function Ranking() {
           </div>
           <div className="box rules">
             <p className="bt">バッジの種類</p>
-            <ul className="badges">
-              {BADGES.map((b) => (
-                <li key={b.name}>
-                  <span className="badge">{b.name}</span> 累計 {b.min} 合わせポイント〜
-                </li>
-              ))}
-            </ul>
+            {/* イベント期間中は、イベントの合わせ賞（★ ナイス／★★ グッド／★★★ ベスト）の説明にする（docs/DECISIONS.md BM） */}
+            {evTiers.length > 0 ? (
+              <ul className="badges">
+                {evTiers.map((t) => (
+                  <li key={t.kind}>
+                    <EventBadge label={EVENT_TIER_LABEL[t.kind]} kind={t.kind} /> イベント {fmtPoints(t.min)}pt〜
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <ul className="badges">
+                {BADGES.map((b) => (
+                  <li key={b.name}>
+                    <span className="badge">{b.name}</span> 累計 {b.min} 合わせポイント〜
+                  </li>
+                ))}
+              </ul>
+            )}
           </div>
         </>
       )}
