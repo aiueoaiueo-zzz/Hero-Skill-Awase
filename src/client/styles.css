@@ -852,3 +852,22 @@ img.av{object-fit:cover;background:#ddd}
 .ranklist .evb,.podium .evb{font-size:10.5px;padding:1px 6px;box-shadow:none;margin-left:6px}
 .podium .evb{margin:3px 0 0}
 .ranklist .evb .st,.podium .evb .st{margin-right:3px}
+/* トップのイベントの枠：縦を詰める（docs/DECISIONS.md BP） */
+.evbox{padding:9px 12px;gap:7px}
+.evtop{gap:6px}
+.evname{font-size:14px}
+.evprog .evnum{line-height:1.3}
+.evnum b{font-size:16px}
+.evbar{height:6px;margin-top:3px}
+.evdone{display:inline-block;margin-left:6px;background:#ffd84a;color:#000;border:1.5px solid #000;font-size:11px;font-weight:900;padding:0 6px;vertical-align:1px}
+.evprog.done .evbar i{background:linear-gradient(90deg,#f2b600,#ffe28a,#f2b600)}
+.evfeat{gap:4px;padding-top:7px}
+.evheroes{flex-direction:row;flex-wrap:wrap;align-items:center;gap:6px 8px}
+.evlabel{flex:none}
+.evhero{padding:3px 8px 3px 3px;gap:8px;flex:1;min-width:0}
+.evhero .av{width:32px;height:32px;font-size:10px}
+.evhero span{flex-direction:row;align-items:baseline;gap:8px;flex-wrap:wrap}
+.evhero b{font-size:13px}
+.evhint{font-size:11px;line-height:1.4}
+.evlive small{font-size:10px;font-weight:700;margin-left:5px;opacity:.95}
+.evhint{font-size:10.5px;letter-spacing:-.01em}
