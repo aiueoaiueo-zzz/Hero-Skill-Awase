@@ -22,10 +22,13 @@ export async function finalizeEvent(env: Env, id: string, now = Date.now()): Pro
   const rankOf = new Map(ranked.map((r) => [r.xId.toLowerCase(), r.rank]));
   const tiers = { low: ev.tier_low, mid: ev.tier_mid, high: ev.tier_high };
   const at = nowIso();
+  // 合わせ賞（期間中に達成した段階）と、1〜3 位の順位のバッジは別々に付ける（両方持てる）
   const rows: { x: string; kind: EventBadgeKind; pt: number }[] = [];
   for (const [k, u] of users) {
-    const kind = eventBadgeKind(rankOf.get(k) ?? null, u.event, tiers);
-    if (kind) rows.push({ x: u.xId, kind, pt: u.event });
+    const tier = eventBadgeKind(null, u.event, tiers);
+    if (tier) rows.push({ x: u.xId, kind: tier, pt: u.event });
+    const r = rankOf.get(k);
+    if (u.event > 0 && (r === 1 || r === 2 || r === 3)) rows.push({ x: u.xId, kind: `rank${r}`, pt: u.event });
   }
   await env.DB.batch([
     env.DB.prepare("DELETE FROM event_badges WHERE event_id = ?").bind(id),
@@ -48,13 +51,14 @@ export async function finalizeEndedEvents(env: Env, now = Date.now()) {
   return n;
 }
 
-/** その人の確定したイベントのバッジ（新しいイベント順） */
+/** その人の確定したイベントのバッジ（終わったイベントのもの。新しいイベント順、同じイベントは順位→合わせ賞） */
 export async function userEventBadges(env: Env, xId: string): Promise<EventBadge[]> {
   const { results } = await env.DB.prepare(
     `SELECT b.kind, e.badge_name AS bn, e.name, e.ends_on FROM event_badges b JOIN events e ON e.id = b.event_id
-      WHERE lower(b.x_id) = lower(?) AND e.badge_name IS NOT NULL AND e.ends_on < ? ORDER BY e.ends_on DESC`,
+      WHERE lower(b.x_id) = lower(?) AND e.badge_name IS NOT NULL AND e.ends_on < ?
+      ORDER BY e.ends_on DESC, CASE b.kind WHEN 'rank1' THEN 1 WHEN 'rank2' THEN 2 WHEN 'rank3' THEN 3 WHEN 'high' THEN 4 WHEN 'mid' THEN 5 ELSE 6 END`,
   )
-    // 開催中のイベントのバッジは出さない（配るのは終了後。docs/DECISIONS.md BN）
+    // 開催中のイベントの分は、合わせ賞だけを投稿者ページのほうで今のポイントから出す（docs/DECISIONS.md BN）
     .bind(xId, todayJst())
     .all<{ kind: EventBadgeKind; bn: string; name: string; ends_on: string }>();
   return results.map((r) => ({ label: eventBadgeLabel(r.bn, r.kind), kind: r.kind, eventName: r.name, endsOn: r.ends_on }));

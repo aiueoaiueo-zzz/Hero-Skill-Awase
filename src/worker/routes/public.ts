@@ -184,7 +184,15 @@ publicRoutes.get("/users/:xid", async (c) => {
     rankMonth: r.view.month ? (r.month.find((x) => x.xId.toLowerCase() === k)?.rank ?? null) : null,
     rankingActive: active,
     event: r.event ? { name: r.event.info.name, badgeName: r.event.info.badgeName, tiers: r.event.info.tiers, points: u?.event ?? 0, rank: evRank, badge: nowBadge(r.event.info, u?.event ?? 0, excluded ? null : (r.event.rows.find((x) => x.xId.toLowerCase() === k)?.rank ?? null)) } : null,
-    eventBadges,
+    // 開催中のイベントの合わせ賞は、達成したらすぐ「獲得したイベントバッジ」に出す（順位のバッジは終了後に確定）
+    eventBadges: [
+      ...(() => {
+        const info = r.event?.info;
+        const kind = info?.badgeName ? eventBadgeKind(null, u?.event ?? 0, info.tiers) : null;
+        return info?.badgeName && kind ? [{ label: eventBadgeLabel(info.badgeName, kind), kind, eventName: info.name, endsOn: info.endsOn }] : [];
+      })(),
+      ...eventBadges,
+    ],
     showMonth: r.show.month,
     excluded,
     // 複数の応援コードが見つかったときは出さない（どれが本人のものか分からないため）
