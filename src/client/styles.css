@@ -886,3 +886,6 @@ img.av{object-fit:cover;background:#ddd}
 @media (max-width:390px){
   .evdone{position:absolute;right:-16px;left:auto;bottom:128%;margin-left:0;transform:rotate(8deg);white-space:nowrap}
 }
+/* ランキングの中の合わせ賞はもう一回り小さく */
+.ranklist .evb,.podium .evb{font-size:9.5px;padding:0 5px;border-width:1.5px;line-height:1.5}
+.ranklist .evb .st,.podium .evb .st{font-size:.9em;margin-right:2px}
