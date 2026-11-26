@@ -106,22 +106,10 @@ export function User() {
               </div>
             </div>
           </div>
-          {(data.event || (data.showMonth && data.rankMonth)) && (
+          {/* 今月の行は期間外だけ（イベント期間中は名刺の数字がイベントのものになる。docs/DECISIONS.md BN） */}
+          {!data.event && data.showMonth && data.rankMonth && (
             <div className="pc-sub">
-              {data.event ? (
-                <>
-                  <b>開催中</b>：{data.event.name}（累計 {fmtPoints(data.total)}pt{data.rankTotal ? `・${data.rankTotal}位` : ""}）
-                  {data.event.badge && (
-                    <>
-                      {" "}今の段階 <EventBadge label={data.event.badge.label} kind={data.event.badge.kind} />
-                    </>
-                  )}
-                </>
-              ) : (
-                <>
-                  今月：<b>{fmtPoints(data.month)}pt</b>（{data.rankMonth}位）
-                </>
-              )}
+              今月：<b>{fmtPoints(data.month)}pt</b>（{data.rankMonth}位）
             </div>
           )}
           <div className="pc-acts">
@@ -156,7 +144,7 @@ export function User() {
                     ? `今は ${evRankNow}位！ 上位 3人は特別なバッジ`
                     : ei === evTiers.length - 1
                       ? `「${evTiers[ei].name}」到達！`
-                      : `次は「${evTiers[ei + 1].name}」（${fmtPoints(evTiers[ei + 1].min)}pt）`}
+                      : `次は「${evTiers[ei + 1].name}」`}
                 </small>
               </div>
               <div className="steps">

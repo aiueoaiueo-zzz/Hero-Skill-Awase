@@ -52,9 +52,10 @@ export async function finalizeEndedEvents(env: Env, now = Date.now()) {
 export async function userEventBadges(env: Env, xId: string): Promise<EventBadge[]> {
   const { results } = await env.DB.prepare(
     `SELECT b.kind, e.badge_name AS bn, e.name, e.ends_on FROM event_badges b JOIN events e ON e.id = b.event_id
-      WHERE lower(b.x_id) = lower(?) AND e.badge_name IS NOT NULL ORDER BY e.ends_on DESC`,
+      WHERE lower(b.x_id) = lower(?) AND e.badge_name IS NOT NULL AND e.ends_on < ? ORDER BY e.ends_on DESC`,
   )
-    .bind(xId)
+    // 開催中のイベントのバッジは出さない（配るのは終了後。docs/DECISIONS.md BN）
+    .bind(xId, todayJst())
     .all<{ kind: EventBadgeKind; bn: string; name: string; ends_on: string }>();
   return results.map((r) => ({ label: eventBadgeLabel(r.bn, r.kind), kind: r.kind, eventName: r.name, endsOn: r.ends_on }));
 }
