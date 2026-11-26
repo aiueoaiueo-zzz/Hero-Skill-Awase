@@ -39,8 +39,6 @@ export function User() {
     ? (["low", "mid", "high"] as const).filter((k) => ev.tiers[k] != null).map((k) => ({ kind: k, name: EVENT_TIER_LABEL[k], min: ev.tiers[k]!, stars: EVENT_TIER_STARS[k] }))
     : [];
   const ei = ev ? evTiers.reduce((n, t, i) => (ev.points >= t.min ? i : n), -1) : -1;
-  // 「今は ○位！」は、名刺の順位と同じく、イベントランキングが公開されているときだけ
-  const evRankNow = ev?.rank && ev.rank <= 3 ? ev.rank : null;
   const pageUrl = `${publicAppUrl.replace(/\/+$/, "")}/u/${encodeURIComponent(data?.xId ?? xid)}`;
 
   // 長い X の ID は、カードからはみ出さない大きさまで縮める
@@ -123,7 +121,10 @@ export function User() {
               onClick={() =>
                 openShare({
                   title: `#${data.xId} の投稿者ページ｜ヒロアプ`,
-                  text: `#${data.xId} の HS合わせ\n合わせポイント ${fmtPoints(data.total)}pt${data.rankTotal ? `・累計 ${data.rankTotal}位` : ""}${data.badge ? `・${data.badge}` : ""}\n\n#ヒロアプ #HS合わせ #コンパス`,
+                  // イベント期間中は、名刺と同じくイベントのポイントと順位（docs/DECISIONS.md BN）
+                  text: ev
+                    ? `#${data.xId} の HS合わせ\n${ev.name}：${fmtPoints(ev.points)}pt${ev.rank ? `・${ev.rank}位` : ""}\n\n#ヒロアプ #HS合わせ #コンパス`
+                    : `#${data.xId} の HS合わせ\n合わせポイント ${fmtPoints(data.total)}pt${data.rankTotal ? `・累計 ${data.rankTotal}位` : ""}${data.badge ? `・${data.badge}` : ""}\n\n#ヒロアプ #HS合わせ #コンパス`,
                   url: pageUrl,
                 })
               }
@@ -141,9 +142,7 @@ export function User() {
               <div className="ttl">
                 <span>{ev.name}</span>
                 <small>
-                  {evRankNow
-                    ? `今は ${evRankNow}位！ 上位 3人は特別なバッジ`
-                    : ei === evTiers.length - 1
+                  {ei === evTiers.length - 1
                       ? `「${evTiers[ei].name}」到達！`
                       : `次は「${evTiers[ei + 1].name}」`}
                 </small>

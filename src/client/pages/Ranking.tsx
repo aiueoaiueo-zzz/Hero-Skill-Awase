@@ -54,6 +54,9 @@ export function Ranking() {
             <p className="bt">ランキング参加にあたっての注意事項</p>
             <ul>
               <li>X の ID はご自身のもののみ入力してください</li>
+              {data.mode === "event" && data.event && (
+                <li>イベントの対象は、最終日（{Number(data.event.endsOn.slice(5, 7))}/{Number(data.event.endsOn.slice(8))}）までに承認された合わせです</li>
+              )}
               {data.mode === "event" && <li>イベント期間中は、今週のキャラが関わる合わせ（その週に投稿したもの）が承認されると、イベントのポイントが {FEATURED_BONUS}pt 増えます</li>}
               <li>投稿する動画は、ご自身で撮影したもの、または撮影者（友人・知人）の許可を得たもののみにしてください</li>
             </ul>
