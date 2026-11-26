@@ -22,6 +22,7 @@ import { Status } from "./pages/Status";
 import { Submit } from "./pages/Submit";
 import { Targets } from "./pages/Targets";
 import { Terms } from "./pages/Terms";
+import { Operator } from "./pages/Operator";
 import "./styles.css";
 
 function Layout() {
@@ -54,6 +55,7 @@ function App() {
         <Route path="/h/:a/:t" element={<Keyed><Detail /></Keyed>} />
         <Route path="/about" element={<About />} />
         <Route path="/terms" element={<Terms />} />
+        <Route path="/operator" element={<Operator />} />
         <Route path="/contact" element={<Contact />} />
         <Route path="/ranking" element={<Ranking />} />
         <Route path="/u/:xid" element={<Keyed><User /></Keyed>} />

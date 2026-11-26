@@ -64,7 +64,7 @@ export function EventBox() {
               </button>
             ))}
           </div>
-          <p className="evhint">このキャラが自分でも相手でもOK。知ってるHS合わせを投稿してね！</p>
+          <p className="evhint">このキャラが自分でも相手でもOK。知ってるHS合わせを投稿すると、イベントポイントがプラス！</p>
         </div>
       )}
     </section>

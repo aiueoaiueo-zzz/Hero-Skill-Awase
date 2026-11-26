@@ -889,3 +889,9 @@ img.av{object-fit:cover;background:#ddd}
 /* ランキングの中の合わせ賞はもう一回り小さく */
 .ranklist .evb,.podium .evb{font-size:9.5px;padding:0 5px;border-width:1.5px;line-height:1.5}
 .ranklist .evb .st,.podium .evb .st{font-size:.9em;margin-right:2px}
+/* 運営者情報（docs/DECISIONS.md BR） */
+.opcard{background:#fff;border:2px solid #000;box-shadow:4px 4px 0 var(--accent);padding:12px 16px;margin:0 0 16px}
+.opcard dl{display:grid;grid-template-columns:auto 1fr;gap:8px 16px;margin:0;font-size:14px}
+.opcard dt{font-weight:800;color:var(--sub);font-size:12px;align-self:center}
+.opcard dd{margin:0;font-weight:700;color:#000}
+.opcard a{color:#c94f00;text-decoration:underline;text-underline-offset:3px}

@@ -75,7 +75,7 @@ export type ContactKind = (typeof CONTACT_KINDS)[number][0];
 export const CONTACT_KIND_LABEL = Object.fromEntries(CONTACT_KINDS) as Record<ContactKind, string>;
 export const CONTACT_LIMITS = { ref: 300, bodyMin: 5, body: 2000, replyTo: 200 } as const;
 
-export const SETTING_KEYS = ["owner_support_code", "notices", "about", "terms", "ranking_excluded", "ranking_show_total", "ranking_show_month", "ranking_show_event"] as const;
+export const SETTING_KEYS = ["owner_support_code", "notices", "about", "terms", "operator_name", "operator_x", "operator", "ranking_excluded", "ranking_show_total", "ranking_show_month", "ranking_show_event"] as const;
 /** 一般向けには返さない設定 */
 export const PRIVATE_SETTING_KEYS: readonly SettingKey[] = ["ranking_excluded"];
 export type SettingKey = (typeof SETTING_KEYS)[number];
@@ -87,6 +87,14 @@ export const DEFAULT_NOTICES = [
 ].join("\n");
 
 /** 「注意事項・プライバシー」のページ（/terms） */
+/** 運営者情報のページの本文（docs/DECISIONS.md BR） */
+export const DEFAULT_OPERATOR = `## このアプリについて
+- 「#コンパス 戦闘摂理解析システム」の**非公式のファンメイドツール**です。公式とは一切関係ありません。
+- 個人で運営しています。収益を目的としておらず、広告や有料の機能はありません。
+
+## ご連絡
+- 不具合のご報告・ご要望・投稿の削除の依頼・権利者の方からのご連絡は、「お問い合わせ」からお送りください。`;
+
 export const DEFAULT_TERMS = `HS合わせ投稿Webアプリ（ヒロアプ）（以下「本アプリ」）をご利用いただく前に、以下をお読みください。
 
 ## 本アプリについて
@@ -111,8 +119,10 @@ export const DEFAULT_TERMS = `HS合わせ投稿Webアプリ（ヒロアプ）（
 
 ## プライバシー
 - アカウント登録や、名前・メールアドレスの入力は必要ありません。
-- 保存するのは、投稿の内容・X の ID・応援コード（入力した場合のみ）と、お問い合わせの内容だけです。投稿の審査・公開、お問い合わせへの対応のためだけに使い、第三者に提供することはありません（法令に基づく場合を除く）。
+- 保存するのは、投稿の内容・X の ID・応援コード（入力した場合のみ）と、お問い合わせの内容（返信先を入力した場合はそれも）だけです。投稿の審査・公開、お問い合わせへの対応のためだけに使い、第三者に提供することはありません（法令に基づく場合を除く）。
 - 本アプリは Cloudflare（配信・ロボット対策）などの外部サービスを利用しており、IP アドレスなどの接続情報が各サービスに送られることがあります。広告やアクセス解析のツールは使っていません。
+- 投稿の取り下げなどに使う受付番号・取り下げ用のキー、次の投稿で使う X の ID・応援コード、投稿途中の動画は、お使いのブラウザの中にだけ保存されます（サーバーには送りません）。
+- 対応が済んだお問い合わせは、90日後に自動で削除します。
 
 ## 著作権について
 著作権等に問題がありましたら、権利者の方は、サイト内の「お問い合わせ」からご連絡ください。確認が取れた場合、該当の箇所を削除させていただきます。
@@ -138,8 +148,9 @@ HS中のキャラは無敵です。無敵が切れた瞬間（HS明け）に攻�
 
 **② 投稿する**（ログイン不要）
 1. 「投稿する」または詳細画面の「この組み合わせを投稿」を押します。
-2. 必須の項目を入力します。1回の投稿でタイミングをいくつでも追加でき、それぞれに動画（必須・30秒以内）と備考を付けます。大きな動画は自動で軽くして送ります。
-3. 申請後に出る受付番号で、審査状況を確認できます。審査はタイミングごとで、承認されたものから公開されます。
+2. 必須の項目を入力します。1回の投稿でタイミングを20個まで追加でき、それぞれに動画（必須・30秒以内）と備考を付けます。大きな動画は自動で軽くして送ります。
+3. 申請後に出る受付番号で、審査状況を確認できます（画面の下の「審査状況」から）。審査はタイミングごとで、承認されたものから公開されます。
+4. 同じ「審査状況」の画面から、投稿の取り下げや、X の ID・応援コードの変更の申請もできます（このブラウザで投稿したものだけ）。
 
 **③ ランキングにのる**
 - X の ID を入れた投稿が承認されると合わせポイントがたまり、ランキングにのります。累計に応じてバッジも付きます。
@@ -172,6 +183,9 @@ export const DEFAULT_SETTINGS: Record<SettingKey, string> = {
   notices: DEFAULT_NOTICES,
   about: DEFAULT_ABOUT,
   terms: DEFAULT_TERMS,
+  operator_name: "お芋",
+  operator_x: "HELLO_OIMO_",
+  operator: DEFAULT_OPERATOR,
   ranking_excluded: "",
   // ランキングの公開・非公開（"1"：公開／"0"：非公開。docs/DECISIONS.md AM）
   ranking_show_total: "1",

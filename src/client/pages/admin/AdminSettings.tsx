@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { DEFAULT_ABOUT, DEFAULT_NOTICES, DEFAULT_TERMS, type SettingKey } from "../../../shared/constants";
+import { DEFAULT_ABOUT, DEFAULT_NOTICES, DEFAULT_OPERATOR, DEFAULT_TERMS, type SettingKey } from "../../../shared/constants";
 import { api, ApiError, useApi } from "../../lib/api";
 import { useData } from "../../lib/data";
 import { useBootFx } from "../../lib/fx";
@@ -17,6 +17,10 @@ export function AdminSettings() {
   const [notices, setNotices] = useState("");
   const [about, setAbout] = useState("");
   const [terms, setTerms] = useState("");
+  // 運営者情報（docs/DECISIONS.md BR）
+  const [opName, setOpName] = useState("");
+  const [opX, setOpX] = useState("");
+  const [operator, setOperator] = useState("");
   const [excluded, setExcluded] = useState("");
   // ランキングの公開・非公開（変えたらすぐ保存）
   const [shows, setShows] = useState<Partial<Settings>>({});
@@ -28,6 +32,9 @@ export function AdminSettings() {
     setNotices(data.notices);
     setAbout(data.about);
     setTerms(data.terms);
+    setOpName(data.operator_name);
+    setOpX(data.operator_x);
+    setOperator(data.operator);
     setExcluded(data.ranking_excluded);
     setShows({ ranking_show_total: data.ranking_show_total, ranking_show_month: data.ranking_show_month, ranking_show_event: data.ranking_show_event });
   }, [data]);
@@ -156,6 +163,34 @@ export function AdminSettings() {
                 <div dangerouslySetInnerHTML={{ __html: mdLite(previewTerms) }} />
               </div>
             )}
+          </div>
+          <div className="box">
+            <p>
+              <b style={{ color: "var(--text)" }}>運営者情報</b>（フッターの「運営者情報」で開くページ）
+            </p>
+            <label>
+              運営者名
+              <input className="inp" maxLength={40} value={opName} onChange={(e) => setOpName(e.target.value)} />
+            </label>
+            <label>
+              X の ID（@ なし）
+              <input className="inp" maxLength={20} value={opX} placeholder="例：HELLO_OIMO_" onChange={(e) => setOpX(e.target.value)} />
+            </label>
+            <p style={{ marginTop: 8 }}>本文（書き方は「このアプリについて」と同じ）</p>
+            <textarea style={{ minHeight: 200 }} value={operator} onChange={(e) => setOperator(e.target.value)} />
+            <div className="btns">
+              <button
+                onClick={() => {
+                  setOperator(DEFAULT_OPERATOR);
+                  toast("初期の文面を入れました（保存で確定）");
+                }}
+              >
+                初期の文面に戻す
+              </button>
+              <button className="primary" onClick={() => save({ operator_name: opName, operator_x: opX, operator }, "運営者情報を保存しました")}>
+                保存
+              </button>
+            </div>
           </div>
           <div className="box">
             <p>
