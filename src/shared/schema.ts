@@ -204,7 +204,7 @@ export const eventSchema = z
       const t = [v.tierLow, v.tierMid, v.tierHigh].filter((x): x is number => x != null);
       return t.every((x, i) => i === 0 || x > t[i - 1]);
     },
-    { message: "バッジのポイントは 下 ＜ 中 ＜ 上 にしてください" },
+    { message: "バッジのポイントは ナイス ＜ グッド ＜ ベスト にしてください" },
   );
 export const featuredSchema = z
   .object({ heroId: z.string().min(1), startsOn: dateSchema, endsOn: dateSchema })

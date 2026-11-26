@@ -4,7 +4,7 @@ import { eventSchema } from "../src/shared/schema";
 
 describe("イベントのバッジ（docs/DECISIONS.md BM）", () => {
   const tiers = { low: 1, mid: 5, high: 10 };
-  it("1〜3 位は順位のバッジ、それ以外はポイントで上・中・下", () => {
+  it("1〜3 位は順位のバッジ、それ以外はポイントでナイス・グッド・ベスト合わせ賞", () => {
     expect(eventBadgeKind(1, 3, tiers)).toBe("rank1");
     expect(eventBadgeKind(3, 30, tiers)).toBe("rank3");
     expect(eventBadgeKind(4, 10, tiers)).toBe("high");
@@ -19,7 +19,7 @@ describe("イベントのバッジ（docs/DECISIONS.md BM）", () => {
   });
   it("バッジの名前", () => {
     expect(eventBadgeLabel("リリース記念イベント", "rank1")).toBe("リリース記念イベント1位");
-    expect(eventBadgeLabel("リリース記念イベント", "mid")).toBe("リリース記念イベント 中");
+    expect(eventBadgeLabel("リリース記念イベント", "mid")).toBe("リリース記念イベント グッド合わせ賞");
   });
   it("しきい値は 下 ＜ 中 ＜ 上", () => {
     const base = { name: "x", startsOn: "2026-11-27", endsOn: "2026-12-24" };

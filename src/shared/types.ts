@@ -75,7 +75,7 @@ export type EventInfo = {
   startsOn: string;
   endsOn: string;
   goal: number | null;
-  /** イベントのバッジ（docs/DECISIONS.md BM）。badgeName：バッジの名前の頭。tiers：上・中・下になるイベントの合わせポイント（以上） */
+  /** イベントのバッジ（docs/DECISIONS.md BM）。badgeName：バッジの名前の頭。tiers：ナイス（low）・グッド（mid）・ベスト（high）合わせ賞になるイベントの合わせポイント（以上） */
   badgeName: string | null;
   tiers: { low: number | null; mid: number | null; high: number | null };
   /** バッジを確定した時刻（未確定は null）と、確定したバッジの数 */

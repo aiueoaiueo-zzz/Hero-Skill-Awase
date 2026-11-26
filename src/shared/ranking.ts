@@ -33,9 +33,11 @@ export const badgeFor = (points: number): string | null => {
   return b;
 };
 
-/** イベントのバッジ（docs/DECISIONS.md BM）：1〜3 位は順位のバッジ、それ以外はイベントの合わせポイントで上・中・下 */
+/** イベントのバッジ（docs/DECISIONS.md BM）：1〜3 位は順位のバッジ、それ以外はイベントの合わせポイントでベスト・グッド・ナイス合わせ賞 */
 export type Tiers = { low: number | null; mid: number | null; high: number | null };
-export const EVENT_TIER_LABEL = { high: "上", mid: "中", low: "下" } as const;
+export const EVENT_TIER_LABEL = { high: "ベスト合わせ賞", mid: "グッド合わせ賞", low: "ナイス合わせ賞" } as const;
+/** 賞の★の数 */
+export const EVENT_TIER_STARS = { high: 3, mid: 2, low: 1 } as const;
 export function eventBadgeKind(rank: number | null, points: number, tiers: Tiers): "rank1" | "rank2" | "rank3" | "high" | "mid" | "low" | null {
   if (points <= 0) return null;
   if (rank === 1 || rank === 2 || rank === 3) return `rank${rank}`;

@@ -17,7 +17,7 @@ export async function finalizeEvent(env: Env, id: string, now = Date.now()): Pro
   if (ev.ends_on >= todayJst(now)) return "not_ended";
   if (!ev.badge_name) return "no_badge";
   const { users, excluded } = await computeScores(env, now, eventWindow(ev.starts_on, ev.ends_on));
-  // 順位はランキングと同じ数え方（対象外の ID は順位を付けない。上・中・下は付ける）
+  // 順位はランキングと同じ数え方（対象外の ID は順位を付けない。合わせ賞は付ける）
   const ranked = rank([...users.values()].filter((u) => !excluded.has(u.xId.toLowerCase())), "event");
   const rankOf = new Map(ranked.map((r) => [r.xId.toLowerCase(), r.rank]));
   const tiers = { low: ev.tier_low, mid: ev.tier_mid, high: ev.tier_high };

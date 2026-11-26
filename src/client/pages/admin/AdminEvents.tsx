@@ -107,7 +107,7 @@ export function AdminEvents() {
               <li>イベントの期間中は、トップに「開催中」の枠と進み具合（投稿がある組み合わせの数 / 目標）が出ます。期間の前後は何も出ません。</li>
               <li>今週のキャラは、期間中だけトップに表示され、キャラ選択のカードに「今週」の印が付きます。1 週間ずつ、先の分まで予約しておけます。</li>
               <li>日付は日本時間。開始日の 0 時から、終了日の 23 時 59 分まで表示されます。</li>
-              <li>バッジの名前を入れると、イベント終了の翌日に、1〜3位と、ポイントに応じた上・中・下のバッジが確定します（「確定し直す」で付け直せます）。</li>
+              <li>バッジの名前を入れると、イベント終了の翌日に、1〜3位と、ポイントに応じたナイス・グッド・ベスト合わせ賞のバッジが確定します（「確定し直す」で付け直せます）。</li>
             </ul>
           </details>
 
@@ -126,7 +126,7 @@ export function AdminEvents() {
                   </span>
                   <span>
                     {e.badgeName
-                      ? `バッジ：${e.badgeName}（1〜3位／上 ${e.tiers.high ?? "−"}pt・中 ${e.tiers.mid ?? "−"}pt・下 ${e.tiers.low ?? "−"}pt〜）`
+                      ? `バッジ：${e.badgeName}（1〜3位／ベスト ${e.tiers.high ?? "−"}pt・グッド ${e.tiers.mid ?? "−"}pt・ナイス ${e.tiers.low ?? "−"}pt〜）`
                       : "バッジなし"}
                     {e.finalizedAt && `・確定済み（${e.badgeCount}人）`}
                   </span>
@@ -173,14 +173,14 @@ export function AdminEvents() {
               <input className="inp" id="ev-badge" maxLength={20} placeholder="例：リリース記念イベント" value={bn} onChange={(e) => setBn(e.target.value)} />
             </label>
             <p className="evnote">
-              1〜3位は「{bn.trim() || "（名前）"}1位」などの特別なバッジ。それ以外は、イベントの合わせポイントで「{bn.trim() || "（名前）"} 上・中・下」。イベントが終わった翌日の自動処理で確定し、投稿者のページに残ります。
+              1〜3位は「{bn.trim() || "（名前）"}1位」などの特別なバッジ。それ以外は、イベントの合わせポイントで「{bn.trim() || "（名前）"} ナイス合わせ賞」「グッド合わせ賞」「ベスト合わせ賞」（空の段階は付けません。目安：1・5・15pt）。イベントが終わった翌日の自動処理で確定し、投稿者のページに残ります。
             </p>
             <div className="evdates ev3">
               {(
                 [
-                  ["下", tl, setTl, "ev-tl"],
-                  ["中", tm, setTm, "ev-tm"],
-                  ["上", th, setTh, "ev-th"],
+                  ["ナイス", tl, setTl, "ev-tl"],
+                  ["グッド", tm, setTm, "ev-tm"],
+                  ["ベスト", th, setTh, "ev-th"],
                 ] as const
               ).map(([lb, v, set, id]) => (
                 <label key={id}>

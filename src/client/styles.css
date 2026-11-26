@@ -822,15 +822,25 @@ img.av{object-fit:cover;background:#ddd}
 .pc-mu .dt{margin-left:auto;font-size:11px;color:#999;white-space:nowrap}
 .pc-meta{margin-top:7px;display:flex;gap:5px;flex-wrap:wrap}
 
-/* イベントのバッジ（docs/DECISIONS.md BM）：1〜3 位は金・銀・銅、上・中・下はオレンジの濃さ */
-.pc-evb{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:6px}
-.evb{display:inline-block;font-size:12.5px;font-weight:900;padding:3px 10px;border:2px solid #000;white-space:nowrap;color:#000;background:#fff}
+/* イベントのバッジ（docs/DECISIONS.md BM）：1〜3 位は金・銀・銅（数字を大きく・キラキラ）、合わせ賞はオレンジの濃さと★の数 */
+.pc-evb{display:flex;flex-wrap:wrap;gap:10px 12px;margin:4px 0 6px;padding-top:4px}
+.evb{position:relative;display:inline-flex;align-items:baseline;gap:0;font-size:12.5px;font-weight:900;padding:3px 10px;border:2px solid #000;white-space:nowrap;color:#000;background:#fff;box-shadow:2px 2px 0 #000}
+.evb .n{font-family:"Chakra Petch",sans-serif;font-weight:700;font-size:1.55em;line-height:.8;margin:0 2px}
+.evb .st{margin-right:5px;letter-spacing:-.05em}
 .evb.rank1{background:linear-gradient(90deg,#f2b600,#ffe28a,#f2b600)}
 .evb.rank2{background:linear-gradient(90deg,#b9b9b9,#f1f1f1,#b9b9b9)}
 .evb.rank3{background:linear-gradient(90deg,#c98a5a,#f3c9a5,#c98a5a)}
 .evb.high{background:#ff6a00;color:#fff}
-.evb.mid{background:#ffb27a}
+.evb.high .st{color:#ffe14a}
+.evb.mid{background:#ffd2ad}
+.evb.mid .st{color:#e8400c}
 .evb.low{background:#fff4ea;color:#c94f00;border-color:#ff6a00}
+/* キラキラ（4 方向に光る星） */
+.evb .sp{position:absolute;font-style:normal;line-height:1;color:#fff;-webkit-text-stroke:1px #000;paint-order:stroke fill;pointer-events:none}
+.evb .sp::before{content:"✦"}
+.evb .sp.a{right:-7px;top:-9px;font-size:16px}
+.evb .sp.b{left:-6px;bottom:-7px;font-size:12px}
+.evb .sp.c{right:24%;top:-7px;font-size:10px;color:#fff6b0}
 .pc-sub .evb{font-size:11px;padding:1px 7px;vertical-align:1px}
 .evform .evnote{font-size:12px;color:#666;margin:4px 0 8px;line-height:1.5}
 .evdates.ev3{grid-template-columns:repeat(3,1fr)}

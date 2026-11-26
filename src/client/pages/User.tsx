@@ -4,6 +4,7 @@ import { ATTACK_LABEL, CUE_LABEL } from "../../shared/constants";
 import { BADGES, fmtPoints } from "../../shared/ranking";
 import type { Hero, UserResponse } from "../../shared/types";
 import { Avatar } from "../components/Avatar";
+import { EventBadge } from "../components/EventBadge";
 import { Header } from "../components/Header";
 import { useApi } from "../lib/api";
 import { useData } from "../lib/data";
@@ -106,7 +107,7 @@ export function User() {
                   {data.event.rank && <>（{data.event.rank}位）</>}
                   {data.event.badge && (
                     <>
-                      {" "}今の段階 <span className={`evb ${data.event.badge.kind}`}>{data.event.badge.label}</span>
+                      {" "}今の段階 <EventBadge label={data.event.badge.label} kind={data.event.badge.kind} />
                     </>
                   )}
                 </>
@@ -160,10 +161,7 @@ export function User() {
               <div className="sec">イベントバッジ</div>
               <div className="pc-evb">
                 {data.eventBadges.map((b) => (
-                  <span key={b.eventName + b.endsOn} className={`evb ${b.kind}`} title={b.eventName}>
-                    {b.kind.startsWith("rank") ? "👑 " : "★ "}
-                    {b.label}
-                  </span>
+                  <EventBadge key={b.eventName + b.endsOn} label={b.label} kind={b.kind} title={b.eventName} />
                 ))}
               </div>
             </>
