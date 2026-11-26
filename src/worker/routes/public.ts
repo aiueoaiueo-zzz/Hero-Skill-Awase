@@ -183,7 +183,7 @@ publicRoutes.get("/users/:xid", async (c) => {
     rankTotal: r.view.total ? (r.total.find((x) => x.xId.toLowerCase() === k)?.rank ?? null) : null,
     rankMonth: r.view.month ? (r.month.find((x) => x.xId.toLowerCase() === k)?.rank ?? null) : null,
     rankingActive: active,
-    event: r.event ? { name: r.event.info.name, points: u?.event ?? 0, rank: evRank, badge: nowBadge(r.event.info, u?.event ?? 0, excluded ? null : (r.event.rows.find((x) => x.xId.toLowerCase() === k)?.rank ?? null)) } : null,
+    event: r.event ? { name: r.event.info.name, badgeName: r.event.info.badgeName, tiers: r.event.info.tiers, points: u?.event ?? 0, rank: evRank, badge: nowBadge(r.event.info, u?.event ?? 0, excluded ? null : (r.event.rows.find((x) => x.xId.toLowerCase() === k)?.rank ?? null)) } : null,
     eventBadges,
     showMonth: r.show.month,
     excluded,

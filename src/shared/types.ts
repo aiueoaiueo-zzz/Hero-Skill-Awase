@@ -122,7 +122,16 @@ export type UserResponse = {
   rankTotal: number | null;
   rankMonth: number | null;
   /** イベント期間中のポイントと順位（イベント期間外は null） */
-  event: { name: string; points: number; rank: number | null; /** 今の段階で付くバッジ（バッジの設定があるときだけ） */ badge: { label: string; kind: EventBadgeKind } | null } | null;
+  event: {
+    name: string;
+    points: number;
+    rank: number | null;
+    /** 今の段階で付くバッジ（バッジの設定があるときだけ） */
+    badge: { label: string; kind: EventBadgeKind } | null;
+    /** 合わせ賞の段階（投稿者ページのゲージ用。docs/DECISIONS.md BN） */
+    badgeName: string | null;
+    tiers: { low: number | null; mid: number | null; high: number | null };
+  } | null;
   /** 確定したイベントのバッジ（新しい順） */
   eventBadges: EventBadge[];
   /** 今月のランキングを公開しているか */

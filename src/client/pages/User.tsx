@@ -1,7 +1,7 @@
 import { useLayoutEffect, useRef } from "react";
 import { Link, useParams } from "react-router";
 import { ATTACK_LABEL, CUE_LABEL } from "../../shared/constants";
-import { BADGES, fmtPoints } from "../../shared/ranking";
+import { BADGES, EVENT_TIER_LABEL, EVENT_TIER_STARS, fmtPoints } from "../../shared/ranking";
 import type { Hero, UserResponse } from "../../shared/types";
 import { Avatar } from "../components/Avatar";
 import { EventBadge } from "../components/EventBadge";
@@ -33,6 +33,13 @@ export function User() {
   const fixes = (data?.timings.length ?? 0) - posts;
   const since = (data?.timings ?? []).map((t) => t.at).sort()[0];
   const bi = data?.badge ? BADGES.findIndex((b) => b.name === data.badge) : -1;
+  // イベント期間中は、ポイント・順位・バッジのゲージをイベントのものに切り替える（docs/DECISIONS.md BN）
+  const ev = data?.event ?? null;
+  const evTiers = ev?.badgeName
+    ? (["low", "mid", "high"] as const).filter((k) => ev.tiers[k] != null).map((k) => ({ kind: k, name: EVENT_TIER_LABEL[k], min: ev.tiers[k]!, stars: EVENT_TIER_STARS[k] }))
+    : [];
+  const ei = ev ? evTiers.reduce((n, t, i) => (ev.points >= t.min ? i : n), -1) : -1;
+  const evRankNow = ev?.badge?.kind.startsWith("rank") ? Number(ev.badge.kind.slice(4)) : null;
   const pageUrl = `${publicAppUrl.replace(/\/+$/, "")}/u/${encodeURIComponent(data?.xId ?? xid)}`;
 
   // 長い X の ID は、カードからはみ出さない大きさまで縮める
@@ -76,17 +83,17 @@ export function User() {
             <div className="pc-stats">
               <div>
                 <b>
-                  {fmtPoints(data.total)}
+                  {fmtPoints(ev ? ev.points : data.total)}
                   <small>pt</small>
                 </b>
-                <span>合わせポイント</span>
+                <span>{ev ? "イベントポイント" : "合わせポイント"}</span>
               </div>
               <div className="mid">
                 <b>
-                  {data.rankTotal ?? "−"}
-                  {data.rankTotal && <small>位</small>}
+                  {(ev ? ev.rank : data.rankTotal) ?? "−"}
+                  {(ev ? ev.rank : data.rankTotal) && <small>位</small>}
                 </b>
-                <span>累計ランキング</span>
+                <span>{ev ? "イベントランキング" : "累計ランキング"}</span>
               </div>
               <div>
                 <b>
@@ -103,8 +110,7 @@ export function User() {
             <div className="pc-sub">
               {data.event ? (
                 <>
-                  {data.event.name}：<b>{fmtPoints(data.event.points)}pt</b>
-                  {data.event.rank && <>（{data.event.rank}位）</>}
+                  <b>開催中</b>：{data.event.name}（累計 {fmtPoints(data.total)}pt{data.rankTotal ? `・${data.rankTotal}位` : ""}）
                   {data.event.badge && (
                     <>
                       {" "}今の段階 <EventBadge label={data.event.badge.label} kind={data.event.badge.kind} />
@@ -141,6 +147,28 @@ export function User() {
               </button>
             )}
           </div>
+          {ev && evTiers.length > 0 ? (
+            <div className={`pc-ladder ev ${ei === evTiers.length - 1 ? "max" : ""}`}>
+              <div className="ttl">
+                <span>イベントバッジ</span>
+                <small>
+                  {evRankNow
+                    ? `今は ${evRankNow}位！ 上位 3人は特別なバッジ`
+                    : ei === evTiers.length - 1
+                      ? `「${evTiers[ei].name}」到達！`
+                      : `次は「${evTiers[ei + 1].name}」（${fmtPoints(evTiers[ei + 1].min)}pt）`}
+                </small>
+              </div>
+              <div className="steps">
+                {evTiers.map((t, i) => (
+                  <div key={t.kind} className={`${i <= ei ? "on" : ""} ${i === ei ? "now" : ""}`}>
+                    <i />
+                    {"★".repeat(t.stars)} {t.name}
+                  </div>
+                ))}
+              </div>
+            </div>
+          ) : (
           <div className={`pc-ladder ${bi === BADGES.length - 1 ? "max" : ""}`}>
             <div className="ttl">
               <span>バッジ</span>
@@ -155,10 +183,11 @@ export function User() {
               ))}
             </div>
           </div>
+          )}
           {/* イベントで確定したバッジ（docs/DECISIONS.md BM） */}
           {data.eventBadges.length > 0 && (
             <>
-              <div className="sec">イベントバッジ</div>
+              <div className="sec">獲得したイベントバッジ</div>
               <div className="pc-evb">
                 {data.eventBadges.map((b) => (
                   <EventBadge key={b.eventName + b.endsOn} label={b.label} kind={b.kind} title={b.eventName} />
