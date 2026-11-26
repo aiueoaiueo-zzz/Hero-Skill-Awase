@@ -121,10 +121,16 @@ export function User() {
               onClick={() =>
                 openShare({
                   title: `#${data.xId} の投稿者ページ｜ヒロアプ`,
-                  // イベント期間中は、名刺と同じくイベントのポイントと順位（docs/DECISIONS.md BN）
-                  text: ev
-                    ? `#${data.xId} の HS合わせ\n${ev.name}：${fmtPoints(ev.points)}pt${ev.rank ? `・${ev.rank}位` : ""}\n\n#ヒロアプ #HS合わせ #コンパス`
-                    : `#${data.xId} の HS合わせ\n合わせポイント ${fmtPoints(data.total)}pt${data.rankTotal ? `・累計 ${data.rankTotal}位` : ""}${data.badge ? `・${data.badge}` : ""}\n\n#ヒロアプ #HS合わせ #コンパス`,
+                  // 自慢・紹介の文（ポイントや順位は入れない。docs/DECISIONS.md BN）
+                  text: [
+                    `#${data.xId} の HS合わせ投稿者ページ✨`,
+                    `これまでに ${data.timings.length}件の合わせを投稿！`,
+                    heroes[0] ? `マイヒーロー：${heroes[0].h.name}` : "",
+                    data.eventBadges[0] ? `🏅 ${data.eventBadges[0].label}` : "",
+                    ev && ev.points > 0 ? `🎉 ${ev.name}に参加中！` : "",
+                  ]
+                    .filter(Boolean)
+                    .join("\n") + "\n\n#ヒロアプ #HS合わせ #コンパス",
                   url: pageUrl,
                 })
               }

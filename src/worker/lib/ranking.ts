@@ -1,4 +1,4 @@
-import { eventBadgeLabel, FEATURED_BONUS, POINTS, RANKING_MIN_USERS, RANKING_TOP, badgeFor, isXId, jstMonthStart, normalizeXId } from "../../shared/ranking";
+import { EVENT_TIER_LABEL, eventBadgeKind, FEATURED_BONUS, POINTS, RANKING_MIN_USERS, RANKING_TOP, badgeFor, isXId, jstMonthStart, normalizeXId } from "../../shared/ranking";
 import type { RankingResponse } from "../../shared/types";
 import type { Env } from "../env";
 import { currentEvent, todayJst } from "./events";
@@ -127,8 +127,12 @@ export async function rankingSummary(env: Env, now = Date.now()) {
   const all = [...users.values()].filter((u) => !excluded.has(u.xId.toLowerCase()));
   const total = rank(all, "total");
   const month = rank(all, "month");
-  // イベントランキングの 1〜3 位は、バッジの欄をイベント限定バッジ（「名前1位」など）にする（docs/DECISIONS.md BM）
-  const ev = rank(all, "event").map((r) => (event?.badgeName && r.rank <= 3 ? { ...r, badge: eventBadgeLabel(event.badgeName, `rank${r.rank}` as "rank1") } : r));
+  // イベントランキングのバッジの欄は、合わせ賞（ナイス・グッド・ベスト）だけにする。順位のバッジや累計のバッジは出さない（docs/DECISIONS.md BM）
+  const ev = rank(all, "event").map((r): RankRow => {
+    if (!event?.badgeName) return r;
+    const kind = eventBadgeKind(null, r.points, event.tiers);
+    return kind === "high" || kind === "mid" || kind === "low" ? { ...r, badge: EVENT_TIER_LABEL[kind], badgeKind: kind } : { ...r, badge: null };
+  });
   const top = (rows: RankRow[]) => (rows.length >= RANKING_MIN_USERS ? rows.slice(0, RANKING_TOP) : null);
   const view: RankingResponse = {
     minUsers: RANKING_MIN_USERS,

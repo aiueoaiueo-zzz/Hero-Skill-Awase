@@ -848,3 +848,7 @@ img.av{object-fit:cover;background:#ddd}
 .pc-ladder.ev .steps div{font-size:10.5px}
 .pc-ladder.ev .ttl{align-items:baseline;flex-wrap:wrap}
 .pc-ladder.ev .ttl span{min-width:0}
+/* ランキングの中の合わせ賞（小さめ） */
+.ranklist .evb,.podium .evb{font-size:10.5px;padding:1px 6px;box-shadow:none;margin-left:6px}
+.podium .evb{margin:3px 0 0}
+.ranklist .evb .st,.podium .evb .st{margin-right:3px}

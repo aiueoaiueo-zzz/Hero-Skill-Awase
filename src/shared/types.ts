@@ -91,7 +91,15 @@ export type PublicEvent = EventInfo & { filled: number };
 export type FeaturedHero = { id: string; heroId: string; startsOn: string; endsOn: string };
 
 /** hero：その期間の集計対象の投稿で、攻撃側にいちばん多く選んだキャラの ID（同じ数ならあとで承認されたほう。docs/DECISIONS.md AY） */
-export type RankRow = { rank: number; xId: string; points: number; badge: string | null; hero: string | null };
+export type RankRow = {
+  rank: number;
+  xId: string;
+  points: number;
+  badge: string | null;
+  hero: string | null;
+  /** イベントランキングだけ：合わせ賞の段階（badge は賞の名前。docs/DECISIONS.md BM） */
+  badgeKind?: "high" | "mid" | "low";
+};
 export type RankingResponse = {
   minUsers: number;
   /** "event"：イベント期間中（イベントランキングだけ）／"normal"：それ以外（公開にしたものだけ） */
