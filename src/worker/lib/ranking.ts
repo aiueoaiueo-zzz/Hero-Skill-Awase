@@ -7,7 +7,9 @@ import { getSettings } from "./settings";
 // ランキングの集計。投稿は多くないので、毎回データベースから数え直す（保存した集計とずれない）
 
 type HeroCount = Map<string, { n: number; at: string }>;
-export type UserScore = { xId: string; total: number; month: number; event: number; totalAt: string; monthAt: string; eventAt: string; heroes: { total: HeroCount; month: HeroCount; event: HeroCount } };
+export type UserScore = { xId: string; total: number; month: number; event: number; totalAt: string; monthAt: string; eventAt: string; heroes: { total: HeroCount; month: HeroCount; event: HeroCount };
+  /** 修正提案で直した合わせの攻撃側のキャラ（投稿がない人のアイコンに使う。docs/DECISIONS.md BT） */
+  fixHeroes: { total: HeroCount; month: HeroCount; event: HeroCount } };
 /** イベントの期間（日本時間の開始日 0 時〜終了日の翌日 0 時の UTC ミリ秒） */
 export type Window = { start: number; end: number };
 const JST = 9 * 3600_000;
@@ -45,11 +47,11 @@ export async function computeScores(env: Env, now = Date.now(), win: Window | nu
     // 2. 承認された修正提案（修正した人に 0.5。元のタイミングが公開中のものだけ）
     db
       .prepare(
-        `SELECT fs.nickname AS x, f.reviewed_at AS at
+        `SELECT fs.nickname AS x, f.reviewed_at AS at, t.attacker_id AS a
            FROM timings f JOIN submissions fs ON fs.id = f.submission_id JOIN timings t ON t.id = fs.replaces_timing_id
           WHERE f.status = 'merged' AND t.status = 'approved' AND t.hidden = 0 AND f.reviewed_at IS NOT NULL`,
       )
-      .all<{ x: string | null; at: string }>(),
+      .all<{ x: string | null; at: string; a: string }>(),
     // 3. 今週のキャラ（イベントのポイントの加点に使う。イベントが無いときは読まない）
     win
       ? db.prepare("SELECT hero_id AS h, starts_on AS s, ends_on AS e FROM featured_heroes").all<{ h: string; s: string; e: string }>()
@@ -62,26 +64,27 @@ export async function computeScores(env: Env, now = Date.now(), win: Window | nu
   };
   const monthStart = jstMonthStart(now);
   const users = new Map<string, UserScore>();
-  const add = (raw: string | null, at: string, pt: number, hero?: string, eventBonus = 0) => {
+  const add = (raw: string | null, at: string, pt: number, hero?: string, eventBonus = 0, isFix = false) => {
     // 古い投稿で @ 付きのまま保存された ID も同じ人として数える
     const x = normalizeXId(raw);
     if (!isXId(x)) return;
     const k = x.toLowerCase();
-    const u = users.get(k) ?? { xId: x, total: 0, month: 0, event: 0, totalAt: "", monthAt: "", eventAt: "", heroes: { total: new Map(), month: new Map(), event: new Map() } };
+    const u = users.get(k) ?? { xId: x, total: 0, month: 0, event: 0, totalAt: "", monthAt: "", eventAt: "", heroes: { total: new Map(), month: new Map(), event: new Map() }, fixHeroes: { total: new Map(), month: new Map(), event: new Map() } };
+    const hs = isFix ? u.fixHeroes : u.heroes;
     // 攻撃側のキャラを数える（投稿だけ。修正提案は数えない）
     const count = (m: HeroCount) => { if (!hero) return; const c = m.get(hero) ?? { n: 0, at: "" }; c.n++; if (at > c.at) c.at = at; m.set(hero, c); };
-    count(u.heroes.total);
+    count(hs.total);
     u.total += pt;
     if (at > u.totalAt) u.totalAt = at;
     if (Date.parse(at) >= monthStart) {
       u.month += pt;
-      count(u.heroes.month);
+      count(hs.month);
       if (at > u.monthAt) u.monthAt = at;
     }
     // イベント期間中に承認されたもの（ポイントの付け方は累計と同じ）
     if (win && Date.parse(at) >= win.start && Date.parse(at) < win.end) {
       u.event += pt + eventBonus;
-      count(u.heroes.event);
+      count(hs.event);
       if (at > u.eventAt) u.eventAt = at;
     }
     users.set(k, u);
@@ -94,7 +97,7 @@ export async function computeScores(env: Env, now = Date.now(), win: Window | nu
     seen.add(key);
     add(p.x, p.at, (p.fixed ? POINTS.postFixed : POINTS.post) + (first ? POINTS.firstPair : 0), p.a, isFeatured(p.posted, p.a, p.t) ? FEATURED_BONUS : 0);
   }
-  for (const f of fixes.results) add(f.x, f.at, POINTS.fix);
+  for (const f of fixes.results) add(f.x, f.at, POINTS.fix, f.a, 0, true);
   return { users, excluded };
 }
 
@@ -107,13 +110,17 @@ const topHero = (m: HeroCount): string | null => {
   return best;
 };
 
+/** アイコンのキャラ：その期間の投稿 → その期間の修正提案 → 全期間の投稿 → 全期間の修正提案の順で、いちばん多いキャラ（docs/DECISIONS.md BT） */
+const iconHero = (u: UserScore, key: "total" | "month" | "event") =>
+  topHero(u.heroes[key]) ?? topHero(u.fixHeroes[key]) ?? topHero(u.heroes.total) ?? topHero(u.fixHeroes.total);
+
 /** ポイントの多い順。同じポイントなら、先にそのポイントに届いた人が上 */
 export function rank(users: UserScore[], key: "total" | "month" | "event"): RankRow[] {
   const at = key === "total" ? "totalAt" : key === "month" ? "monthAt" : "eventAt";
   return users
     .filter((u) => u[key] > 0)
     .sort((a, b) => b[key] - a[key] || a[at].localeCompare(b[at]))
-    .map((u, i) => ({ rank: i + 1, xId: u.xId, points: u[key], badge: badgeFor(u.total), hero: topHero(u.heroes[key]) }));
+    .map((u, i) => ({ rank: i + 1, xId: u.xId, points: u[key], badge: badgeFor(u.total), hero: iconHero(u, key) }));
 }
 
 export async function rankingSummary(env: Env, now = Date.now()) {
